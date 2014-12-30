@@ -68,7 +68,6 @@ class UpnpMediaRenderer(object):
     <s:Body>
         <u:Stop xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
             <InstanceID>0</InstanceID>
-            <Speed>1</Speed>
         </u:Stop>
     </s:Body>
 </s:Envelope>"""
@@ -78,7 +77,6 @@ class UpnpMediaRenderer(object):
     <s:Body>
         <u:Pause xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
             <InstanceID>0</InstanceID>
-            <Speed>1</Speed>
         </u:Pause>
     </s:Body>
 </s:Envelope>"""
