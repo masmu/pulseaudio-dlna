@@ -62,12 +62,12 @@ favorite editor and append the following line:
 
 After that, you can start _pulseaudio-dlna_ via:
 
-    ./pulseaudio-dlna.py --host <your-ip>
+    ./pulseaudio_dlna.py --host <your-ip>
 
 It should start searching for UPNP devices in your LAN and add new PulseAudio
 sinks.
 After that you can switch your playback streams via `pavucontrol` to be played
-to a UPNP device.
+to an UPNP device.
 
 You can install `pavucontrol` in Ubuntu via the following command:
 
@@ -85,8 +85,8 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulse-dlna.py --host <host> [--port <port>] [--encoder <encoder>]
-        pulse-dlna.py [-h | --help | --version]
+        pulseaudio_dlna.py --host <host> [--port <port>] [--encoder <encoder>]
+        pulseaudio_dlna.py [-h | --help | --version]
 
     Options:
            --host=<host>        set the server ip.
@@ -102,11 +102,12 @@ _pulseaudio-dlna_.
         --debug                 enable debugging.
 
 Samples:
-- `pulse-dlna.py --host 192.168.1.2 --encoder ogg` will start _pulse-dlna.py_
-on port _8080_ and stream your PulseAudio streams encoded with _Ogg Vorbis_.
-- `pulse-dlna.py --host 192.168.1.2 --port 10291 --encoder lame` will start 
-_pulse-dlna.py_ on port _10291_ and stream your PulseAudio streams encoded
+- `pulseaudio_dlna.py --host 192.168.1.2 --encoder ogg` will start 
+_pulseaudio_dlna.py_ on port _8080_ and stream your PulseAudio streams encoded
 with _Ogg Vorbis_.
+- `pulseaudio_dlna.py --host 192.168.1.2 --port 10291 --encoder lame` will start 
+_pulse-dlna.py_ on port _10291_ and stream your PulseAudio streams encoded
+with _mp3_.
 
 ## Tested devices ##
 
@@ -118,7 +119,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 
 ## Supported encoders ##
 
-_pulseaudio-dlna_ supports the follwing encoders:
+_pulseaudio-dlna_ supports the following encoders:
 
 - __lame__  MPEG Audio Layer III (MP3)
 - __ogg__   Ogg Vorbis
