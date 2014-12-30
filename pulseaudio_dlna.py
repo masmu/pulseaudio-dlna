@@ -49,7 +49,7 @@ import pulseaudio
 
 def main():
     logging.basicConfig(level=logging.INFO)
-    options = docopt.docopt(__doc__, version='0.1')
+    options = docopt.docopt(__doc__, version='0.2')
 
     if not options['--host']:
         print('You must specify host address!')
