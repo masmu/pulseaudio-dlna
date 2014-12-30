@@ -28,8 +28,7 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         try:
             BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args)
         except IOError as e:
-            if e.errno == errno.EPIPE:
-                logging.info('stream closed.')
+            pass
 
     def do_HEAD(self):
         self.send_response(200)
@@ -38,28 +37,55 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_GET(self):
         self.do_HEAD()
+        bridge = self.get_bridge(self.path)
+        if bridge is None:
+            logging.info('error 404: file not found "{}"'.format(self.path))
+            self.send_error(404, 'file not found: %s' % self.path)
+        else:
+            logging.info('starting sending stream to "{}"'.format(
+                bridge.upnp_device.name))
+            recorder_process, encoder_process = self.create_processes(bridge)
+            while True:
+                stream_data = encoder_process.stdout.read(1024)
+                if recorder_process.poll() != None or \
+                   encoder_process.poll() != None:
+                    self.cleanup_process(recorder_process)
+                    self.cleanup_process(encoder_process)
+                    recorder_process, encoder_process = self.create_processes(
+                        bridge)
+                try:
+                    self.wfile.write(stream_data)
+                except IOError as e:
+                    if e.errno == errno.EPIPE:
+                        logging.info('stream closed. '
+                                     'cleaning up remaining procecces')
+                        self.cleanup_process(recorder_process)
+                        self.cleanup_process(encoder_process)
+                        break
+
+    def create_processes(self, bridge):
+        recorder_process = subprocess.Popen(
+            self.server.recorder_cmd.format(
+                bridge.sink.monitor).split(' '),
+            stdout=subprocess.PIPE)
+        encoder_process = subprocess.Popen(
+            self.server.encoder_cmd.split(' '),
+            stdin=recorder_process.stdout,
+            stdout=subprocess.PIPE)
+        recorder_process.stdout.close()
+        return recorder_process, encoder_process
+
+    def cleanup_process(self, process):
+        try:
+            process.kill()
+        except:
+            pass
+
+    def get_bridge(self, path):
         for bridge in self.server.bridges:
             if self.path == bridge.upnp_device.stream_name:
-                logging.info('starting sending stream to "{}"'.format(
-                    bridge.upnp_device.name))
-                recorder_process = subprocess.Popen(
-                    self.server.recorder_cmd.format(
-                        bridge.sink.monitor).split(' '),
-                    stdout=subprocess.PIPE)
-                encoder_process = subprocess.Popen(
-                    self.server.encoder_cmd.split(' '),
-                    stdin=recorder_process.stdout,
-                    stdout=subprocess.PIPE)
-                recorder_process.stdout.close()
-                while True:
-                    stream_data = encoder_process.stdout.read(1024)
-                    if len(stream_data) == 0:
-                        break
-                    self.wfile.write(stream_data)
-                return
-        logging.info('error 404: file not found "{}"'.format(self.path))
-        self.send_error(404, 'file not found: %s' % self.path)
-
+                return bridge
+        return None
 
 class DlnaServer(SocketServer.TCPServer):
 
