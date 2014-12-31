@@ -107,10 +107,10 @@ _pulseaudio-dlna_.
 
 Samples:
 - `pulseaudio_dlna.py --host 192.168.1.2 --encoder ogg` will start 
-_pulseaudio_dlna.py_ on port _8080_ and stream your PulseAudio streams encoded
+_pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _Ogg Vorbis_.
 - `pulseaudio_dlna.py --host 192.168.1.2 --port 10291 --encoder lame` will start 
-_pulse-dlna.py_ on port _10291_ and stream your PulseAudio streams encoded
+_pulseaudio-dlna_ on port _10291_ and stream your PulseAudio streams encoded
 with _mp3_.
 
 ## Tested devices ##
