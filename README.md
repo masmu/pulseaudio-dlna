@@ -42,6 +42,7 @@ is loaded.
 - python-dbus
 - python-beautifulsoup
 - python-docopt
+- python-requests
 - vorbis-tools
 - sox
 - lame
@@ -49,7 +50,7 @@ is loaded.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python-dbus python-beautifulsoup python-docopt vorbis-tools sox lame flac
+    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests vorbis-tools sox lame flac
 
 ### PulseAudio DBus module ###
 
@@ -70,8 +71,11 @@ After that, you can start _pulseaudio-dlna_ via:
 
 It should start searching for UPNP devices in your LAN and add new PulseAudio
 sinks.
-After that you can switch your playback streams via `pavucontrol` to be played
-to an UPNP device.
+After that you can select your UPNP renderers from the default audio
+control.
+
+In case you just want to stream single audio streams to your UPNP devices you
+can do this via `pavucontrol`.
 
 You can install `pavucontrol` in Ubuntu via the following command:
 
@@ -103,7 +107,6 @@ _pulseaudio-dlna_.
                                   - wav   Waveform Audio File Format (WAV)
         -v --version            show the version.
         -h --help               show the help.
-        --debug                 enable debugging.
 
 Samples:
 - `pulseaudio_dlna.py --host 192.168.1.2 --encoder ogg` will start 
@@ -120,6 +123,8 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - D-Link DCH-M225/E
 - Cocy UNPNP media render (https://github.com/mnlipp/CoCy)
 - BubbleUPnP (Android App)
+- Samsung Smart TV LED60 (UE60F6300)
+- Samsung Smart TV LED40 (UE40ES6100)
 
 ## Supported encoders ##
 
