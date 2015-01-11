@@ -34,7 +34,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __0.2.1__ - (_2015-01-15_)
+ * __0.2.1__ - (_2015-01-11_)
     - TTL changed to 10 and timeout to 5 for UDP broadcasting
     - Added the ```--renderer-urls``` option to manually add UPNP devices via their control url
     - Added the ```--debug``` flag
