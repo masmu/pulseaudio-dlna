@@ -20,6 +20,7 @@ import cgi
 import requests
 import urlparse
 import socket
+import logging
 import functools
 import BeautifulSoup
 import pulseaudio
@@ -114,6 +115,19 @@ class UpnpMediaRenderer(object):
         )
         return urlparse.urljoin(host, control_url)
 
+    def _debug(self, action, url, headers, data, response):
+        logging.debug(
+            'sending {action} to {url}:\n'
+            ' - headers:\n{headers}\n'
+            ' - data:\n{data}'
+            ' - result: {status_code}\n{result}'.format(
+                action=action.upper(),
+                url=url,
+                headers=headers,
+                data=data,
+                status_code=response.status_code,
+                result=response.text.encode('utf-8')))
+
     def register(self, stream_url):
         url = self._get_av_transport_url()
         headers = {
@@ -132,6 +146,7 @@ class UpnpMediaRenderer(object):
             current_url_metadata=cgi.escape(metadata),
         )
         response = requests.post(url, data=data, headers=headers)
+        self._debug('register', url, headers, data, response)
         return response.status_code
 
     def play(self):
@@ -143,6 +158,7 @@ class UpnpMediaRenderer(object):
         response = requests.post(url, data=self.PLAY_XML, headers=headers)
         if response.status_code == 200:
             self.state = self.PLAYING
+        self._debug('play', url, headers, self.PLAY_XML, response)
         return response.status_code
 
     def stop(self):
@@ -154,6 +170,7 @@ class UpnpMediaRenderer(object):
         response = requests.post(url, data=self.STOP_XML, headers=headers)
         if response.status_code == 200:
             self.state = self.IDLE
+        self._debug('stop', url, headers, self.STOP_XML, response)
         return response.status_code
 
     def pause(self):
@@ -165,6 +182,7 @@ class UpnpMediaRenderer(object):
         response = requests.post(url, data=self.PAUSE_XML, headers=headers)
         if response.status_code == 200:
             self.state = self.PAUSE
+        self._debug('pause', url, headers, self.PAUSE_XML, response)
         return response.status_code
 
     def __eq__(self, other):
@@ -199,6 +217,9 @@ class CoinedUpnpMediaRenderer(UpnpMediaRenderer):
             stream_name=self.short_name,
         )
         self.stream_url = urlparse.urljoin(self.server_url, self.stream_name)
+        logging.debug('setting stream url for {device_name} to "{url}"'.format(
+            device_name=self.name,
+            url=self.stream_url))
 
     def register(self):
         return UpnpMediaRenderer.register(self, self.stream_url)
@@ -212,17 +233,24 @@ class CoinedUpnpMediaRenderer(UpnpMediaRenderer):
 
 
 class UpnpMediaRendererFactory(object):
+
     @classmethod
-    def from_header(self, header, type_=UpnpMediaRenderer):
-        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", header)
-        header = {k.lower(): v for k, v in dict(header).items()}
-        if header['location']:
-            location = header['location']
-            url_object = urlparse.urlparse(location)
-            ip, port = url_object.netloc.split(':')
-            response = requests.get(location)
-            soup = BeautifulSoup.BeautifulSoup(response.text)
-            services = []
+    def from_url(self, url, type_=UpnpMediaRenderer):
+        try:
+            response = requests.get(url)
+            logging.debug('Response from upnp device ({url})\n'
+                          '{response}'.format(
+                            url=url, response=response.text.encode('utf-8')))
+        except requests.exceptions.ConnectionError:
+            logging.info(
+                'Could no connect to {url}. '
+                'Connection refused.'.format(url=url))
+            return None
+        soup = BeautifulSoup.BeautifulSoup(response.text.encode('utf-8'))
+        url_object = urlparse.urlparse(url)
+        ip, port = url_object.netloc.split(':')
+        services = []
+        try:
             for service in soup.root.device.servicelist.findAll('service'):
                 service = {
                     'service_type': service.servicetype.text,
@@ -239,3 +267,14 @@ class UpnpMediaRendererFactory(object):
                 soup.root.device.udn.text,
                 services)
             return upnp_device
+        except AttributeError:
+            logging.info(
+                'No valid XML returned from {url}.'.format(url=url))
+            return None
+
+    @classmethod
+    def from_header(self, header, type_=UpnpMediaRenderer):
+        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", header)
+        header = {k.lower(): v for k, v in dict(header).items()}
+        if header['location']:
+            return self.from_url(header['location'], type_)

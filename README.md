@@ -32,6 +32,14 @@ big dependencies.
 ![Image of pulseaudio-dlna](http://maemo.lancode.de/.webdir/donate.gif)
 If I could help you or if you like my work, you can buy me a [coffee, a beer or pizza](https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=totalexceed%40lancode%2ede&item_name=Donation&no_shipping=2&no_note=1&tax=0&currency_code=EUR&bn=PP%2dDonationsBF&charset=UTF%2d8).
 
+## Changelog ##
+
+ * __0.2.1__ - (_2015-01-15_)
+    - TTL changed to 10 and timeout to 5 for UDP broadcasting
+    - Added the ```--renderer-urls``` option to manually add UPNP devices via their control url
+    - Added the ```--debug``` flag
+    - The host ip address is now discovered automatically, no need to specifiy ```--host``` anymore
+
 ## Installation ##
 
 There is no special installation required. Just clone this git repository,
@@ -54,7 +62,8 @@ You can install all the dependencies in Ubuntu via:
 
 ### PulseAudio DBus module ###
 
-You can do that via:
+You can load the DBus module in Ubuntu via the following command. Note that you 
+have to do this every time you restart PulseAudio (or your computer).
 
     pacmd load-module module-dbus-protocol
 
@@ -67,12 +76,16 @@ favorite editor and append the following line:
 
 After that, you can start _pulseaudio-dlna_ via:
 
-    ./pulseaudio_dlna.py --host <your-ip>
+    ./pulseaudio_dlna.py
 
-It should start searching for UPNP devices in your LAN and add new PulseAudio
-sinks.
-After that you can select your UPNP renderers from the default audio
-control.
+_pulseaudio-dlna_ should detect the ip address your computer is reachable within
+your local area network. If the detected ip address is not correct or there
+were no ips found, you still can specifiy them yourself via: ```./pulseaudio_dlna.py --host <your-ip>```
+
+Right after startup it should start searching for UPNP devices in your LAN and
+add new PulseAudio sinks.
+After 5 seconds the progress is complete and you can select your UPNP renderers
+from the default audio control.
 
 In case you just want to stream single audio streams to your UPNP devices you
 can do this via `pavucontrol`.
@@ -93,7 +106,7 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio_dlna.py --host <host> [--port <port>] [--encoder <encoder>]
+        pulseaudio_dlna.py --host <host> [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>]
         pulseaudio_dlna.py [-h | --help | --version]
 
     Options:
@@ -105,6 +118,7 @@ _pulseaudio-dlna_.
                                   - ogg   Ogg Vorbis
                                   - flac  Free Lossless Audio Codec (FLAC)
                                   - wav   Waveform Audio File Format (WAV)
+        --renderer-urls=<urls>  set the renderer urls yourself. no discovery will commence.
         -v --version            show the version.
         -h --help               show the help.
 
@@ -115,13 +129,19 @@ with _Ogg Vorbis_.
 - `pulseaudio_dlna.py --host 192.168.1.2 --port 10291 --encoder lame` will start 
 _pulseaudio-dlna_ on port _10291_ and stream your PulseAudio streams encoded
 with _mp3_.
+- `pulseaudio_dlna.py --host 192.168.1.2 --renderer-urls http://192.168.1.7:7676/smp_10_`
+won't discover upnp devices by itself. Instead it will search for upnp renderers
+at the specified locations. You can specify multiple locations via urls
+seperated by comma (_,_). Most users won't ever need this option, but since
+UDP multicast packages won't work (most times) over VPN connections this is
+very useful if you ever plan to stream to a UPNP device over VPN.
 
 ## Tested devices ##
 
 _pulseaudio-dlna_ was successfully tested on the follwing devices / applications:
 
 - D-Link DCH-M225/E
-- Cocy UNPNP media render (https://github.com/mnlipp/CoCy)
+- Cocy UPNP media renderer (https://github.com/mnlipp/CoCy)
 - BubbleUPnP (Android App)
 - Samsung Smart TV LED60 (UE60F6300)
 - Samsung Smart TV LED40 (UE40ES6100)

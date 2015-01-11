@@ -18,7 +18,7 @@
 import socket as s
 import renderer
 import contextlib
-
+import logging
 
 class UpnpMediaRendererDiscover(object):
 
@@ -35,7 +35,7 @@ class UpnpMediaRendererDiscover(object):
         self.iface = iface
         self.renderers = []
 
-    def search(self, ttl=2, timeout=2):
+    def search(self, ttl=10, timeout=5):
         s.setdefaulttimeout(timeout)
         sock = s.socket(s.AF_INET, s.SOCK_DGRAM, s.IPPROTO_UDP)
         sock.setsockopt(s.IPPROTO_IP, s.IP_MULTICAST_TTL, ttl)
@@ -54,5 +54,6 @@ class UpnpMediaRendererDiscover(object):
         upnp_device = renderer.UpnpMediaRendererFactory.from_header(
             header,
             renderer.CoinedUpnpMediaRenderer)
-        if upnp_device not in self.renderers:
+        if upnp_device != None and upnp_device not in self.renderers:
+            logging.info('found upnp_device "{}"'.format(upnp_device))
             self.renderers.append(upnp_device)
