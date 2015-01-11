@@ -41,6 +41,7 @@ import dbus.mainloop.glib
 import multiprocessing
 import logging
 import sys
+import signal
 
 import docopt
 import upnp.discover
@@ -50,70 +51,85 @@ import pulseaudio
 import utils.network
 
 
-def main():
-    options = docopt.docopt(__doc__, version='0.2.1')
+class PulseAudioDLNA(object):
+    def __init__(self):
+        self.dlna_server = None
+        self.pulse = None
+        self.renderers = []
 
-    if not options['--debug']:
-        logging.basicConfig(level=logging.INFO)
-    else:
-        logging.basicConfig(level=logging.DEBUG)
+        signal.signal(signal.SIGINT, self.shutdown)
+        signal.signal(signal.SIGTERM, self.shutdown)
 
-    if not options['--host']:
-        host = utils.network.default_ipv4()
-        if host == None:
-            print('I could not determiate your host address. '
-                  'You must specify it yourself via the --host option!')
-            sys.exit(1)
-    else:
-        host = str(options['--host'])
+        self.startup()
 
-    port = int(options['--port'])
-
-    print ('Using localhost: {host}:{port}'.format(
-        host=host, port=port))
-
-    renderers = []
-    if options['--renderer-urls']:
-        for url in options['--renderer-urls'].split(','):
-            renderer = upnp.renderer.UpnpMediaRendererFactory.from_url(
-                url, upnp.renderer.CoinedUpnpMediaRenderer)
-            if renderer != None:
-                renderers.append(renderer)
-    else:
-        dlna_discover = upnp.discover.UpnpMediaRendererDiscover(host)
-        dlna_discover.search()
-        renderers = dlna_discover.renderers
-        logging.info('Discovery complete. You can now use your upnp devices!')
-
-    if len(renderers) == 0:
-        print('There were no upnp devices found. Application terminates.')
+    def shutdown(self, signal_number, frame):
+        print('Application is shutting down.')
+        if self.pulse != None:
+            self.pulse.cleanup()
+        if self.dlna_server != None:
+            self.dlna_server.server_close()
         sys.exit(1)
 
-    dlna_server = upnp.server.ThreadedDlnaServer(
-        host, port, encoder=options['--encoder'])
+    def startup(self):
+        options = docopt.docopt(__doc__, version='0.2.1')
 
-    server_url = dlna_server.get_server_url()
-    upnp_devices = []
-    for upnp_device in renderers:
-        upnp_device.set_server_url(server_url)
-        upnp_devices.append(upnp_device)
+        if not options['--debug']:
+            logging.basicConfig(level=logging.INFO)
+        else:
+            logging.basicConfig(level=logging.DEBUG)
 
-    dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-    pulse = pulseaudio.PulseWatcher()
-    pulse.set_upnp_devices(upnp_devices)
+        if not options['--host']:
+            host = utils.network.default_ipv4()
+            if host == None:
+                print('I could not determiate your host address. '
+                      'You must specify it yourself via the --host option!')
+                sys.exit(1)
+        else:
+            host = str(options['--host'])
 
-    dlna_server.set_bridges(pulse.bridges)
-    process = multiprocessing.Process(target=dlna_server.serve_forever)
-    process.start()
+        port = int(options['--port'])
 
-    try:
+        print ('Using localhost: {host}:{port}'.format(
+            host=host, port=port))
+
+        if options['--renderer-urls']:
+            for url in options['--renderer-urls'].split(','):
+                renderer = upnp.renderer.UpnpMediaRendererFactory.from_url(
+                    url, upnp.renderer.CoinedUpnpMediaRenderer)
+                if renderer != None:
+                    self.renderers.append(renderer)
+        else:
+            dlna_discover = upnp.discover.UpnpMediaRendererDiscover(host)
+            dlna_discover.search()
+            self.renderers = dlna_discover.renderers
+            logging.info('Discovery complete. You can now use your upnp devices!')
+
+        if len(self.renderers) == 0:
+            print('There were no upnp devices found. Application terminates.')
+            sys.exit(1)
+
+        self.dlna_server = upnp.server.ThreadedDlnaServer(
+            host, port, encoder=options['--encoder'])
+
+        server_url = self.dlna_server.get_server_url()
+        upnp_devices = []
+        for upnp_device in self.renderers:
+            upnp_device.set_server_url(server_url)
+            upnp_devices.append(upnp_device)
+
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
+        self.pulse = pulseaudio.PulseWatcher()
+        self.pulse.set_upnp_devices(upnp_devices)
+
+        self.dlna_server.set_bridges(self.pulse.bridges)
+        process = multiprocessing.Process(target=self.dlna_server.serve_forever)
+        process.start()
+
         mainloop = gobject.MainLoop()
         mainloop.run()
-    except KeyboardInterrupt:
-        print('interrupted')
-    finally:
-        pulse.cleanup()
-        dlna_server.server_close()
+
+def main():
+    pulseaudio_dlna = PulseAudioDLNA()
 
 if __name__ == '__main__':
     main()
