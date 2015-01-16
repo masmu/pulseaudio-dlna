@@ -35,6 +35,8 @@ Options:
     -h --help               show the help.
 '''
 
+from __future__ import unicode_literals
+
 import gobject
 import dbus
 import dbus.mainloop.glib
