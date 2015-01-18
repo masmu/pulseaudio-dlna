@@ -39,6 +39,7 @@ import gobject
 import dbus
 import dbus.mainloop.glib
 import multiprocessing
+import setproctitle
 import logging
 import sys
 import signal
@@ -57,12 +58,9 @@ class PulseAudioDLNA(object):
         self.pulse = None
         self.renderers = []
 
-        signal.signal(signal.SIGINT, self.shutdown)
-        signal.signal(signal.SIGTERM, self.shutdown)
-
         self.startup()
 
-    def shutdown(self, signal_number, frame):
+    def shutdown(self, signal_number=None, frame=None):
         print('Application is shutting down.')
         if self.pulse != None:
             self.pulse.cleanup()
@@ -125,8 +123,15 @@ class PulseAudioDLNA(object):
         process = multiprocessing.Process(target=self.dlna_server.serve_forever)
         process.start()
 
-        mainloop = gobject.MainLoop()
-        mainloop.run()
+        setproctitle.setproctitle('pulseaudio_dlna')
+        signal.signal(signal.SIGINT, self.shutdown)
+        signal.signal(signal.SIGTERM, self.shutdown)
+        try:
+            mainloop = gobject.MainLoop()
+            mainloop.run()
+        except KeyboardInterrupt:
+            process.terminate()
+            pass
 
 def main():
     pulseaudio_dlna = PulseAudioDLNA()
