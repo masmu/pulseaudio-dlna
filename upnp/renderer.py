@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import re
 import cgi
 import requests
@@ -29,7 +31,7 @@ import pulseaudio
 @functools.total_ordering
 class UpnpMediaRenderer(object):
 
-    REGISTER_XML = """<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+    REGISTER_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
 <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
         <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
@@ -40,7 +42,7 @@ class UpnpMediaRenderer(object):
     </s:Body>
 </s:Envelope>"""
 
-    REGISTER_XML_METADATA = """<?xml version="1.0" encoding="UTF-8"?>
+    REGISTER_XML_METADATA = """<?xml version="1.0" encoding="{encoding}"?>
 <DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:sec="http://www.sec.co.kr/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
     <item id="0" parentID="0" restricted="1">
         <upnp:class>object.item.audioItem.musicTrack</upnp:class>
@@ -53,7 +55,7 @@ class UpnpMediaRenderer(object):
     </item>
 </DIDL-Lite>"""
 
-    PLAY_XML = """<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+    PLAY_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
 <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
         <u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
@@ -64,7 +66,7 @@ class UpnpMediaRenderer(object):
 </s:Envelope>
 """
 
-    STOP_XML = """<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+    STOP_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
 <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
         <u:Stop xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
@@ -73,7 +75,7 @@ class UpnpMediaRenderer(object):
     </s:Body>
 </s:Envelope>"""
 
-    PAUSE_XML = """<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+    PAUSE_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
 <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
         <u:Pause xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
@@ -85,6 +87,8 @@ class UpnpMediaRenderer(object):
     PLAYING = 'playing'
     IDLE = 'idle'
     PAUSE = 'paused'
+
+    ENCODING = 'utf-8'
 
     def __init__(self, name, ip, port, udn, services):
         self.name = name
@@ -126,7 +130,7 @@ class UpnpMediaRenderer(object):
                 headers=headers,
                 data=data,
                 status_code=response.status_code,
-                result=response.text.encode('utf-8')))
+                result=response.text))
 
     def register(self, stream_url):
         url = self._get_av_transport_url()
@@ -140,12 +144,15 @@ class UpnpMediaRenderer(object):
             artist='PulseAudio on {}'.format(socket.gethostname()),
             creator='PulseAudio',
             album='Stream',
+            encoding=self.ENCODING,
         )
         data = self.REGISTER_XML.format(
             stream_url=stream_url,
             current_url_metadata=cgi.escape(metadata),
+            encoding=self.ENCODING,
         )
-        response = requests.post(url, data=data, headers=headers)
+        response = requests.post(
+            url, data=data.encode(self.ENCODING), headers=headers)
         self._debug('register', url, headers, data, response)
         return response.status_code
 
@@ -155,10 +162,14 @@ class UpnpMediaRenderer(object):
             'Content-Type': 'text/xml',
             'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Play"',
         }
-        response = requests.post(url, data=self.PLAY_XML, headers=headers)
+        data = self.PLAY_XML.format(
+            encoding=self.ENCODING,
+        )
+        response = requests.post(
+            url, data=data.encode(self.ENCODING), headers=headers)
         if response.status_code == 200:
             self.state = self.PLAYING
-        self._debug('play', url, headers, self.PLAY_XML, response)
+        self._debug('play', url, headers, data, response)
         return response.status_code
 
     def stop(self):
@@ -167,10 +178,14 @@ class UpnpMediaRenderer(object):
             'Content-Type': 'text/xml',
             'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Stop"',
         }
-        response = requests.post(url, data=self.STOP_XML, headers=headers)
+        data = self.STOP_XML.format(
+            encoding=self.ENCODING,
+        )
+        response = requests.post(
+            url, data=data.encode(self.ENCODING), headers=headers)
         if response.status_code == 200:
             self.state = self.IDLE
-        self._debug('stop', url, headers, self.STOP_XML, response)
+        self._debug('stop', url, headers, data, response)
         return response.status_code
 
     def pause(self):
@@ -179,10 +194,14 @@ class UpnpMediaRenderer(object):
             'Content-Type': 'text/xml',
             'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Stop"',
         }
-        response = requests.post(url, data=self.PAUSE_XML, headers=headers)
+        data = self.PAUSE_XML.format(
+            encoding=self.ENCODING,
+        )
+        response = requests.post(
+            url, data=data.encode(self.ENCODING), headers=headers)
         if response.status_code == 200:
             self.state = self.PAUSE
-        self._debug('pause', url, headers, self.PAUSE_XML, response)
+        self._debug('pause', url, headers, data, response)
         return response.status_code
 
     def __eq__(self, other):
@@ -240,13 +259,13 @@ class UpnpMediaRendererFactory(object):
             response = requests.get(url)
             logging.debug('Response from upnp device ({url})\n'
                           '{response}'.format(
-                            url=url, response=response.text.encode('utf-8')))
+                            url=url, response=response.text))
         except requests.exceptions.ConnectionError:
             logging.info(
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
-        soup = BeautifulSoup.BeautifulSoup(response.text.encode('utf-8'))
+        soup = BeautifulSoup.BeautifulSoup(response.content)
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         services = []
