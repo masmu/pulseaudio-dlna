@@ -53,7 +53,7 @@ import utils.network
 
 
 def main():
-    options = docopt.docopt(__doc__, version='0.2.1')
+    options = docopt.docopt(__doc__, version='0.2.2')
 
     if not options['--debug']:
         logging.basicConfig(level=logging.INFO)

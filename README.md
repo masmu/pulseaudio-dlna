@@ -34,6 +34,10 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.2.2__ - (_2015-01-18_)
+    - Fixed encoding issues
+    - Try to load the DBus module if it is loaded before (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
+
  * __0.2.1__ - (_2015-01-11_)
     - TTL changed to 10 and timeout to 5 for UDP broadcasting
     - Added the ```--renderer-urls``` option to manually add UPNP devices via their control url
@@ -62,7 +66,10 @@ You can install all the dependencies in Ubuntu via:
 
 ### PulseAudio DBus module ###
 
-You can load the DBus module in Ubuntu via the following command. Note that you 
+Since version _0.2.2_ the DBus module should be loaded automatically, if it was
+not loaded before.
+It that does not work, you can load the DBus module in Ubuntu via the following
+command. Note that you 
 have to do this every time you restart PulseAudio (or your computer).
 
     pacmd load-module module-dbus-protocol
