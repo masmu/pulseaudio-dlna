@@ -36,7 +36,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
  * __0.2.2__ - (_2015-01-18_)
     - Fixed encoding issues
-    - Try to load the DBus module if it is loaded before (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
+    - Try to load the DBus module if it is not loaded before (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
 
  * __0.2.1__ - (_2015-01-11_)
     - TTL changed to 10 and timeout to 5 for UDP broadcasting
