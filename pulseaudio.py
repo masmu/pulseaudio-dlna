@@ -58,9 +58,14 @@ class PulseAudio(object):
             server_address = self._get_bus_address()
             return dbus.connection.Connection(server_address)
         except dbus.exceptions.DBusException:
-            logging.error('PulseAudio seems not to be running or pulseaudio '
-                          'dbus module is not loaded.')
-            sys.exit(1)
+            subprocess.Popen(['pactl','load-module','module-dbus-protocol'])
+            try:
+                server_address = self._get_bus_address()
+                return dbus.connection.Connection(server_address)
+            except dbus.exceptions.DBusException:
+                logging.error('PulseAudio seems not to be running or pulseaudio '
+                              'dbus module could not be loaded.')
+                sys.exit(1)
 
     def update(self):
         self.update_playback_streams()
