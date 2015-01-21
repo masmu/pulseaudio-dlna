@@ -3,7 +3,7 @@ import setuptools
 
 setuptools.setup(
     name="pulseaudio-dlna",
-    version="0.2.1",
+    version="0.2.3",
     py_modules=[
         "pulseaudio_dlna",
         "pulseaudio",

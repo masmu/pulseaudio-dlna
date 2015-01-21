@@ -58,7 +58,9 @@ class PulseAudio(object):
             server_address = self._get_bus_address()
             return dbus.connection.Connection(server_address)
         except dbus.exceptions.DBusException:
-            subprocess.Popen(['pactl','load-module','module-dbus-protocol'])
+            subprocess.Popen(
+                ['pactl','load-module','module-dbus-protocol'],
+                stdout=subprocess.PIPE).communicate()
             try:
                 server_address = self._get_bus_address()
                 return dbus.connection.Connection(server_address)
