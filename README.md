@@ -35,7 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 ## Changelog ##
 
  * __0.2.3__ - (_2015-01-18_)
-    - Fixed a timing bug where the pulseaudio module was not loaded fast enought (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
+    - Fixed a timing bug where the pulseaudio module was not loaded fast enough (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
 
  * __0.2.2__ - (_2015-01-18_)
     - Fixed encoding issues
