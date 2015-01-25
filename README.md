@@ -1,7 +1,7 @@
 # About #
 
 This is _pulseaudio-dlna_. A small DLNA server which brings DLNA / UPNP
-support to PulseAudio.
+support to PulseAudio and Linux.
 
 It can stream your current PulseAudio playback to different UPNP devices
 (UPNP Media Renderers) in your network.
