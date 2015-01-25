@@ -253,8 +253,32 @@ class PulseWatcher(PulseAudio):
             self.delete_null_sink(bridge.sink.entity)
 
     def on_device_updated(self, sink_path):
-        logging.info('PulseWatcher.on_device_updated')
+        logging.info('PulseWatcher.on_device_updated "{path}"'.format(
+            path=sink_path))
         self.update()
+        self._handle_sink_update(sink_path)
+
+    def on_new_playback_stream(self, stream_path):
+        logging.info('PulseWatcher.on_new_playback_stream "{path}"'.format(
+            path=stream_path))
+        self.update()
+        for sink in self.sinks:
+            for stream in sink.streams:
+                if stream.object_path == stream_path:
+                    self._handle_sink_update(sink.object_path)
+                    return
+
+    def on_playback_stream_removed(self, stream_path):
+        logging.info('PulseWatcher.on_playback_stream_removed "{path}"'.format(
+            path=stream_path))
+        for sink in self.sinks:
+            for stream in sink.streams:
+                if stream.object_path == stream_path:
+                    self.update()
+                    self._handle_sink_update(sink.object_path)
+                    return
+
+    def _handle_sink_update(self, sink_path):
         for bridge in self.bridges:
             if bridge.upnp_device.state == bridge.upnp_device.PLAYING:
                 if len(bridge.sink.streams) == 0:
@@ -264,6 +288,7 @@ class PulseWatcher(PulseAudio):
                     else:
                         logging.error('"{}" stopping failed!'.format(
                             bridge.upnp_device.name))
+                    continue
             if bridge.sink.object_path == sink_path:
                 if bridge.upnp_device.state == bridge.upnp_device.IDLE:
                     if bridge.upnp_device.register() == 200:
@@ -280,9 +305,3 @@ class PulseWatcher(PulseAudio):
                     else:
                         logging.error('"{}" playing failed!'.format(
                             bridge.upnp_device.name))
-
-    def on_new_playback_stream(self, stream_path):
-        logging.info('PulseWatcher.on_new_playback_stream')
-
-    def on_playback_stream_removed(self, stream_path):
-        logging.info('PulseWatcher.on_playback_stream_removed')
