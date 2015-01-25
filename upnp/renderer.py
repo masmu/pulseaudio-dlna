@@ -135,7 +135,8 @@ class UpnpMediaRenderer(object):
     def register(self, stream_url):
         url = self._get_av_transport_url()
         headers = {
-            'Content-Type': 'text/xml',
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
             'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI"',
         }
         metadata = self.REGISTER_XML_METADATA.format(
@@ -159,7 +160,8 @@ class UpnpMediaRenderer(object):
     def play(self):
         url = self._get_av_transport_url()
         headers = {
-            'Content-Type': 'text/xml',
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
             'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Play"',
         }
         data = self.PLAY_XML.format(
@@ -175,7 +177,8 @@ class UpnpMediaRenderer(object):
     def stop(self):
         url = self._get_av_transport_url()
         headers = {
-            'Content-Type': 'text/xml',
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
             'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Stop"',
         }
         data = self.STOP_XML.format(
@@ -191,7 +194,8 @@ class UpnpMediaRenderer(object):
     def pause(self):
         url = self._get_av_transport_url()
         headers = {
-            'Content-Type': 'text/xml',
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
             'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Stop"',
         }
         data = self.PAUSE_XML.format(
