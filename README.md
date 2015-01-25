@@ -158,6 +158,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - BubbleUPnP (Android App)
 - Samsung Smart TV LED60 (UE60F6300)
 - Samsung Smart TV LED40 (UE40ES6100)
+- Xbmc / Kodi
 
 ## Supported encoders ##
 
