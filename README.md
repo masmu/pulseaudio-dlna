@@ -119,7 +119,7 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio_dlna.py --host <host> [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>]
+        pulseaudio_dlna.py [--host <host>] [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>] [--debug]
         pulseaudio_dlna.py [-h | --help | --version]
 
     Options:
@@ -136,13 +136,16 @@ _pulseaudio-dlna_.
         -h --help               show the help.
 
 Samples:
-- `pulseaudio_dlna.py --host 192.168.1.2 --encoder ogg` will start 
+- `pulseaudio_dlna.py` will start 
+_pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
+with _mp3_.
+- `pulseaudio_dlna.py --encoder ogg` will start 
 _pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _Ogg Vorbis_.
-- `pulseaudio_dlna.py --host 192.168.1.2 --port 10291 --encoder lame` will start 
+- `pulseaudio_dlna.py --port 10291 --encoder flac` will start 
 _pulseaudio-dlna_ on port _10291_ and stream your PulseAudio streams encoded
-with _mp3_.
-- `pulseaudio_dlna.py --host 192.168.1.2 --renderer-urls http://192.168.1.7:7676/smp_10_`
+with _FLAC_.
+- `pulseaudio_dlna.py --renderer-urls http://192.168.1.7:7676/smp_10_`
 won't discover upnp devices by itself. Instead it will search for upnp renderers
 at the specified locations. You can specify multiple locations via urls
 seperated by comma (_,_). Most users won't ever need this option, but since
