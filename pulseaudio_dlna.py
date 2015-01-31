@@ -60,13 +60,11 @@ class PulseAudioDLNA(object):
         self.pulse = None
         self.renderers = []
 
-        self.startup()
-
     def shutdown(self, signal_number=None, frame=None):
         print('Application is shutting down.')
-        if self.pulse != None:
+        if self.pulse is not None:
             self.pulse.cleanup()
-        if self.dlna_server != None:
+        if self.dlna_server is not None:
             self.dlna_server.server_close()
         sys.exit(1)
 
@@ -80,7 +78,7 @@ class PulseAudioDLNA(object):
 
         if not options['--host']:
             host = utils.network.default_ipv4()
-            if host == None:
+            if host is None:
                 print('I could not determiate your host address. '
                       'You must specify it yourself via the --host option!')
                 sys.exit(1)
@@ -89,14 +87,14 @@ class PulseAudioDLNA(object):
 
         port = int(options['--port'])
 
-        print ('Using localhost: {host}:{port}'.format(
+        print('Using localhost: {host}:{port}'.format(
             host=host, port=port))
 
         if options['--renderer-urls']:
             for url in options['--renderer-urls'].split(','):
                 renderer = upnp.renderer.UpnpMediaRendererFactory.from_url(
                     url, upnp.renderer.CoinedUpnpMediaRenderer)
-                if renderer != None:
+                if renderer is not None:
                     self.renderers.append(renderer)
         else:
             dlna_discover = upnp.discover.UpnpMediaRendererDiscover(host)
@@ -135,8 +133,10 @@ class PulseAudioDLNA(object):
             process.terminate()
             pass
 
+
 def main():
     pulseaudio_dlna = PulseAudioDLNA()
+    pulseaudio_dlna.startup()
 
 if __name__ == '__main__':
     main()

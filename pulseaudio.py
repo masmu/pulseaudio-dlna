@@ -59,7 +59,7 @@ class PulseAudio(object):
             return dbus.connection.Connection(server_address)
         except dbus.exceptions.DBusException:
             subprocess.Popen(
-                ['pactl','load-module','module-dbus-protocol'],
+                ['pactl', 'load-module', 'module-dbus-protocol'],
                 stdout=subprocess.PIPE).communicate()
             try:
                 server_address = self._get_bus_address()
@@ -152,7 +152,7 @@ class PulseSink(object):
         if hasattr(self, 'entity') is False:
             self.entity = None
 
-        self.monitor = self.name+'.monitor'
+        self.monitor = self.name + '.monitor'
         self.streams = []
 
     def __eq__(self, other):

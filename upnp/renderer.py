@@ -262,8 +262,7 @@ class UpnpMediaRendererFactory(object):
         try:
             response = requests.get(url)
             logging.debug('Response from upnp device ({url})\n'
-                          '{response}'.format(
-                            url=url, response=response.text))
+                          '{response}'.format(url=url, response=response.text))
         except requests.exceptions.ConnectionError:
             logging.info(
                 'Could no connect to {url}. '

@@ -30,7 +30,7 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def __init__(self, *args):
         try:
             BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args)
-        except IOError as e:
+        except IOError:
             pass
 
     def do_HEAD(self):
@@ -50,8 +50,8 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             recorder_process, encoder_process = self.create_processes(bridge)
             while True:
                 stream_data = encoder_process.stdout.read(1024)
-                if recorder_process.poll() != None or \
-                   encoder_process.poll() != None:
+                if recorder_process.poll() is not None or \
+                   encoder_process.poll() is not None:
                     self.cleanup_process(recorder_process)
                     self.cleanup_process(encoder_process)
                     recorder_process, encoder_process = self.create_processes(
@@ -89,6 +89,7 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if self.path == bridge.upnp_device.stream_name:
                 return bridge
         return None
+
 
 class DlnaServer(SocketServer.TCPServer):
 

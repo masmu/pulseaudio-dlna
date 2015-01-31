@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import commands
 import re
 
+
 def default_ipv4():
     status_code, result = commands.getstatusoutput('ip route get 255.255.255.255')
     if status_code == 0:
