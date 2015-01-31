@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 
 import sys
 import subprocess
+import setproctitle
 import logging
 import errno
 import BaseHTTPServer
@@ -98,6 +99,7 @@ class DlnaServer(SocketServer.TCPServer):
     RECORDER_PULSEAUDIO = 'pulseaudio'
 
     def __init__(self, ip, port, recorder=None, encoder=None, *args):
+        setproctitle.setproctitle('dlna_server')
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
             self, ('', port), DlnaRequestHandler, *args)
