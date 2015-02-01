@@ -1,0 +1,5 @@
+tar-ignore = ".git"
+tar-ignore = ".gitignore"
+tar-ignore = ".codeintel"
+tar-ignore = "*.sublime-*"
+tar-ignore = "samples"

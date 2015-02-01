@@ -34,6 +34,12 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.3.0__ - (_2015-02-01_)
+    - Added debian packaging
+    - Added proper signal handlers (new dependency: `python-setproctitle`)
+    - Fixed a bug where binding to an already used port made the application crash
+    - HTTP charset encoding is now specified correctly
+
  * __0.2.4__ - (_2015-01-25_)
     - Stream changes are now handled correctly (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
 
@@ -61,6 +67,7 @@ is loaded.
 - python-beautifulsoup
 - python-docopt
 - python-requests
+- python-setproctitle
 - vorbis-tools
 - sox
 - lame
@@ -89,7 +96,7 @@ favorite editor and append the following line:
 
 After that, you can start _pulseaudio-dlna_ via:
 
-    ./pulseaudio_dlna.py
+    python pulseaudio_dlna
 
 _pulseaudio-dlna_ should detect the ip address your computer is reachable within
 your local area network. If the detected ip address is not correct or there

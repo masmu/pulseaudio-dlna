@@ -1,0 +1,31 @@
+Source: pulseaudio-dlna
+Maintainer: Massimo Mund <mo@lancode.de>
+Section: python
+Priority: optional
+Build-Depends: python-all,
+               python-setuptools,
+               git-core,
+               ca-certificates,
+               debhelper (>=9),
+               help2man,
+Standards-Version: 3.9.5
+
+Package: pulseaudio-dlna
+Architecture: all
+Depends: python2.7,
+         python-dbus (>=1.2.0),
+         python-beautifulsoup (>=3.2.1),
+         python-docopt (>=0.6.1),
+         python-requests (>=2.2.1),
+         python-setproctitle (>=1.0.1),
+         vorbis-tools (>=1.4.0),
+         sox (>=14.4.1),
+         lame (>=3.99.0),
+         flac (>=1.3.0),
+         ${misc:Depends}
+Homepage: https://github.com/masmu/pulseaudio-dlna
+Description: A small DLNA server which brings DLNA / UPNP support to 
+ PulseAudio and Linux.
+ It can stream your current PulseAudio playback to different UPNP
+ devices (UPNP Media Renderers) in your network. It's main goals are:
+ easy to use, no configuration hassle, no big dependencies.

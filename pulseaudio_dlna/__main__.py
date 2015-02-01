@@ -17,8 +17,8 @@
 
 '''
 Usage:
-    pulseaudio_dlna.py [--host <host>] [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>] [--debug]
-    pulseaudio_dlna.py [-h | --help | --version]
+    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>] [--debug]
+    pulseaudio-dlna [-h | --help | --version]
 
 Options:
        --host=<host>        set the server ip.
@@ -45,8 +45,10 @@ import setproctitle
 import logging
 import sys
 import signal
+import socket
 
 import docopt
+import pulseaudio_dlna
 import upnp.discover
 import upnp.server
 import upnp.renderer
@@ -69,7 +71,7 @@ class PulseAudioDLNA(object):
         sys.exit(1)
 
     def startup(self):
-        options = docopt.docopt(__doc__, version='0.2.1')
+        options = docopt.docopt(__doc__, version=pulseaudio_dlna.__version__)
 
         if not options['--debug']:
             logging.basicConfig(level=logging.INFO)
@@ -106,8 +108,14 @@ class PulseAudioDLNA(object):
             print('There were no upnp devices found. Application terminates.')
             sys.exit(1)
 
-        self.dlna_server = upnp.server.ThreadedDlnaServer(
-            host, port, encoder=options['--encoder'])
+        try:
+            self.dlna_server = upnp.server.ThreadedDlnaServer(
+                host, port, encoder=options['--encoder'])
+        except socket.error:
+            print('The dlna server could not bind to your specified port '
+                  '({port}). Perhaps this is already in use? Application '
+                  'terminates.'.format(port=port))
+            sys.exit(1)
 
         server_url = self.dlna_server.get_server_url()
         upnp_devices = []
@@ -123,7 +131,7 @@ class PulseAudioDLNA(object):
         process = multiprocessing.Process(target=self.dlna_server.serve_forever)
         process.start()
 
-        setproctitle.setproctitle('pulseaudio_dlna')
+        setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
         try:
@@ -134,9 +142,10 @@ class PulseAudioDLNA(object):
             pass
 
 
-def main():
+def main(argv=sys.argv[1:]):
     pulseaudio_dlna = PulseAudioDLNA()
     pulseaudio_dlna.startup()
 
-if __name__ == '__main__':
-    main()
+
+if __name__ == "__main__":
+    sys.exit(main())
