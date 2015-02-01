@@ -34,6 +34,12 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.3.0__ - (_2015-02-01_)
+    - Added debian packaging
+    - Added proper signal handlers (new dependency: `python-setproctitle`)
+    - Fixed a bug where binding to an already used port made the application crash
+    - HTTP charset encoding is now specified correctly
+
  * __0.2.4__ - (_2015-01-25_)
     - Stream changes are now handled correctly (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
 
@@ -50,9 +56,25 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added the ```--debug``` flag
     - The host ip address is now discovered automatically, no need to specifiy ```--host``` anymore
 
-## Installation ##
+## Installation via PPA ##
 
-There is no special installation required. Just clone this git repository,
+Ubuntu users can install _pulseaudio-dlna_ via the following [repository](https://launchpad.net/~qos/+archive/ubuntu/pulseaudio-dlna).
+
+    sudo apt-add-repository ppa:qos/pulseaudio-dlna
+    sudo apt-get update
+    sudo apt-get install pulseaudio-dlna
+
+### Starting ###
+
+After that you can start _pulseaudio-dlna_ via:
+
+    pulseaudio-dlna
+
+Head over the the _using section_ for further instructions.
+
+## Installation via git ##
+
+Other linux users can clone this git repository,
 make sure you have all the dependencies installed and the PulseAudio DBus module
 is loaded.
 
@@ -61,6 +83,7 @@ is loaded.
 - python-beautifulsoup
 - python-docopt
 - python-requests
+- python-setproctitle
 - vorbis-tools
 - sox
 - lame
@@ -68,7 +91,7 @@ is loaded.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests vorbis-tools sox lame flac
+    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle vorbis-tools sox lame flac
 
 ### PulseAudio DBus module ###
 
@@ -87,13 +110,16 @@ favorite editor and append the following line:
 
 ### Starting ###
 
-After that, you can start _pulseaudio-dlna_ via:
+After that you can change to the _root folder_ and start _pulseaudio-dlna_ via:
 
-    ./pulseaudio_dlna.py
+    python pulseaudio_dlna
+
+### Using ###
 
 _pulseaudio-dlna_ should detect the ip address your computer is reachable within
 your local area network. If the detected ip address is not correct or there
-were no ips found, you still can specifiy them yourself via: ```./pulseaudio_dlna.py --host <your-ip>```
+were no ips found, you still can specifiy them yourself via the host
+option (```--host <your-ip>```)
 
 Right after startup it should start searching for UPNP devices in your LAN and
 add new PulseAudio sinks.
@@ -119,8 +145,8 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio_dlna.py [--host <host>] [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>] [--debug]
-        pulseaudio_dlna.py [-h | --help | --version]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>] [--debug]
+        pulseaudio-dlna [-h | --help | --version]
 
     Options:
            --host=<host>        set the server ip.
@@ -136,16 +162,16 @@ _pulseaudio-dlna_.
         -h --help               show the help.
 
 Samples:
-- `pulseaudio_dlna.py` will start 
+- `pulseaudio-dlna` will start 
 _pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _mp3_.
-- `pulseaudio_dlna.py --encoder ogg` will start 
+- `pulseaudio-dlna --encoder ogg` will start 
 _pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _Ogg Vorbis_.
-- `pulseaudio_dlna.py --port 10291 --encoder flac` will start 
+- `pulseaudio-dlna --port 10291 --encoder flac` will start 
 _pulseaudio-dlna_ on port _10291_ and stream your PulseAudio streams encoded
 with _FLAC_.
-- `pulseaudio_dlna.py --renderer-urls http://192.168.1.7:7676/smp_10_`
+- `pulseaudio-dlna --renderer-urls http://192.168.1.7:7676/smp_10_`
 won't discover upnp devices by itself. Instead it will search for upnp renderers
 at the specified locations. You can specify multiple locations via urls
 seperated by comma (_,_). Most users won't ever need this option, but since

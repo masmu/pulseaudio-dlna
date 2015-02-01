@@ -25,7 +25,7 @@ import socket
 import logging
 import functools
 import BeautifulSoup
-import pulseaudio
+import pulseaudio_dlna.pulseaudio
 
 
 @functools.total_ordering
@@ -211,13 +211,13 @@ class UpnpMediaRenderer(object):
     def __eq__(self, other):
         if isinstance(other, UpnpMediaRenderer):
             return self.name == other.name
-        if isinstance(other, pulseaudio.PulseUpnpBridge):
+        if isinstance(other, pulseaudio_dlna.pulseaudio.PulseUpnpBridge):
             return self.name == other.upnp_device.name
 
     def __gt__(self, other):
         if isinstance(other, UpnpMediaRenderer):
             return self.name > other.name
-        if isinstance(other, pulseaudio.PulseUpnpBridge):
+        if isinstance(other, pulseaudio_dlna.pulseaudio.PulseUpnpBridge):
             return self.name > other.upnp_device.name
 
     def __str__(self):

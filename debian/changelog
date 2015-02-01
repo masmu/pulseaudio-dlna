@@ -1,0 +1,5 @@
+pulseaudio-dlna (0.3.0) trusty; urgency=low
+
+  * Initial release
+
+ -- Massimo Mund <mo@lancode.de>  Sun, 01 Feb 2015 14:19:51 +0100
