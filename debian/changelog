@@ -1,3 +1,9 @@
+pulseaudio-dlna (0.3.1) trusty; urgency=low
+
+  * Fixed a bug so that AVTransports other than 1 can be used
+
+ -- Massimo Mund <mo@lancode.de>  Fri, 13 Feb 2015 20:01:12 +0100
+
 pulseaudio-dlna (0.3.0) trusty; urgency=low
 
   * Initial release

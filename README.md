@@ -34,6 +34,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.3.1__ - (_2015-02-13_)
+    - Fixed a bug so that AVTransports other than 1 can be used (thanks to [martin-insulander-info](https://github.com/martin-insulander-info))
+
  * __0.3.0__ - (_2015-02-01_)
     - Added debian packaging
     - Added proper signal handlers (new dependency: `python-setproctitle`)
