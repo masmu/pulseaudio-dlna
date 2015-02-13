@@ -104,8 +104,8 @@ class UpnpMediaRenderer(object):
 
     def _get_av_transport(self):
         for service in self.services:
-            if (service['service_type'] ==
-               'urn:schemas-upnp-org:service:AVTransport:1'):
+            if service['service_type'].startswith(
+                    'urn:schemas-upnp-org:service:AVTransport:'):
                 return service
 
     def _get_av_transport_url(self):
