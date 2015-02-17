@@ -192,6 +192,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Samsung Smart TV LED40 (UE40ES6100)
 - Xbmc / Kodi
 - Philips Streamium NP2500 Network Player
+- Yamaha RX-475 (AV Receiver)
 - Majik DSM
 
 ## Supported encoders ##
