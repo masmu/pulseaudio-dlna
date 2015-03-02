@@ -49,7 +49,7 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 bridge.upnp_device.name))
             recorder_process, encoder_process = self.create_processes(bridge)
             while True:
-                stream_data = encoder_process.stdout.read(512)
+                stream_data = encoder_process.stdout.read(1024)
                 if recorder_process.poll() is not None or \
                    encoder_process.poll() is not None:
                     self.cleanup_process(recorder_process)
