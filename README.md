@@ -34,6 +34,11 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.3.2__ - (_2015-03-14_)
+    - Added the Opus Encoder (new dependency: `opus-tools`) (thanks to [MobiusHorizons](https://github.com/MobiusHorizons))
+    - Fixed a bug where an empty UPNP device name made the application crash
+    - Added a missing dependency (`python-gobject`)
+
  * __0.3.1__ - (_2015-02-13_)
     - Fixed a bug so that AVTransports other than 1 can be used (thanks to [martin-insulander-info](https://github.com/martin-insulander-info))
 
@@ -87,6 +92,7 @@ is loaded.
 - python-docopt
 - python-requests
 - python-setproctitle
+- python-gobject
 - vorbis-tools
 - sox
 - lame
@@ -95,7 +101,7 @@ is loaded.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle vorbis-tools sox lame flac opus-tools
+    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -161,6 +167,7 @@ _pulseaudio-dlna_.
                                   - ogg   Ogg Vorbis
                                   - flac  Free Lossless Audio Codec (FLAC)
                                   - wav   Waveform Audio File Format (WAV)
+                                  - opus  Opus Interactive Audio Codec (OPUS)
         --renderer-urls=<urls>  set the renderer urls yourself. no discovery will commence.
         -v --version            show the version.
         -h --help               show the help.
@@ -204,3 +211,4 @@ _pulseaudio-dlna_ supports the following encoders:
 - __ogg__   Ogg Vorbis
 - __flac__  Free Lossless Audio Codec (FLAC)
 - __wav__   Waveform Audio File Format (WAV)
+- __opus__  Opus Interactive Audio Codec (OPUS)

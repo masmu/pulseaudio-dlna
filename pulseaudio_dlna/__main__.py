@@ -29,6 +29,7 @@ Options:
                               - ogg   Ogg Vorbis
                               - flac  Free Lossless Audio Codec (FLAC)
                               - wav   Waveform Audio File Format (WAV)
+                              - opus  Opus Interactive Audio Codec (OPUS)
     --renderer-urls=<urls>  set the renderer urls yourself. no discovery will commence.
     --debug                 enables detailed debug messages.
     -v --version            show the version.

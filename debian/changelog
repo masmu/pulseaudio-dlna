@@ -1,3 +1,11 @@
+pulseaudio-dlna (0.3.2) trusty; urgency=low
+
+  * Added the Opus Encoder
+  * Fixed a bug where an empty UPNP device name made the application crash
+  * Added a missing dependency python-gobject
+
+ -- Massimo Mund <mo@lancode.de>  Sat, 14 Mar 2015 11:58:31 +0100
+
 pulseaudio-dlna (0.3.1) trusty; urgency=low
 
   * Fixed a bug so that AVTransports other than 1 can be used
