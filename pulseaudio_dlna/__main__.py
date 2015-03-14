@@ -50,7 +50,6 @@ import logging
 import sys
 import signal
 import socket
-import re
 
 import docopt
 import pulseaudio_dlna
@@ -110,8 +109,8 @@ class PulseAudioDLNA(object):
             logging.info('Discovery complete.')
 
             if options['--device-filter']:
-                r = re.compile(options['--device-filter'])
-                self.renderers = [d for d in self.renderers if r.search(d.name)]
+                filter = options['--device-filter'].split(',')
+                self.renderers = [d for d in self.renderers if d.name in filter]
 
         if len(self.renderers) == 0:
             print('There were no upnp devices found. Application terminates.')
