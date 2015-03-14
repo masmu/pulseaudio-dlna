@@ -17,23 +17,26 @@
 
 '''
 Usage:
-    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>] [--debug]
+    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--device-filter=<device-filter>] [--renderer-urls <urls>] [--debug]
     pulseaudio-dlna [-h | --help | --version]
 
 Options:
-       --host=<host>        set the server ip.
-    -p --port=<port>        set the server port [default: 8080].
-    -e --encoder=<encoder>  set the server port [default: lame].
-                            encoders are:
-                              - lame  MPEG Audio Layer III (MP3)
-                              - ogg   Ogg Vorbis
-                              - flac  Free Lossless Audio Codec (FLAC)
-                              - wav   Waveform Audio File Format (WAV)
-                              - opus  Opus Interactive Audio Codec (OPUS)
-    --renderer-urls=<urls>  set the renderer urls yourself. no discovery will commence.
-    --debug                 enables detailed debug messages.
-    -v --version            show the version.
-    -h --help               show the help.
+       --host=<host>                       Set the server ip.
+    -p --port=<port>                       Set the server port [default: 8080].
+    -e --encoder=<encoder>                 Set the server port [default: lame].
+                                           Possible encoders are:
+                                             - lame  MPEG Audio Layer III (MP3)
+                                             - ogg   Ogg Vorbis
+                                             - flac  Free Lossless Audio Codec (FLAC)
+                                             - wav   Waveform Audio File Format (WAV)
+                                             - opus  Opus Interactive Audio Codec (OPUS)
+    --device-filter=<device-filter>        Set a regex expression for devices which should be added.
+                                           Devices which get discovered, but won't match the
+                                           regex expression will be skipped.
+    --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
+    --debug                                enables detailed debug messages.
+    -v --version                           Show the version.
+    -h --help                              Show the help.
 '''
 
 from __future__ import unicode_literals
@@ -47,6 +50,7 @@ import logging
 import sys
 import signal
 import socket
+import re
 
 import docopt
 import pulseaudio_dlna
@@ -103,11 +107,20 @@ class PulseAudioDLNA(object):
             dlna_discover = upnp.discover.UpnpMediaRendererDiscover(host)
             dlna_discover.search()
             self.renderers = dlna_discover.renderers
-            logging.info('Discovery complete. You can now use your upnp devices!')
+            logging.info('Discovery complete.')
+
+            if options['--device-filter']:
+                r = re.compile(options['--device-filter'])
+                self.renderers = [d for d in self.renderers if r.search(d.name)]
 
         if len(self.renderers) == 0:
             print('There were no upnp devices found. Application terminates.')
             sys.exit(1)
+        else:
+            logging.info('Found devices:')
+            for upnp_device in self.renderers:
+                print(upnp_device)
+            logging.info('You can now use your upnp devices!')
 
         try:
             self.dlna_server = upnp.server.ThreadedDlnaServer(

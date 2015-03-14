@@ -57,5 +57,4 @@ class UpnpMediaRendererDiscover(object):
             header,
             renderer.CoinedUpnpMediaRenderer)
         if upnp_device is not None and upnp_device not in self.renderers:
-            logging.info('found upnp_device "{}"'.format(upnp_device))
             self.renderers.append(upnp_device)
