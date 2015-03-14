@@ -98,7 +98,6 @@ class UpnpMediaRenderer(object):
                 random_id=random.randint(1000, 9999))
         self.name = name
         self.short_name = self._short_name(name)
-        print(self.short_name)
         self.ip = ip
         self.port = port
         self.udn = udn
