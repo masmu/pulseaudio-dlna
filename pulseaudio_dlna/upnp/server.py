@@ -59,7 +59,6 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 try:
                     self.wfile.write(stream_data)
                 except IOError as e:
-                    print e.message
                     if e.errno == errno.EPIPE:
                         logging.info('stream closed. '
                                      'cleaning up remaining procecces')

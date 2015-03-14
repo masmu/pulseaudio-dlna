@@ -91,10 +91,11 @@ is loaded.
 - sox
 - lame
 - flac
+- opus-tools
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle vorbis-tools sox lame flac
+    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle vorbis-tools sox lame flac opus-tools
 
 ### PulseAudio DBus module ###
 
