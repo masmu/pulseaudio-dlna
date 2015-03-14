@@ -24,6 +24,7 @@ import urlparse
 import socket
 import logging
 import functools
+import random
 import BeautifulSoup
 import pulseaudio_dlna.pulseaudio
 
@@ -91,8 +92,13 @@ class UpnpMediaRenderer(object):
     ENCODING = 'utf-8'
 
     def __init__(self, name, ip, port, udn, services):
+        name = name.strip()
+        if name == '':
+            name = 'Unnamed device (#{random_id})'.format(
+                random_id=random.randint(1000, 9999))
         self.name = name
         self.short_name = self._short_name(name)
+        print(self.short_name)
         self.ip = ip
         self.port = port
         self.udn = udn
@@ -100,7 +106,7 @@ class UpnpMediaRenderer(object):
         self.state = self.IDLE
 
     def _short_name(self, name):
-        return re.sub(r'[^a-z]', '', name.lower())
+        return re.sub(r'[^a-z0-9]', '', name.lower())
 
     def _get_av_transport(self):
         for service in self.services:
