@@ -59,6 +59,7 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 try:
                     self.wfile.write(stream_data)
                 except IOError as e:
+                    print e.message
                     if e.errno == errno.EPIPE:
                         logging.info('stream closed. '
                                      'cleaning up remaining procecces')
@@ -96,6 +97,7 @@ class DlnaServer(SocketServer.TCPServer):
     ENCODER_LAME = 'lame'
     ENCODER_FLAC = 'flac'
     ENCODER_OGG = 'ogg'
+    ENCODER_OPUS = 'opus'
     ENCODER_WAV = 'wav'
     RECORDER_PULSEAUDIO = 'pulseaudio'
 
@@ -116,6 +118,7 @@ class DlnaServer(SocketServer.TCPServer):
             self.ENCODER_LAME,
             self.ENCODER_FLAC,
             self.ENCODER_OGG,
+            self.ENCODER_OPUS,
             self.ENCODER_WAV,
         ]
 
@@ -150,6 +153,9 @@ class DlnaServer(SocketServer.TCPServer):
         if type_ == self.ENCODER_OGG:
             self.encoder_cmd = 'oggenc -r -'
             self.encoder_mime = 'audio/ogg'
+        if type_ == self.ENCODER_OPUS:
+            self.encoder_cmd = 'opusenc --padding 0 --max-delay 0 --expect-loss 1 --framesize 2.5 --raw-rate 44100 --raw --bitrate 64 - -'
+            self.encoder_mime = 'audio/opus'
         if type_ == self.ENCODER_WAV:
             self.encoder_cmd = 'sox -t raw -b 16 -e signed -c 2 -r 44100 - -t wav -r 44100 -b 16 -L -e signed -c 2 -'
             self.encoder_mime = 'audio/wav'
