@@ -194,7 +194,7 @@ very useful if you ever plan to stream to a UPNP device over VPN.
 _pulseaudio-dlna_ was successfully tested on the follwing devices / applications:
 
 - D-Link DCH-M225/E
-- Cocy UPNP media renderer (https://github.com/mnlipp/CoCy)
+- [Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)
 - BubbleUPnP (Android App)
 - Samsung Smart TV LED60 (UE60F6300)
 - Samsung Smart TV LED40 (UE40ES6100)
@@ -202,6 +202,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Philips Streamium NP2500 Network Player
 - Yamaha RX-475 (AV Receiver)
 - Majik DSM
+- [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
 
 ## Supported encoders ##
 
