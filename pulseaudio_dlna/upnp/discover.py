@@ -53,6 +53,8 @@ class UpnpMediaRendererDiscover(object):
         sock.close()
 
     def _header_received(self, header, address):
+        logging.debug("Recieved the following SSDP header: \n{header}".format(
+            header=header))
         upnp_device = renderer.UpnpMediaRendererFactory.from_header(
             header,
             renderer.CoinedUpnpMediaRenderer)
