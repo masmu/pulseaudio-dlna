@@ -23,7 +23,7 @@ Usage:
 Options:
        --host=<host>        set the server ip.
     -p --port=<port>        set the server port [default: 8080].
-    -e --encoder=<encoder>  set the server port [default: lame].
+    -e --encoder=<encoder>  set the audio encoder [default: lame].
                             encoders are:
                               - lame  MPEG Audio Layer III (MP3)
                               - ogg   Ogg Vorbis
