@@ -3,7 +3,9 @@ Maintainer: Massimo Mund <mo@lancode.de>
 Section: python
 Priority: optional
 Build-Depends: python-all,
+               python-dev,
                python-setuptools,
+               python-virtualenv,
                git-core,
                ca-certificates,
                debhelper (>=9),
@@ -26,7 +28,7 @@ Depends: python2.7,
          opus-tools (>=0.1.8),
          ${misc:Depends}
 Homepage: https://github.com/masmu/pulseaudio-dlna
-Description: A small DLNA server which brings DLNA / UPNP support to 
+Description: A small DLNA server which brings DLNA / UPNP support to
  PulseAudio and Linux.
  It can stream your current PulseAudio playback to different UPNP
  devices (UPNP Media Renderers) in your network. It's main goals are:
