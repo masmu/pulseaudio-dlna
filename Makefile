@@ -23,10 +23,18 @@ pulseaudio_dlna.egg-info: setup.py bin/pip
 bin/pip:
 	virtualenv --system-site-packages -p $(python) .
 
+install:
+	sudo $(python) setup.py develop
+	sudo chown -R $(user) pulseaudio_dlna.egg-info/
+
+uninstall:
+	sudo $(python) setup.py develop --uninstall
+	sudo rm /usr/local/bin/pulseaudio-dlna || true
+
 release: manpage
 	pdebuild --buildresult dist
 	lintian --pedantic dist/*.deb dist/*.dsc dist/*.changes
-	sudo chown -R $(user):$(user) dist/
+	sudo chown -R $(user) dist/
 
 manpage: debian/pulseaudio-dlna.1
 

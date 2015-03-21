@@ -4,6 +4,7 @@ Section: python
 Priority: optional
 Build-Depends: python-all,
                python-dev,
+               python-pip,
                python-setuptools,
                python-virtualenv,
                git-core,

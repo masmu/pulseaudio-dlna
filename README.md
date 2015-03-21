@@ -34,6 +34,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __master__ - (_2015-03-21_)
+    - Added virtualenv for local installation
+
  * __0.3.2__ - (_2015-03-14_)
     - Added the Opus Encoder (new dependency: `opus-tools`) (thanks to [MobiusHorizons](https://github.com/MobiusHorizons))
     - Fixed a bug where an empty UPNP device name made the application crash
@@ -86,7 +89,13 @@ Other linux users can clone this git repository,
 make sure you have all the dependencies installed and the PulseAudio DBus module
 is loaded.
 
-### Requirements ###
+### Basic requirements ###
+
+These are the requirements _pulseaudio-dlna_ acutally needs to run. These dependencies
+will get installed if you install it via the PPA.
+
+- python2.7
+- python-pip
 - python-dbus
 - python-beautifulsoup
 - python-docopt
@@ -101,7 +110,7 @@ is loaded.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac opus-tools
+    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -118,11 +127,46 @@ favorite editor and append the following line:
 
     load-module module-dbus-protocol
 
-### Starting ###
+### Install it local ###
 
-After that you can change to the _root folder_ and start _pulseaudio-dlna_ via:
+The recommend method of using _pulseaudio-dlna_ is to install it local to a
+python _virtualenv_. In that way you will keep your system clean. If you don't like
+it anymore, just delete the folder.
+For that method you need some additional dependencies.
 
-    python pulseaudio_dlna
+#### virtualenv requirements ####
+
+- python-virtualenv
+- python-dev
+
+You can install all the dependencies in Ubuntu via:
+
+    sudo apt-get install python-virtualenv python-dev
+
+#### Installing & starting ####
+
+Change to the _project root folder_ and start the installation via:
+
+    make
+
+After that you can start _pulseaudio-dlna_ via:
+
+    bin/pulseaudio-dlna
+
+### Install it to your system ###
+
+Since some people like it more to install software globally, you can do that too.
+In many software projects this is the default installation method.
+
+#### Installing & starting ####
+
+Change to the _root folder_ and start the installation via:
+
+    make install
+
+After that you can start _pulseaudio-dlna_ via:
+
+    pulseaudio-dlna
 
 ### Using ###
 
