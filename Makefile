@@ -39,7 +39,7 @@ release: manpage
 manpage: debian/pulseaudio-dlna.1
 
 debian/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
-	help2man "python -m pulseaudio_dlna" > /tmp/pulseaudio-dlna.1
+	help2man "bin/pulseaudio-dlna" > /tmp/pulseaudio-dlna.1
 	mv /tmp/pulseaudio-dlna.1 debian/pulseaudio-dlna.1
 
 ifdef DEB_HOST_ARCH
