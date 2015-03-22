@@ -17,7 +17,7 @@
 
 '''
 Usage:
-    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--device-filter=<device-filter>] [--renderer-urls <urls>] [--debug]
+    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
     pulseaudio-dlna [-h | --help | --version]
 
 Options:
@@ -30,9 +30,9 @@ Options:
                                              - flac  Free Lossless Audio Codec (FLAC)
                                              - wav   Waveform Audio File Format (WAV)
                                              - opus  Opus Interactive Audio Codec (OPUS)
-    --device-filter=<device-filter>        Set a regex expression for devices which should be added.
+    --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                            Devices which get discovered, but won't match the
-                                           regex expression will be skipped.
+                                           filter text will be skipped.
     --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
     --debug                                enables detailed debug messages.
     -v --version                           Show the version.
@@ -103,14 +103,14 @@ class PulseAudioDLNA(object):
                 if renderer is not None:
                     self.renderers.append(renderer)
         else:
-            dlna_discover = upnp.discover.UpnpMediaRendererDiscover()
+            device_filter = None
+            if options['--filter-device']:
+                device_filter = options['--filter-device'].split(',')
+            dlna_discover = upnp.discover.UpnpMediaRendererDiscover(
+                device_filter=device_filter)
             dlna_discover.search()
             self.renderers = dlna_discover.renderers
             logging.info('Discovery complete.')
-
-            if options['--device-filter']:
-                filter = options['--device-filter'].split(',')
-                self.renderers = [d for d in self.renderers if d.name in filter]
 
         if len(self.renderers) == 0:
             print('There were no upnp devices found. Application terminates.')

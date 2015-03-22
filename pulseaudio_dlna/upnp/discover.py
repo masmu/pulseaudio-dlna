@@ -58,12 +58,17 @@ class BaseUpnpMediaRendererDiscover(object):
 
 class UpnpMediaRendererDiscover(BaseUpnpMediaRendererDiscover):
 
-    def __init__(self):
+    def __init__(self, device_filter=None):
         self.renderers = None
+        self.device_filter = device_filter
 
     def search(self, ttl=10, timeout=5, times=2):
         self.renderers = []
         BaseUpnpMediaRendererDiscover.search(self, ttl, timeout, times)
+
+    def _add_renderer(self, upnp_device):
+        if upnp_device not in self.renderers:
+            self.renderers.append(upnp_device)
 
     def _header_received(self, header, address):
         logging.debug("Recieved the following SSDP header: \n{header}".format(
@@ -71,5 +76,12 @@ class UpnpMediaRendererDiscover(BaseUpnpMediaRendererDiscover):
         upnp_device = renderer.UpnpMediaRendererFactory.from_header(
             header,
             renderer.CoinedUpnpMediaRenderer)
-        if upnp_device is not None and upnp_device not in self.renderers:
-            self.renderers.append(upnp_device)
+        if upnp_device is not None:
+            if self.device_filter is None:
+                self._add_renderer(upnp_device)
+            else:
+                if upnp_device.name in self.device_filter:
+                    self._add_renderer(upnp_device)
+                else:
+                    logging.info('Skipped the device "{name}."'.format(
+                        name=upnp_device.name))
