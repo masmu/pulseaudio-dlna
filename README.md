@@ -34,7 +34,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-03-21_)
+ * __master__ - (_2015-03-22_)
+    - Added the ```--filter-device``` option
+    - Send 2 SSDP packets by default for better UPNP device discovery
     - Added virtualenv for local installation
 
  * __0.3.2__ - (_2015-03-14_)
@@ -199,22 +201,26 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--renderer-urls <urls>] [--debug]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
-           --host=<host>        set the server ip.
-        -p --port=<port>        set the server port [default: 8080].
-        -e --encoder=<encoder>  set the audio encoder [default: lame].
-                                encoders are:
-                                  - lame  MPEG Audio Layer III (MP3)
-                                  - ogg   Ogg Vorbis
-                                  - flac  Free Lossless Audio Codec (FLAC)
-                                  - wav   Waveform Audio File Format (WAV)
-                                  - opus  Opus Interactive Audio Codec (OPUS)
-        --renderer-urls=<urls>  set the renderer urls yourself. no discovery will commence.
-        -v --version            show the version.
-        -h --help               show the help.
+           --host=<host>                       Set the server ip.
+        -p --port=<port>                       Set the server port [default: 8080].
+        -e --encoder=<encoder>                 Set the audio encoder [default: lame].
+                                               Possible encoders are:
+                                                 - lame  MPEG Audio Layer III (MP3)
+                                                 - ogg   Ogg Vorbis
+                                                 - flac  Free Lossless Audio Codec (FLAC)
+                                                 - wav   Waveform Audio File Format (WAV)
+                                                 - opus  Opus Interactive Audio Codec (OPUS)
+        --filter-device=<filter-device>        Set a name filter for devices which should be added.
+                                               Devices which get discovered, but won't match the
+                                               filter text will be skipped.
+        --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
+        --debug                                enables detailed debug messages.
+        -v --version                           Show the version.
+        -h --help                              Show the help.
 
 Samples:
 - `pulseaudio-dlna` will start 
@@ -226,6 +232,8 @@ with _Ogg Vorbis_.
 - `pulseaudio-dlna --port 10291 --encoder flac` will start 
 _pulseaudio-dlna_ on port _10291_ and stream your PulseAudio streams encoded
 with _FLAC_.
+- `pulseaudio-dlna --filter-device 'Nexus 5,TV'` will just use devices named
+_Nexus 5_ or _TV_ even when more devices got discovered.
 - `pulseaudio-dlna --renderer-urls http://192.168.1.7:7676/smp_10_`
 won't discover upnp devices by itself. Instead it will search for upnp renderers
 at the specified locations. You can specify multiple locations via urls
