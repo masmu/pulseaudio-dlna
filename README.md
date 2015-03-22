@@ -34,7 +34,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-03-22_)
+ * __0.3.3__ - (_2015-03-22_)
     - Added the ```--filter-device``` option
     - Send 2 SSDP packets by default for better UPNP device discovery
     - Added virtualenv for local installation

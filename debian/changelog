@@ -1,3 +1,11 @@
+pulseaudio-dlna (0.3.3) trusty; urgency=low
+
+  * Added the --filter-device option
+  * Send 2 SSDP packets by default for better UPNP device discovery
+  * Added virtualenv for local installation
+
+ -- Massimo Mund <mo@lancode.de>  Sun, 22 Mar 2015 20:34:12 +0100
+
 pulseaudio-dlna (0.3.2) trusty; urgency=low
 
   * Added the Opus Encoder
