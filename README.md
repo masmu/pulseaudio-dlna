@@ -34,6 +34,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.3.4__ - (_2015-03-22_)
+    - Fixed Makefile for launchpad
+
  * __0.3.3__ - (_2015-03-22_)
     - Added the ```--filter-device``` option
     - Send 2 SSDP packets by default for better UPNP device discovery
@@ -149,7 +152,7 @@ You can install all the dependencies in Ubuntu via:
 
 Change to the _project root folder_ and start the installation via:
 
-    make
+    make venv
 
 After that you can start _pulseaudio-dlna_ via:
 

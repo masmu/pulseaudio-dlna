@@ -1,3 +1,10 @@
+pulseaudio-dlna (0.3.4) trusty; urgency=low
+
+  * Fixed Makefile for launchpad
+
+ -- Massimo Mund <mo@lancode.de>  Sun, 22 Mar 2015 21:55:33 +0100
+
+
 pulseaudio-dlna (0.3.3) trusty; urgency=low
 
   * Added the --filter-device option

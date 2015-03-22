@@ -16,7 +16,9 @@
 python ?= python2.7
 user ?= $(shell whoami)
 
-all: pulseaudio_dlna.egg-info
+all:
+
+venv: pulseaudio_dlna.egg-info
 
 pulseaudio_dlna.egg-info: setup.py bin/pip
 	bin/pip install --editable . && touch $@
