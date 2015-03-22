@@ -37,6 +37,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
  * __master__ - (_2015-03-22_)
     - Added the ```--filter-device``` option
     - Send 2 SSDP packets by default for better UPNP device discovery
+    - Added virtualenv for local installation
 
  * __0.3.2__ - (_2015-03-14_)
     - Added the Opus Encoder (new dependency: `opus-tools`) (thanks to [MobiusHorizons](https://github.com/MobiusHorizons))
@@ -90,7 +91,13 @@ Other linux users can clone this git repository,
 make sure you have all the dependencies installed and the PulseAudio DBus module
 is loaded.
 
-### Requirements ###
+### Basic requirements ###
+
+These are the requirements _pulseaudio-dlna_ acutally needs to run. These dependencies
+will get installed if you install it via the PPA.
+
+- python2.7
+- python-pip
 - python-dbus
 - python-beautifulsoup
 - python-docopt
@@ -105,7 +112,7 @@ is loaded.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac opus-tools
+    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -122,11 +129,46 @@ favorite editor and append the following line:
 
     load-module module-dbus-protocol
 
-### Starting ###
+### Install it local ###
 
-After that you can change to the _root folder_ and start _pulseaudio-dlna_ via:
+The recommend method of using _pulseaudio-dlna_ is to install it local to a
+python _virtualenv_. In that way you will keep your system clean. If you don't like
+it anymore, just delete the folder.
+For that method you need some additional dependencies.
 
-    python pulseaudio_dlna
+#### virtualenv requirements ####
+
+- python-virtualenv
+- python-dev
+
+You can install all the dependencies in Ubuntu via:
+
+    sudo apt-get install python-virtualenv python-dev
+
+#### Installing & starting ####
+
+Change to the _project root folder_ and start the installation via:
+
+    make
+
+After that you can start _pulseaudio-dlna_ via:
+
+    bin/pulseaudio-dlna
+
+### Install it to your system ###
+
+Since some people like it more to install software globally, you can do that too.
+In many software projects this is the default installation method.
+
+#### Installing & starting ####
+
+Change to the _root folder_ and start the installation via:
+
+    make install
+
+After that you can start _pulseaudio-dlna_ via:
+
+    pulseaudio-dlna
 
 ### Using ###
 
@@ -165,7 +207,7 @@ _pulseaudio-dlna_.
     Options:
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
-        -e --encoder=<encoder>                 Set the server port [default: lame].
+        -e --encoder=<encoder>                 Set the audio encoder [default: lame].
                                                Possible encoders are:
                                                  - lame  MPEG Audio Layer III (MP3)
                                                  - ogg   Ogg Vorbis
@@ -204,7 +246,7 @@ very useful if you ever plan to stream to a UPNP device over VPN.
 _pulseaudio-dlna_ was successfully tested on the follwing devices / applications:
 
 - D-Link DCH-M225/E
-- Cocy UPNP media renderer (https://github.com/mnlipp/CoCy)
+- [Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)
 - BubbleUPnP (Android App)
 - Samsung Smart TV LED60 (UE60F6300)
 - Samsung Smart TV LED40 (UE40ES6100)
@@ -212,6 +254,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Philips Streamium NP2500 Network Player
 - Yamaha RX-475 (AV Receiver)
 - Majik DSM
+- [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
 
 ## Supported encoders ##
 

@@ -13,26 +13,33 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-python = python2.7
-user=$(shell whoami)
+python ?= python2.7
+user ?= $(shell whoami)
 
-all:
+all: pulseaudio_dlna.egg-info
 
-dev:
+pulseaudio_dlna.egg-info: setup.py bin/pip
+	bin/pip install --editable . && touch $@
+bin/pip:
+	virtualenv --system-site-packages -p $(python) .
+
+install:
 	sudo $(python) setup.py develop
-	sudo chown -R $(user):$(user) pulseaudio_dlna.egg-info/
+	sudo chown -R $(user) pulseaudio_dlna.egg-info/
 
-uninstall-dev:
+uninstall:
 	sudo $(python) setup.py develop --uninstall
 	sudo rm /usr/local/bin/pulseaudio-dlna || true
 
 release: manpage
 	pdebuild --buildresult dist
 	lintian --pedantic dist/*.deb dist/*.dsc dist/*.changes
-	sudo chown -R $(user):$(user) dist/
+	sudo chown -R $(user) dist/
 
-manpage: dev
-	help2man pulseaudio-dlna > /tmp/pulseaudio-dlna.1
+manpage: debian/pulseaudio-dlna.1
+
+debian/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
+	help2man "bin/pulseaudio-dlna" > /tmp/pulseaudio-dlna.1
 	mv /tmp/pulseaudio-dlna.1 debian/pulseaudio-dlna.1
 
 ifdef DEB_HOST_ARCH
@@ -44,5 +51,5 @@ endif
 
 clean:
 	rm -rf build dist $(shell find pulseaudio_dlna -name "__pycache__")
-	rm -rf *.egg-info *.egg bin lib lib64 include share pyvenv.cfg
+	rm -rf *.egg-info *.egg bin local lib lib64 include share pyvenv.cfg
 	rm -rf docs htmlcov .coverage .tox pip-selfcheck.json
