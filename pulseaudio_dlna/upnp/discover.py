@@ -20,9 +20,10 @@ from __future__ import unicode_literals
 import socket as s
 import renderer
 import logging
+import time
 
 
-class UpnpMediaRendererDiscover(object):
+class BaseUpnpMediaRendererDiscover(object):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
@@ -33,15 +34,14 @@ class UpnpMediaRendererDiscover(object):
               'MX: 2\r\n' + \
               'ST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n'
 
-    def __init__(self, iface):
-        self.iface = iface
-        self.renderers = []
-
-    def search(self, ttl=10, timeout=5):
+    def search(self, ttl=10, timeout=5, times=2):
         s.setdefaulttimeout(timeout)
         sock = s.socket(s.AF_INET, s.SOCK_DGRAM, s.IPPROTO_UDP)
         sock.setsockopt(s.IPPROTO_IP, s.IP_MULTICAST_TTL, ttl)
-        sock.sendto(self.MSEARCH, (self.SSDP_ADDRESS, self.SSDP_PORT))
+
+        for i in range(0, times):
+            sock.sendto(self.MSEARCH, (self.SSDP_ADDRESS, self.SSDP_PORT))
+            time.sleep(0.1)
 
         buffer_size = 1024
         while True:
@@ -53,6 +53,21 @@ class UpnpMediaRendererDiscover(object):
         sock.close()
 
     def _header_received(self, header, address):
+        pass
+
+
+class UpnpMediaRendererDiscover(BaseUpnpMediaRendererDiscover):
+
+    def __init__(self):
+        self.renderers = None
+
+    def search(self, ttl=10, timeout=5, times=2):
+        self.renderers = []
+        BaseUpnpMediaRendererDiscover.search(self, ttl, timeout, times)
+
+    def _header_received(self, header, address):
+        logging.debug("Recieved the following SSDP header: \n{header}".format(
+            header=header))
         upnp_device = renderer.UpnpMediaRendererFactory.from_header(
             header,
             renderer.CoinedUpnpMediaRenderer)

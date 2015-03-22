@@ -103,7 +103,7 @@ class PulseAudioDLNA(object):
                 if renderer is not None:
                     self.renderers.append(renderer)
         else:
-            dlna_discover = upnp.discover.UpnpMediaRendererDiscover(host)
+            dlna_discover = upnp.discover.UpnpMediaRendererDiscover()
             dlna_discover.search()
             self.renderers = dlna_discover.renderers
             logging.info('Discovery complete.')
