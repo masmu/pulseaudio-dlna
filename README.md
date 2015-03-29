@@ -37,6 +37,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
  * __master__ - (_2015-03-29_)
     - Rewrite of the streaming server
     - Upnp devices can now request their audio format based on their capabilities
+    - Added AAC encoder
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad
@@ -120,11 +121,12 @@ will get installed if you install it via the PPA.
 - sox
 - lame
 - flac
+- faac
 - opus-tools
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac opus-tools
+    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -277,3 +279,4 @@ _pulseaudio-dlna_ supports the following encoders:
 - __flac__  Free Lossless Audio Codec (FLAC)
 - __wav__   Waveform Audio File Format (WAV)
 - __opus__  Opus Interactive Audio Codec (OPUS)
+- __aac__   Advanced Audio Coding (AAC)

@@ -42,6 +42,15 @@ class BaseEncoder(object):
         return self._suffix
 
 
+class AacEncoder(BaseEncoder):
+    def __init__(self):
+        BaseEncoder.__init__(self)
+        self._command = 'faac -P -b 320 -X -o - -'
+        self._mime_type = 'audio/aac'
+        self._suffix = 'aac'
+        self._mime_types = ['audio/mp4', 'audio/aac', 'audio/x-aac']
+
+
 class LameEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)

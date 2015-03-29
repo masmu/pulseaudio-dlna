@@ -26,6 +26,7 @@ Depends: python2.7,
          sox (>=14.4.1),
          lame (>=3.99.0),
          flac (>=1.3.0),
+         faac (>=1.28),
          opus-tools (>=0.1.8),
          ${misc:Depends}
 Homepage: https://github.com/masmu/pulseaudio-dlna
