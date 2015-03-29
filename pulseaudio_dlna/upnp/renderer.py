@@ -241,7 +241,7 @@ class CoinedUpnpMediaRenderer(UpnpMediaRenderer):
 
     def set_server_url(self, server_url):
         self.server_url = server_url
-        self.stream_name = '/{stream_name}.stream'.format(
+        self.stream_name = '/{stream_name}.mp3'.format(
             stream_name=self.short_name,
         )
         self.stream_url = urlparse.urljoin(self.server_url, self.stream_name)

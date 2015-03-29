@@ -18,15 +18,236 @@
 from __future__ import unicode_literals
 
 import sys
+import re
 import subprocess
+import threading
 import setproctitle
 import logging
-import errno
+import time
+import socket
+import select
+import atexit
+import inspect
 import BaseHTTPServer
 import SocketServer
 
+import pulseaudio_dlna.encoders
+import pulseaudio_dlna.recorders
 
-class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+
+class RemoteDevice(object):
+    def __init__(self, bridge, sock):
+        self.bridge = bridge
+        try:
+            self.ip, self.port = sock.getsockname()
+        except:
+            logging.info('Could not get socket IP and Port. Setting to '
+                         'unknown.')
+            self.ip = 'unknown'
+            self.port = 'unknown'
+
+
+class ProcessStream(object):
+    def __init__(self, path, recorder, encoder):
+        self.path = path
+        self.recorder = recorder
+        self.encoder = encoder
+        self.recorder_process = None
+        self.encoder_process = None
+
+        self.sockets = {}
+        self.chunk_size = 1024 * 8
+        self.lock = threading.Lock()
+        self.client_count = 0
+
+        atexit.register(self.shutdown)
+
+        class UpdateThread(threading.Thread):
+            def __init__(self, stream):
+                threading.Thread.__init__(self)
+                self.stream = stream
+                self.is_running = True
+                self.lock = threading.Lock()
+                self.lock.acquire()
+
+            def run(self):
+                while True:
+                    if self.is_running is False:
+                        self.lock.acquire()
+                    else:
+                        self.stream.communicate()
+                        time.sleep(0.1)
+
+            def pause(self):
+                self.is_running = False
+
+            def resume(self):
+                if self.is_running is False:
+                    self.is_running = True
+                    self.lock.release()
+
+        self.update_thread = UpdateThread(self)
+        self.update_thread.daemon = True
+        self.update_thread.start()
+
+    @property
+    def mime_type(self):
+        return self.encoder.mime_type
+
+    def register(self, bridge, sock, lock_override=False):
+        if sock not in self.sockets:
+            try:
+                if not lock_override:
+                    self.lock.acquire()
+                device = RemoteDevice(bridge, sock)
+                logging.info(
+                    'Client {client} registered to stream {path}.'.format(
+                        client=device.ip,
+                        path=self.path))
+                self.sockets[sock] = device
+                self.client_count += 1
+                self.update_thread.resume()
+            finally:
+                if not lock_override:
+                    self.lock.release()
+        else:
+            logging.info('The same client id tries to register a stream, this '
+                         'should never happen...')
+            sys.exit(2)
+
+    def unregister(self, sock, lock_override=False, method=0):
+        if sock in self.sockets:
+            try:
+                if not lock_override:
+                    self.lock.acquire()
+                logging.info(
+                    'Client {client} unregistered stream {path} '
+                    'using method {method}.'.format(
+                        client=self.sockets[sock].ip,
+                        method=method,
+                        path=self.path))
+                del self.sockets[sock]
+                sock.close()
+                self.client_count -= 1
+                if len(self.sockets) == 0:
+                    logging.info('Stream closed. '
+                                 'Cleaning up remaining processes ...')
+                    self.update_thread.pause()
+                    self.cleanup()
+            finally:
+                if not lock_override:
+                    self.lock.release()
+        else:
+            logging.info('A client id tries to unregister a stream which is '
+                         'not registered, this should never happen...')
+            sys.exit(2)
+
+    def communicate(self):
+        try:
+            self.lock.acquire()
+
+            if not self.do_processes_exist():
+                self.create_processes()
+                logging.info(
+                    'Processes of {path} initialized ...'.format(
+                        path=self.path))
+            if not self.do_processes_respond():
+                self.cleanup()
+                self.create_processes()
+                logging.info(
+                    'Processes of {path} reinitialized ...'.format(
+                        path=self.path))
+
+            data = self.encoder_process.stdout.read(self.chunk_size)
+            socks = self.sockets.keys()
+            try:
+                r, w, e = select.select(socks, socks, [], 0)
+            except socket.error:
+                for sock in socks:
+                    try:
+                        r, w, e = select.select([sock], [], [], 0)
+                    except socket.error:
+                        self.unregister(sock, lock_override=True, method=1)
+                return
+
+            for sock in w:
+                try:
+                    self._send_data(sock, data)
+                except socket.error:
+                    self.unregister(sock, lock_override=True, method=2)
+
+            for sock in r:
+                if sock in self.sockets:
+                    try:
+                        bytes = sock.recv(1024)
+                        if len(bytes) == 0:
+                            self.unregister(sock, lock_override=True, method=3)
+                    except socket.error:
+                        self.unregister(sock, lock_override=True, method=4)
+
+        finally:
+            self.lock.release()
+
+    def _send_data(self, sock, bytes):
+        bytes_total = len(bytes)
+        bytes_sent = 0
+        while bytes_sent < bytes_total:
+            bytes_sent += sock.send(bytes[bytes_sent:])
+
+    def do_processes_exist(self):
+        return self.encoder_process is not None and \
+            self.recorder_process is not None
+
+    def do_processes_respond(self):
+        return self.recorder_process.poll() is None and \
+            self.encoder_process.poll() is None
+
+    def cleanup(self):
+        self._kill_process(self.encoder_process)
+        self._kill_process(self.recorder_process)
+
+    def _kill_process(self, process):
+        try:
+            process.kill()
+        except:
+            pass
+
+    def create_processes(self):
+        self.recorder_process = subprocess.Popen(
+            self.recorder.command.split(' '),
+            stdout=subprocess.PIPE)
+        self.encoder_process = subprocess.Popen(
+            self.encoder.command.split(' '),
+            stdin=self.recorder_process.stdout,
+            stdout=subprocess.PIPE)
+        self.recorder_process.stdout.close()
+
+    def shutdown(self):
+        logging.info('Streaming server is shutting down.')
+        for sock in self.sockets.keys():
+            sock.close()
+
+
+class StreamManager(object):
+    def __init__(self):
+        self.streams = {}
+
+    def get_stream(self, path, bridge, encoder):
+        if path not in self.streams:
+            recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
+                bridge.sink.monitor)
+            stream = ProcessStream(
+                path,
+                recorder,
+                encoder,
+            )
+            self.streams[path] = stream
+            return stream
+        else:
+            return self.streams[path]
+
+
+class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def __init__(self, *args):
         try:
             BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args)
@@ -34,95 +255,103 @@ class DlnaRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             pass
 
     def do_HEAD(self):
-        self.send_response(200)
-        self.send_header('Content-Type', self.server.encoder_mime)
-        self.end_headers()
+        self.handle_headers()
 
     def do_GET(self):
-        self.do_HEAD()
-        bridge = self.get_bridge(self.path)
-        if bridge is None:
-            logging.info('error 404: file not found "{}"'.format(self.path))
-            self.send_error(404, 'file not found: %s' % self.path)
+        bridge, encoder = self.handle_headers()
+        if bridge and encoder:
+            stream = self.server.stream_manager.get_stream(
+                self.path, bridge, encoder)
+            stream.register(bridge, self.request)
+            self.keep_connection_alive()
+
+    def keep_connection_alive(self):
+        self.close_connection = 0
+        self.wfile.flush()
+
+        while True:
+            try:
+                r, w, e = select.select([self.request], [], [], 0)
+            except socket.error:
+                logging.debug('Socket died, releasing request thread.')
+                break
+            time.sleep(1)
+
+    def handle_headers(self):
+        bridge, encoder = self.chop_request_path(self.path)
+        if encoder and bridge:
+            self.send_response(200)
+            self.send_header('Content-Type', encoder.mime_type)
+            self.end_headers()
+            return bridge, encoder
         else:
-            logging.info('starting sending stream to "{}"'.format(
-                bridge.upnp_device.name))
-            recorder_process, encoder_process = self.create_processes(bridge)
-            while True:
-                stream_data = encoder_process.stdout.read(1024)
-                if recorder_process.poll() is not None or \
-                   encoder_process.poll() is not None:
-                    self.cleanup_process(recorder_process)
-                    self.cleanup_process(encoder_process)
-                    recorder_process, encoder_process = self.create_processes(
-                        bridge)
-                try:
-                    self.wfile.write(stream_data)
-                except IOError as e:
-                    if e.errno == errno.EPIPE:
-                        logging.info('stream closed. '
-                                     'cleaning up remaining procecces')
-                        self.cleanup_process(recorder_process)
-                        self.cleanup_process(encoder_process)
-                        break
+            logging.info('Error 404: File not found "{}"'.format(self.path))
+            self.send_error(404, 'File not found: %s' % self.path)
+            return None, None
 
-    def create_processes(self, bridge):
-        recorder_process = subprocess.Popen(
-            self.server.recorder_cmd.format(
-                bridge.sink.monitor).split(' '),
-            stdout=subprocess.PIPE)
-        encoder_process = subprocess.Popen(
-            self.server.encoder_cmd.split(' '),
-            stdin=recorder_process.stdout,
-            stdout=subprocess.PIPE)
-        recorder_process.stdout.close()
-        return recorder_process, encoder_process
-
-    def cleanup_process(self, process):
+    def chop_request_path(self, path):
+        logging.info('Requested streaming URL was: {path}'.format(
+            path=path))
         try:
-            process.kill()
-        except:
+            short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
+
+            choosen_encoder = None
+            for encoder in self.server.encoders:
+                if encoder.suffix == suffix:
+                    choosen_encoder = encoder
+                    break
+
+            choosen_bridge = None
+            for bridge in self.server.bridges:
+                if short_name == bridge.upnp_device.short_name:
+                    choosen_bridge = bridge
+                    break
+
+            if choosen_bridge is not None and choosen_encoder is not None:
+                return bridge, encoder
+
+        except (TypeError, ValueError, IndexError):
             pass
-
-    def get_bridge(self, path):
-        for bridge in self.server.bridges:
-            if self.path == bridge.upnp_device.stream_name:
-                return bridge
-        return None
+        return None, None
 
 
-class DlnaServer(SocketServer.TCPServer):
+class StreamServer(SocketServer.TCPServer):
 
-    ENCODER_LAME = 'lame'
-    ENCODER_FLAC = 'flac'
-    ENCODER_OGG = 'ogg'
-    ENCODER_OPUS = 'opus'
-    ENCODER_WAV = 'wav'
-    RECORDER_PULSEAUDIO = 'pulseaudio'
-
-    def __init__(self, ip, port, recorder=None, encoder=None, *args):
-        setproctitle.setproctitle('dlna_server')
+    def __init__(self, ip, port, *args):
+        setproctitle.setproctitle('stream_server')
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
-            self, ('', port), DlnaRequestHandler, *args)
+            self, ('', port), StreamRequestHandler, *args)
 
         self.ip = ip
         self.port = port
-        self.recorder_cmd = None
-        self.encoder_cmd = None
-        self.encoder_mime = None
         self.bridges = []
+        self.encoders = None
+        self.stream_manager = StreamManager()
 
-        self.encoders = [
-            self.ENCODER_LAME,
-            self.ENCODER_FLAC,
-            self.ENCODER_OGG,
-            self.ENCODER_OPUS,
-            self.ENCODER_WAV,
-        ]
+        self.load_encoders()
 
-        self.set_recorder()
-        self.set_encoder(encoder)
+    def load_encoders(self):
+        self.encoders = []
+        for (name, _type) in inspect.getmembers(pulseaudio_dlna.encoders):
+            forbidden_members = [
+                '__builtins__',
+                '__doc__',
+                '__file__',
+                '__name__',
+                '__package__',
+                'unicode_literals'
+            ]
+            if name not in forbidden_members:
+                try:
+                    encoder = _type()
+                except:
+                    continue
+                if name != 'BaseEncoder' and \
+                   isinstance(_type(), pulseaudio_dlna.encoders.BaseEncoder):
+                    logging.info('Loaded encoder {encoder} '.format(
+                        encoder=name))
+                    self.encoders.append(encoder)
 
     def get_server_url(self):
         return 'http://{ip}:{port}'.format(
@@ -133,32 +362,6 @@ class DlnaServer(SocketServer.TCPServer):
     def set_bridges(self, bridges):
         self.bridges = bridges
 
-    def set_recorder(self, type_=None):
-        type_ = type_ or self.RECORDER_PULSEAUDIO
-        if type_ == self.RECORDER_PULSEAUDIO:
-            self.recorder_cmd = 'parec --format=s16le -d {}'
 
-    def set_encoder(self, type_=None):
-        type_ = type_ or self.ENCODER_LAME
-        if type_ not in self.encoders:
-            logging.error('You specified an encoder which does not exists!')
-            sys.exit(1)
-        if type_ == self.ENCODER_LAME:
-            self.encoder_cmd = 'lame -r -b 320 -'
-            self.encoder_mime = 'audio/mpeg'
-        if type_ == self.ENCODER_FLAC:
-            self.encoder_cmd = 'flac - -c --channels 2 --bps 16 --sample-rate 44100 --endian little --sign signed'
-            self.encoder_mime = 'audio/flac'
-        if type_ == self.ENCODER_OGG:
-            self.encoder_cmd = 'oggenc -r -'
-            self.encoder_mime = 'audio/ogg'
-        if type_ == self.ENCODER_OPUS:
-            self.encoder_cmd = 'opusenc --padding 0 --max-delay 0 --expect-loss 1 --framesize 2.5 --raw-rate 44100 --raw --bitrate 64 - -'
-            self.encoder_mime = 'audio/opus'
-        if type_ == self.ENCODER_WAV:
-            self.encoder_cmd = 'sox -t raw -b 16 -e signed -c 2 -r 44100 - -t wav -r 44100 -b 16 -L -e signed -c 2 -'
-            self.encoder_mime = 'audio/wav'
-
-
-class ThreadedDlnaServer(SocketServer.ThreadingMixIn, DlnaServer):
+class ThreadedStreamServer(SocketServer.ThreadingMixIn, StreamServer):
     pass

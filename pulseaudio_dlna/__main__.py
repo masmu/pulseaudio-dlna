@@ -122,15 +122,14 @@ class PulseAudioDLNA(object):
             logging.info('You can now use your upnp devices!')
 
         try:
-            self.dlna_server = upnp.server.ThreadedDlnaServer(
-                host, port, encoder=options['--encoder'])
+            self.stream_server = upnp.server.ThreadedStreamServer(host, port)
         except socket.error:
             print('The dlna server could not bind to your specified port '
                   '({port}). Perhaps this is already in use? Application '
                   'terminates.'.format(port=port))
             sys.exit(1)
 
-        server_url = self.dlna_server.get_server_url()
+        server_url = self.stream_server.get_server_url()
         upnp_devices = []
         for upnp_device in self.renderers:
             upnp_device.set_server_url(server_url)
@@ -140,8 +139,8 @@ class PulseAudioDLNA(object):
         self.pulse = pulseaudio.PulseWatcher()
         self.pulse.set_upnp_devices(upnp_devices)
 
-        self.dlna_server.set_bridges(self.pulse.bridges)
-        process = multiprocessing.Process(target=self.dlna_server.serve_forever)
+        self.stream_server.set_bridges(self.pulse.bridges)
+        process = multiprocessing.Process(target=self.stream_server.serve_forever)
         process.start()
 
         setproctitle.setproctitle('pulseaudio-dlna')
