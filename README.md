@@ -36,6 +36,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
  * __master__ - (_2015-03-29_)
     - Rewrite of the streaming server
+    - Upnp devices can now request their audio format based on their capabilities
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad

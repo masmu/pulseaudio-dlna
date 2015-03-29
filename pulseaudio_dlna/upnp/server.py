@@ -27,12 +27,12 @@ import time
 import socket
 import select
 import atexit
-import inspect
 import BaseHTTPServer
 import SocketServer
 
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.recorders
+import pulseaudio_dlna.common
 
 
 class RemoteDevice(object):
@@ -56,7 +56,7 @@ class ProcessStream(object):
         self.encoder_process = None
 
         self.sockets = {}
-        self.chunk_size = 1024 * 8
+        self.chunk_size = 1024 * 4
         self.lock = threading.Lock()
         self.client_count = 0
 
@@ -66,7 +66,7 @@ class ProcessStream(object):
             def __init__(self, stream):
                 threading.Thread.__init__(self)
                 self.stream = stream
-                self.is_running = True
+                self.is_running = False
                 self.lock = threading.Lock()
                 self.lock.acquire()
 
@@ -76,7 +76,6 @@ class ProcessStream(object):
                         self.lock.acquire()
                     else:
                         self.stream.communicate()
-                        time.sleep(0.1)
 
             def pause(self):
                 self.is_running = False
@@ -213,6 +212,9 @@ class ProcessStream(object):
             pass
 
     def create_processes(self):
+        logging.debug('Starting processes "{recorder} | {encoder}"'.format(
+            recorder=self.recorder.command,
+            encoder=self.encoder.command))
         self.recorder_process = subprocess.Popen(
             self.recorder.command.split(' '),
             stdout=subprocess.PIPE)
@@ -296,7 +298,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
 
             choosen_encoder = None
-            for encoder in self.server.encoders:
+            for encoder in pulseaudio_dlna.common.supported_encoders:
                 if encoder.suffix == suffix:
                     choosen_encoder = encoder
                     break
@@ -326,32 +328,7 @@ class StreamServer(SocketServer.TCPServer):
         self.ip = ip
         self.port = port
         self.bridges = []
-        self.encoders = None
         self.stream_manager = StreamManager()
-
-        self.load_encoders()
-
-    def load_encoders(self):
-        self.encoders = []
-        for (name, _type) in inspect.getmembers(pulseaudio_dlna.encoders):
-            forbidden_members = [
-                '__builtins__',
-                '__doc__',
-                '__file__',
-                '__name__',
-                '__package__',
-                'unicode_literals'
-            ]
-            if name not in forbidden_members:
-                try:
-                    encoder = _type()
-                except:
-                    continue
-                if name != 'BaseEncoder' and \
-                   isinstance(_type(), pulseaudio_dlna.encoders.BaseEncoder):
-                    logging.info('Loaded encoder {encoder} '.format(
-                        encoder=name))
-                    self.encoders.append(encoder)
 
     def get_server_url(self):
         return 'http://{ip}:{port}'.format(

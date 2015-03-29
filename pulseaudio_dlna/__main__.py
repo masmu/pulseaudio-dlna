@@ -118,6 +118,7 @@ class PulseAudioDLNA(object):
         else:
             logging.info('Found devices:')
             for upnp_device in self.renderers:
+                upnp_device.activate()
                 print(upnp_device)
             logging.info('You can now use your upnp devices!')
 
@@ -129,10 +130,10 @@ class PulseAudioDLNA(object):
                   'terminates.'.format(port=port))
             sys.exit(1)
 
-        server_url = self.stream_server.get_server_url()
         upnp_devices = []
         for upnp_device in self.renderers:
-            upnp_device.set_server_url(server_url)
+            upnp_device.set_server_location(
+                self.stream_server.ip, self.stream_server.port)
             upnp_devices.append(upnp_device)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)

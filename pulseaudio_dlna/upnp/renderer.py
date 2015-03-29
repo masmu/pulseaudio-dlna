@@ -23,10 +23,61 @@ import requests
 import urlparse
 import socket
 import logging
-import functools
 import random
+import functools
 import BeautifulSoup
 import pulseaudio_dlna.pulseaudio
+import pulseaudio_dlna.encoders
+import pulseaudio_dlna.common
+
+
+class UpnpService(object):
+
+    SERVICE_TRANSPORT = 'transport'
+    SERVICE_CONNECTION = 'connection'
+    SERVICE_RENDERING = 'rendering'
+
+    def __init__(self, ip, port, service):
+
+        self.ip = ip
+        self.port = port
+
+        if service['service_type'].startswith('urn:schemas-upnp-org:service:AVTransport:'):
+            self._type = self.SERVICE_TRANSPORT
+        elif service['service_type'].startswith('urn:schemas-upnp-org:service:ConnectionManager:'):
+            self._type = self.SERVICE_CONNECTION
+        elif service['service_type'].startswith('urn:schemas-upnp-org:service:RenderingControl:'):
+            self._type = self.SERVICE_RENDERING
+        else:
+            self._type = None
+
+        self._service_type = service['service_type']
+        self._control_url = service['control_url']
+        self._event_url = service['eventsub_url']
+
+    @property
+    def type(self):
+        return self._type
+
+    @property
+    def service_type(self):
+        return self._service_type
+
+    @property
+    def control_url(self):
+        host = 'http://{ip}:{port}'.format(
+            ip=self.ip,
+            port=self.port,
+        )
+        return urlparse.urljoin(host, self._control_url)
+
+    @property
+    def event_url(self):
+        host = 'http://{ip}:{port}'.format(
+            ip=self.ip,
+            port=self.port,
+        )
+        return urlparse.urljoin(host, self._event_url)
 
 
 @functools.total_ordering
@@ -85,6 +136,14 @@ class UpnpMediaRenderer(object):
     </s:Body>
 </s:Envelope>"""
 
+    GET_PROTOCOL_INFO_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
+<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+    <s:Body>
+        <u:GetProtocolInfo xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1">
+        </u:GetProtocolInfo>
+    </s:Body>
+</s:Envelope>"""
+
     PLAYING = 'playing'
     IDLE = 'idle'
     PAUSE = 'paused'
@@ -101,28 +160,29 @@ class UpnpMediaRenderer(object):
         self.ip = ip
         self.port = port
         self.udn = udn
-        self.services = services
+
+        self.service_transport = None
+        self.service_connection = None
+        self.service_rendering = None
+
+        for service in services:
+            service = UpnpService(ip, port, service)
+            if service.type == UpnpService.SERVICE_TRANSPORT:
+                self.service_transport = service
+            if service.type == UpnpService.SERVICE_CONNECTION:
+                self.service_connection = service
+            if service.type == UpnpService.SERVICE_RENDERING:
+                self.service_rendering = service
+
         self.state = self.IDLE
+
+        self.protocols = []
+
+    def activate(self):
+        self.get_protocol_info()
 
     def _short_name(self, name):
         return re.sub(r'[^a-z0-9]', '', name.lower())
-
-    def _get_av_transport(self):
-        for service in self.services:
-            if service['service_type'].startswith(
-                    'urn:schemas-upnp-org:service:AVTransport:'):
-                return service
-
-    def _get_av_transport_url(self):
-        av_transport = self._get_av_transport()
-        return self._get_url(av_transport['control_url'])
-
-    def _get_url(self, control_url):
-        host = 'http://{ip}:{port}'.format(
-            ip=self.ip,
-            port=self.port,
-        )
-        return urlparse.urljoin(host, control_url)
 
     def _debug(self, action, url, headers, data, response):
         logging.debug(
@@ -137,12 +197,21 @@ class UpnpMediaRenderer(object):
                 status_code=response.status_code,
                 result=response.text))
 
+    def get_encoder(self):
+        for encoder in pulseaudio_dlna.common.supported_encoders:
+            for mime_type in encoder.mime_types:
+                if mime_type in self.protocols:
+                    return encoder
+        return None
+
     def register(self, stream_url):
-        url = self._get_av_transport_url()
+        url = self.service_transport.control_url
         headers = {
             'Content-Type':
                 'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
-            'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#SetAVTransportURI"',
+            'SOAPAction':
+                '"{service_type}#SetAVTransportURI"'.format(
+                    service_type=self.service_transport.service_type),
         }
         metadata = self.REGISTER_XML_METADATA.format(
             stream_url=stream_url,
@@ -162,12 +231,42 @@ class UpnpMediaRenderer(object):
         self._debug('register', url, headers, data, response)
         return response.status_code
 
-    def play(self):
-        url = self._get_av_transport_url()
+    def get_protocol_info(self):
+        url = self.service_connection.control_url
         headers = {
             'Content-Type':
                 'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
-            'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Play"',
+            'SOAPAction': '"{service_type}#GetProtocolInfo"'.format(
+                service_type=self.service_connection.service_type),
+        }
+        data = self.GET_PROTOCOL_INFO_XML.format(
+            encoding=self.ENCODING,
+        )
+        response = requests.post(
+            url, data=data.encode(self.ENCODING), headers=headers)
+        if response.status_code == 200:
+            soup = BeautifulSoup.BeautifulSoup(response.content)
+            try:
+                self.protocols = []
+                sinks = soup("sink")[0].text
+                for sink in sinks.split(','):
+                    http_get, w1, mime_type, w2 = sink.strip().split(':')
+                    if mime_type.startswith('audio/'):
+                        self.protocols.append(mime_type)
+            except IndexError:
+                logging.info(
+                    'IndexError: No valid XML returned from {url}.'.format(url=url))
+
+        self._debug('get_protocol_info', url, headers, data, response)
+        return response.status_code
+
+    def play(self):
+        url = self.service_transport.control_url
+        headers = {
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
+            'SOAPAction': '"{service_type}#Play"'.format(
+                service_type=self.service_transport.service_type),
         }
         data = self.PLAY_XML.format(
             encoding=self.ENCODING,
@@ -180,11 +279,12 @@ class UpnpMediaRenderer(object):
         return response.status_code
 
     def stop(self):
-        url = self._get_av_transport_url()
+        url = self.service_transport.control_url
         headers = {
             'Content-Type':
                 'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
-            'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Stop"',
+            'SOAPAction': '"{service_type}#Stop"'.format(
+                service_type=self.service_transport.service_type),
         }
         data = self.STOP_XML.format(
             encoding=self.ENCODING,
@@ -197,11 +297,12 @@ class UpnpMediaRenderer(object):
         return response.status_code
 
     def pause(self):
-        url = self._get_av_transport_url()
+        url = self.service_transport.control_url
         headers = {
             'Content-Type':
                 'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
-            'SOAPAction': '"urn:schemas-upnp-org:service:AVTransport:1#Stop"',
+            'SOAPAction': '"{service_type}#Pause"'.format(
+                service_type=self.service_transport.service_type),
         }
         data = self.PAUSE_XML.format(
             encoding=self.ENCODING,
@@ -226,37 +327,43 @@ class UpnpMediaRenderer(object):
             return self.name > other.upnp_device.name
 
     def __str__(self):
-        return '<UpnpMediaRenderer name="{}" short_name="{}" state="{}">'.format(
+        return '<UpnpMediaRenderer name="{}" short_name="{}" state="{}" protocols={}>'.format(
             self.name,
             self.short_name,
             self.state,
+            ','.join(self.protocols),
         )
 
 
 class CoinedUpnpMediaRenderer(UpnpMediaRenderer):
     def __init__(self, *args):
         UpnpMediaRenderer.__init__(self, *args)
-        self.server_url = None
-        self.stream_url = None
+        self.server_ip = None
+        self.server_port = None
 
-    def set_server_url(self, server_url):
-        self.server_url = server_url
-        self.stream_name = '/{stream_name}.mp3'.format(
-            stream_name=self.short_name,
-        )
-        self.stream_url = urlparse.urljoin(self.server_url, self.stream_name)
-        logging.debug('setting stream url for {device_name} to "{url}"'.format(
-            device_name=self.name,
-            url=self.stream_url))
+    def set_server_location(self, ip, port):
+        self.server_ip = ip
+        self.server_port = port
 
     def register(self):
-        return UpnpMediaRenderer.register(self, self.stream_url)
+        encoder = self.get_encoder()
+        server_url = 'http://{ip}:{port}'.format(
+            ip=self.server_ip,
+            port=self.server_port,
+        )
+        stream_name = '/{stream_name}.{suffix}'.format(
+            stream_name=self.short_name,
+            suffix=encoder.suffix,
+        )
+        stream_url = urlparse.urljoin(server_url, stream_name)
+        return UpnpMediaRenderer.register(self, stream_url)
 
     def __str__(self):
-        return '<CoinedUpnpMediaRenderer name="{}" short_name="{}" state="{}">'.format(
+        return '<CoinedUpnpMediaRenderer name="{}" short_name="{}" state="{}" protocols={}>'.format(
             self.name,
             self.short_name,
             self.state,
+            ','.join(self.protocols),
         )
 
 
