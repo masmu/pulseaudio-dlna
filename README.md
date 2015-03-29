@@ -74,6 +74,11 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Installation via PPA ##
 
+Supported Ubuntu releases:
+- 15.04 (Vivid Vervet)
+- 14.10 (Utopic Unicorn)
+- 14.04.2 LTS (Trusty Tahr)
+
 Ubuntu users can install _pulseaudio-dlna_ via the following [repository](https://launchpad.net/~qos/+archive/ubuntu/pulseaudio-dlna).
 
     sudo apt-add-repository ppa:qos/pulseaudio-dlna
