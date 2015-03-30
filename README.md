@@ -38,6 +38,8 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Rewrite of the streaming server
     - Upnp devices can now request their audio format based on their capabilities
     - Added AAC encoder
+    - If a UPNP device stops playing, the streams currently playing on
+      the corresponding sink are switched back to the default sink
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad

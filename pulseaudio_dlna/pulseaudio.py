@@ -20,9 +20,13 @@ from __future__ import unicode_literals
 import sys
 import dbus
 import os
+import re
 import subprocess
 import logging
+import setproctitle
+import gobject
 import functools
+import copy
 import upnp.renderer
 
 
@@ -31,6 +35,8 @@ class PulseAudio(object):
         self.streams = []
         self.sinks = []
 
+        self.fallback_sink = None
+
     def _connect(self, signals):
         self.bus = self._get_bus()
         self.core = self.bus.get_object(object_path='/org/pulseaudio/core1')
@@ -38,6 +44,18 @@ class PulseAudio(object):
             self.bus.add_signal_receiver(sig_handler, sig_name)
             self.core.ListenForSignal(
                 interface.format(sig_name), dbus.Array(signature='o'))
+
+        fallback_sink_path = self.core.Get(
+            'org.PulseAudio.Core1', 'FallbackSink',
+            dbus_interface='org.freedesktop.DBus.Properties')
+
+        obj = self.bus.get_object(object_path=fallback_sink_path)
+        self.fallback_sink = PulseSink(
+            object_path=str(fallback_sink_path),
+            index=str(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
+            name=str(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
+            module_path=str(obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule')),
+        )
 
     def _get_bus_address(self):
         server_address = os.environ.get('PULSE_DBUS_SERVER', None)
@@ -65,7 +83,7 @@ class PulseAudio(object):
                 server_address = self._get_bus_address()
                 return dbus.connection.Connection(server_address)
             except dbus.exceptions.DBusException:
-                logging.error('PulseAudio seems not to be running or pulseaudio '
+                logging.error('PulseAudio seems not to be running or PulseAudio '
                               'dbus module could not be loaded.')
                 sys.exit(1)
 
@@ -105,6 +123,8 @@ class PulseAudio(object):
                 object_path=str(sink_path),
                 index=str(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
                 name=str(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
+                module_path=str(obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule')),
+                fallback_sink_index=self.fallback_sink.index,
             )
             self.sinks.append(sink)
 
@@ -118,12 +138,11 @@ class PulseAudio(object):
                 sink_description.replace(' ', '\ ')
             ),
         ]
-        entity_id = int(subprocess.check_output(cmd))
-        if entity_id > 0:
+        module_id = int(subprocess.check_output(cmd))
+        if module_id > 0:
             self.update_sinks()
             for sink in self.sinks:
-                if sink.name == sink_name:
-                    sink.entity = entity_id  # ugly hack
+                if sink.module_index == module_id:
                     return sink
 
     def delete_null_sink(self, id):
@@ -140,7 +159,8 @@ class PulseSink(object):
 
     __shared_state = {}
 
-    def __init__(self, object_path, index, name):
+    def __init__(self, object_path, index, name, module_path,
+                 fallback_sink_index=None):
         if object_path not in self.__shared_state:
             self.__shared_state[object_path] = {}
         self.__dict__ = self.__shared_state[object_path]
@@ -148,12 +168,18 @@ class PulseSink(object):
         self.object_path = object_path
         self.index = index
         self.name = name
+        self.module_path = module_path
+        self.fallback_sink_index = fallback_sink_index
 
-        if hasattr(self, 'entity') is False:
-            self.entity = None
+        self.module_index = int(
+            re.findall(r"/org/pulseaudio/core1/module(\d+)", module_path)[0])
 
         self.monitor = self.name + '.monitor'
         self.streams = []
+
+    def switch_streams_to_fallback_source(self):
+        for stream in self.streams:
+            stream.switch_to_source(self.fallback_sink_index)
 
     def __eq__(self, other):
         return self.object_path == other.object_path
@@ -162,10 +188,11 @@ class PulseSink(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        string = '<PulseSink path="{}" name="{}" entity="{}">\n'.format(
+        string = '<PulseSink path="{}" name="{}"  index="{}" module="{}">\n'.format(
             self.object_path,
             self.name,
-            self.entity,
+            self.index,
+            self.module_index,
         )
         if len(self.streams) == 0:
             string = string + '        -- no streams --'
@@ -189,6 +216,15 @@ class PulseStream(object):
         self.index = index
         self.device = device
 
+    def switch_to_source(self, index):
+        cmd = [
+            'pactl',
+            'move-sink-input',
+            str(self.index),
+            str(index),
+        ]
+        subprocess.check_output(cmd)
+
     def __eq__(self, other):
         return self.object_path == other.object_path
 
@@ -196,9 +232,10 @@ class PulseStream(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        return '<PulseStream path="{}" device="{}">'.format(
+        return '<PulseStream path="{}" device="{}" index="{}">'.format(
             self.object_path,
             self.device,
+            self.index,
         )
 
 
@@ -219,10 +256,11 @@ class PulseUpnpBridge(object):
 
 
 class PulseWatcher(PulseAudio):
-    def __init__(self):
+    def __init__(self, bridges_shared):
         PulseAudio.__init__(self)
 
         self.bridges = []
+        self.bridges_shared = bridges_shared
         self.upnp_devices = []
 
         signals = (
@@ -236,21 +274,36 @@ class PulseWatcher(PulseAudio):
         self._connect(signals)
         self.update()
 
+    def run(self):
+        setproctitle.setproctitle('pulse_watcher')
+        mainloop = gobject.MainLoop()
+        mainloop.run()
+
     def set_upnp_devices(self, upnp_devices):
         self.upnp_devices = upnp_devices
-        for upnp_device in upnp_devices:
-            self._ensure_bridge(upnp_device)
+        self.update_bridges()
+        self.share_bridges()
 
-    def _ensure_bridge(self, upnp_device):
-        if upnp_device not in self.bridges:
-            sink = self.create_null_sink(
-                upnp_device.short_name, upnp_device.name)
-            self.bridges.append(PulseUpnpBridge(sink, upnp_device))
+    def share_bridges(self):
+        del self.bridges_shared[:]
+        for bridge in copy.deepcopy(self.bridges):
+            self.bridges_shared.append(bridge)
+
+    def update_bridges(self):
+        for upnp_device in self.upnp_devices:
+            if upnp_device not in self.bridges:
+                sink = self.create_null_sink(
+                    upnp_device.short_name, upnp_device.name)
+                self.bridges.append(PulseUpnpBridge(sink, upnp_device))
+
+    def update(self):
+        PulseAudio.update(self)
+        self.share_bridges()
 
     def cleanup(self):
         for bridge in self.bridges:
-            logging.info('remove "{}" sink ...'.format(bridge.sink))
-            self.delete_null_sink(bridge.sink.entity)
+            logging.info('remove "{}" sink ...'.format(bridge.sink.name))
+            self.delete_null_sink(bridge.sink.module_index)
 
     def on_device_updated(self, sink_path):
         logging.info('PulseWatcher.on_device_updated "{path}"'.format(

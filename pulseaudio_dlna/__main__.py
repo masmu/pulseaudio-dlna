@@ -41,7 +41,6 @@ Options:
 
 from __future__ import unicode_literals
 
-import gobject
 import dbus
 import dbus.mainloop.glib
 import multiprocessing
@@ -122,8 +121,12 @@ class PulseAudioDLNA(object):
                 print(upnp_device)
             logging.info('You can now use your upnp devices!')
 
+        manager = multiprocessing.Manager()
+        bridges = manager.list()
+
         try:
-            self.stream_server = upnp.server.ThreadedStreamServer(host, port)
+            self.stream_server = upnp.server.ThreadedStreamServer(
+                host, port, bridges)
         except socket.error:
             print('The dlna server could not bind to your specified port '
                   '({port}). Perhaps this is already in use? Application '
@@ -137,22 +140,20 @@ class PulseAudioDLNA(object):
             upnp_devices.append(upnp_device)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        self.pulse = pulseaudio.PulseWatcher()
+        self.pulse = pulseaudio.PulseWatcher(bridges)
         self.pulse.set_upnp_devices(upnp_devices)
 
-        self.stream_server.set_bridges(self.pulse.bridges)
-        process = multiprocessing.Process(target=self.stream_server.serve_forever)
-        process.start()
+        pulse_process = multiprocessing.Process(target=self.pulse.run)
+        server_process = multiprocessing.Process(target=self.stream_server.run)
+        pulse_process.start()
+        server_process.start()
 
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
-        try:
-            mainloop = gobject.MainLoop()
-            mainloop.run()
-        except KeyboardInterrupt:
-            process.terminate()
-            pass
+
+        pulse_process.join()
+        server_process.join()
 
 
 def main(argv=sys.argv[1:]):

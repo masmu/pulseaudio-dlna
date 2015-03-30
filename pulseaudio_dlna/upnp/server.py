@@ -48,12 +48,13 @@ class RemoteDevice(object):
 
 
 class ProcessStream(object):
-    def __init__(self, path, recorder, encoder):
+    def __init__(self, path, recorder, encoder, server):
         self.path = path
         self.recorder = recorder
         self.encoder = encoder
         self.recorder_process = None
         self.encoder_process = None
+        self.server = server
 
         self.sockets = {}
         self.chunk_size = 1024 * 4
@@ -125,10 +126,34 @@ class ProcessStream(object):
                         client=self.sockets[sock].ip,
                         method=method,
                         path=self.path))
+                sink = self.sockets[sock].bridge.sink
                 del self.sockets[sock]
                 sock.close()
                 self.client_count -= 1
                 if len(self.sockets) == 0:
+
+                    def search_for_moved_stream(bridges, moved_stream, ignore_sink):
+                        for bridge in bridges:
+                            if bridge.sink == ignore_sink:
+                                continue
+                            for stream in bridge.sink.streams:
+                                if stream == moved_stream:
+                                    return True
+                        return False
+
+                    def get_updated_sink(bridges, outdated_sink):
+                        for bridge in self.server.bridges:
+                            if bridge.sink == outdated_sink:
+                                return bridge.sink
+                        return None
+
+                    sink = get_updated_sink(self.server.bridges, sink)
+                    if sink:
+                        for stream in sink.streams:
+                            result = search_for_moved_stream(self.server.bridges, stream, sink)
+                            if result is False:
+                                stream.switch_to_source(sink.fallback_sink_index)
+
                     logging.info('Stream closed. '
                                  'Cleaning up remaining processes ...')
                     self.update_thread.pause()
@@ -231,8 +256,9 @@ class ProcessStream(object):
 
 
 class StreamManager(object):
-    def __init__(self):
+    def __init__(self, server):
         self.streams = {}
+        self.server = server
 
     def get_stream(self, path, bridge, encoder):
         if path not in self.streams:
@@ -242,6 +268,7 @@ class StreamManager(object):
                 path,
                 recorder,
                 encoder,
+                self.server,
             )
             self.streams[path] = stream
             return stream
@@ -319,7 +346,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class StreamServer(SocketServer.TCPServer):
 
-    def __init__(self, ip, port, *args):
+    def __init__(self, ip, port, bridges, *args):
         setproctitle.setproctitle('stream_server')
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
@@ -327,8 +354,8 @@ class StreamServer(SocketServer.TCPServer):
 
         self.ip = ip
         self.port = port
-        self.bridges = []
-        self.stream_manager = StreamManager()
+        self.bridges = bridges
+        self.stream_manager = StreamManager(self)
 
     def get_server_url(self):
         return 'http://{ip}:{port}'.format(
@@ -336,8 +363,9 @@ class StreamServer(SocketServer.TCPServer):
             port=self.port,
         )
 
-    def set_bridges(self, bridges):
-        self.bridges = bridges
+    def run(self):
+        setproctitle.setproctitle('dlna_server')
+        SocketServer.TCPServer.serve_forever(self)
 
 
 class ThreadedStreamServer(SocketServer.ThreadingMixIn, StreamServer):
