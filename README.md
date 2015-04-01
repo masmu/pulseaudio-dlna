@@ -258,6 +258,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Yamaha RX-475 (AV Receiver)
 - Majik DSM
 - [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
+- [Raumfeld](http://raumfeld.com)
 
 ## Supported encoders ##
 
