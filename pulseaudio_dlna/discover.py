@@ -18,9 +18,9 @@
 from __future__ import unicode_literals
 
 import socket as s
-import renderer
 import logging
 import time
+import re
 
 
 class BaseUpnpMediaRendererDiscover(object):
@@ -31,10 +31,10 @@ class BaseUpnpMediaRendererDiscover(object):
     MSEARCH = 'M-SEARCH * HTTP/1.1\r\n' + \
               'HOST: {}:{}\r\n'.format(SSDP_ADDRESS, SSDP_PORT) + \
               'MAN: "ssdp:discover"\r\n' + \
-              'MX: 2\r\n' + \
-              'ST: urn:schemas-upnp-org:device:MediaRenderer:1\r\n\r\n'
+              'MX: 10\r\n' + \
+              'ST: ssdp:all\r\n\r\n'
 
-    def search(self, ttl=10, timeout=5, times=2):
+    def search(self, ttl=10, timeout=5, times=4):
         s.setdefaulttimeout(timeout)
         sock = s.socket(s.AF_INET, s.SOCK_DGRAM, s.IPPROTO_UDP)
         sock.setsockopt(s.IPPROTO_IP, s.IP_MULTICAST_TTL, ttl)
@@ -56,32 +56,37 @@ class BaseUpnpMediaRendererDiscover(object):
         pass
 
 
-class UpnpMediaRendererDiscover(BaseUpnpMediaRendererDiscover):
+class RendererDiscover(BaseUpnpMediaRendererDiscover):
 
     def __init__(self, device_filter=None):
         self.renderers = None
+        self.registered = {}
         self.device_filter = device_filter
+
+    def register(self, identifier, _type):
+        self.registered[identifier] = _type
 
     def search(self, ttl=10, timeout=5, times=2):
         self.renderers = []
         BaseUpnpMediaRendererDiscover.search(self, ttl, timeout, times)
 
-    def _add_renderer(self, upnp_device):
-        if upnp_device not in self.renderers:
-            self.renderers.append(upnp_device)
-
     def _header_received(self, header, address):
-        logging.debug("Recieved the following SSDP header: \n{header}".format(
-            header=header))
-        upnp_device = renderer.UpnpMediaRendererFactory.from_header(
-            header,
-            renderer.CoinedUpnpMediaRenderer)
-        if upnp_device is not None:
-            if self.device_filter is None:
-                self._add_renderer(upnp_device)
-            else:
-                if upnp_device.name in self.device_filter:
-                    self._add_renderer(upnp_device)
-                else:
-                    logging.info('Skipped the device "{name}."'.format(
-                        name=upnp_device.name))
+        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", header)
+        header = {k.lower(): v for k, v in dict(header).items()}
+        if header['st']:
+            st_header = header['st']
+            if st_header in self.registered:
+                device = self.registered[st_header].create_device(header)
+                if device is not None:
+                    if self.device_filter is None:
+                        self._add_renderer(device)
+                    else:
+                        if device.name in self.device_filter:
+                            self._add_renderer(device)
+                        else:
+                            logging.info('Skipped the device "{name}."'.format(
+                                name=device.name))
+
+    def _add_renderer(self, device):
+        if device not in self.renderers:
+            self.renderers.append(device)

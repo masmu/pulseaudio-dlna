@@ -17,18 +17,17 @@
 
 from __future__ import unicode_literals
 
-import re
 import cgi
 import requests
 import urlparse
 import socket
 import logging
-import random
-import functools
+import pkg_resources
 import BeautifulSoup
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.common
+import pulseaudio_dlna.plugins.renderer
 
 
 class UpnpService(object):
@@ -42,11 +41,14 @@ class UpnpService(object):
         self.ip = ip
         self.port = port
 
-        if service['service_type'].startswith('urn:schemas-upnp-org:service:AVTransport:'):
+        if service['service_type'].startswith(
+                'urn:schemas-upnp-org:service:AVTransport:'):
             self._type = self.SERVICE_TRANSPORT
-        elif service['service_type'].startswith('urn:schemas-upnp-org:service:ConnectionManager:'):
+        elif service['service_type'].startswith(
+                'urn:schemas-upnp-org:service:ConnectionManager:'):
             self._type = self.SERVICE_CONNECTION
-        elif service['service_type'].startswith('urn:schemas-upnp-org:service:RenderingControl:'):
+        elif service['service_type'].startswith(
+                'urn:schemas-upnp-org:service:RenderingControl:'):
             self._type = self.SERVICE_RENDERING
         else:
             self._type = None
@@ -80,87 +82,22 @@ class UpnpService(object):
         return urlparse.urljoin(host, self._event_url)
 
 
-@functools.total_ordering
-class UpnpMediaRenderer(object):
-
-    REGISTER_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
-<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-    <s:Body>
-        <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-            <InstanceID>0</InstanceID>
-            <CurrentURI>{stream_url}</CurrentURI>
-            <CurrentURIMetaData>{current_url_metadata}</CurrentURIMetaData>
-        </u:SetAVTransportURI>
-    </s:Body>
-</s:Envelope>"""
-
-    REGISTER_XML_METADATA = """<?xml version="1.0" encoding="{encoding}"?>
-<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:sec="http://www.sec.co.kr/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
-    <item id="0" parentID="0" restricted="1">
-        <upnp:class>object.item.audioItem.musicTrack</upnp:class>
-        <dc:title>{title}</dc:title>
-        <dc:creator>{creator}</dc:creator>
-        <upnp:artist>{artist}</upnp:artist>
-        <upnp:albumArtURI></upnp:albumArtURI>
-        <upnp:album>{album}</upnp:album>
-        <res protocolInfo="http-get:*:audio/mpeg:DLNA.ORG_OP=00;DLNA.ORG_FLAGS=01700000000000000000000000000000">{stream_url}</res>
-    </item>
-</DIDL-Lite>"""
-
-    PLAY_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
-<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-    <s:Body>
-        <u:Play xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-            <InstanceID>0</InstanceID>
-            <Speed>1</Speed>
-        </u:Play>
-    </s:Body>
-</s:Envelope>
-"""
-
-    STOP_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
-<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-    <s:Body>
-        <u:Stop xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-            <InstanceID>0</InstanceID>
-        </u:Stop>
-    </s:Body>
-</s:Envelope>"""
-
-    PAUSE_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
-<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-    <s:Body>
-        <u:Pause xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-            <InstanceID>0</InstanceID>
-        </u:Pause>
-    </s:Body>
-</s:Envelope>"""
-
-    GET_PROTOCOL_INFO_XML = """<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
-<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-    <s:Body>
-        <u:GetProtocolInfo xmlns:u="urn:schemas-upnp-org:service:ConnectionManager:1">
-        </u:GetProtocolInfo>
-    </s:Body>
-</s:Envelope>"""
-
-    PLAYING = 'playing'
-    IDLE = 'idle'
-    PAUSE = 'paused'
+class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     ENCODING = 'utf-8'
 
-    def __init__(self, name, ip, port, udn, services):
-        name = name.strip()
-        if name == '':
-            name = 'Unnamed device (#{random_id})'.format(
-                random_id=random.randint(1000, 9999))
+    def __init__(self, name, ip, port, udn, services, encoder=None):
+        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self)
+        self.flavour = 'DLNA'
         self.name = name
-        self.short_name = self._short_name(name)
         self.ip = ip
         self.port = port
-        self.udn = udn
+        self.state = self.IDLE
+        self.encoder = encoder
+        self.protocols = []
 
+        self.udn = udn
+        self.xml = self._load_xml_files()
         self.service_transport = None
         self.service_connection = None
         self.service_rendering = None
@@ -174,15 +111,25 @@ class UpnpMediaRenderer(object):
             if service.type == UpnpService.SERVICE_RENDERING:
                 self.service_rendering = service
 
-        self.state = self.IDLE
-
-        self.protocols = []
-
     def activate(self):
         self.get_protocol_info()
 
-    def _short_name(self, name):
-        return re.sub(r'[^a-z0-9]', '', name.lower())
+    def _load_xml_files(self):
+        content = {}
+        self.xml_files = {
+            'register': 'xml/register.xml',
+            'register_metadata': 'xml/register_metadata.xml',
+            'play': 'xml/play.xml',
+            'stop': 'xml/stop.xml',
+            'pause': 'xml/pause.xml',
+            'get_protocol_info': 'xml/get_protocol_info.xml',
+        }
+        for ident, path in self.xml_files.items():
+            file_name = pkg_resources.resource_filename(
+                'pulseaudio_dlna.plugins.upnp', path)
+            with open(file_name, 'r') as f:
+                content[ident] = unicode(f.read())
+        return content
 
     def _debug(self, action, url, headers, data, response):
         logging.debug(
@@ -197,23 +144,17 @@ class UpnpMediaRenderer(object):
                 status_code=response.status_code,
                 result=response.text))
 
-    def get_encoder(self):
-        for encoder in pulseaudio_dlna.common.supported_encoders:
-            for mime_type in encoder.mime_types:
-                if mime_type in self.protocols:
-                    return encoder
-        return None
-
     def register(self, stream_url):
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
-                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
             'SOAPAction':
                 '"{service_type}#SetAVTransportURI"'.format(
                     service_type=self.service_transport.service_type),
         }
-        metadata = self.REGISTER_XML_METADATA.format(
+        metadata = self.xml['register_metadata'].format(
             stream_url=stream_url,
             title='Live Audio',
             artist='PulseAudio on {}'.format(socket.gethostname()),
@@ -221,7 +162,7 @@ class UpnpMediaRenderer(object):
             album='Stream',
             encoding=self.ENCODING,
         )
-        data = self.REGISTER_XML.format(
+        data = self.xml['register'].format(
             stream_url=stream_url,
             current_url_metadata=cgi.escape(metadata),
             encoding=self.ENCODING,
@@ -235,11 +176,12 @@ class UpnpMediaRenderer(object):
         url = self.service_connection.control_url
         headers = {
             'Content-Type':
-                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
             'SOAPAction': '"{service_type}#GetProtocolInfo"'.format(
                 service_type=self.service_connection.service_type),
         }
-        data = self.GET_PROTOCOL_INFO_XML.format(
+        data = self.xml['get_protocol_info'].format(
             encoding=self.ENCODING,
         )
         response = requests.post(
@@ -255,7 +197,8 @@ class UpnpMediaRenderer(object):
                         self.protocols.append(mime_type)
             except IndexError:
                 logging.info(
-                    'IndexError: No valid XML returned from {url}.'.format(url=url))
+                    'IndexError: No valid XML returned from {url}.'.format(
+                        url=url))
 
         self._debug('get_protocol_info', url, headers, data, response)
         return response.status_code
@@ -264,11 +207,12 @@ class UpnpMediaRenderer(object):
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
-                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
             'SOAPAction': '"{service_type}#Play"'.format(
                 service_type=self.service_transport.service_type),
         }
-        data = self.PLAY_XML.format(
+        data = self.xml['play'].format(
             encoding=self.ENCODING,
         )
         response = requests.post(
@@ -282,11 +226,12 @@ class UpnpMediaRenderer(object):
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
-                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
             'SOAPAction': '"{service_type}#Stop"'.format(
                 service_type=self.service_transport.service_type),
         }
-        data = self.STOP_XML.format(
+        data = self.xml['stop'].format(
             encoding=self.ENCODING,
         )
         response = requests.post(
@@ -300,11 +245,12 @@ class UpnpMediaRenderer(object):
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
-                'text/xml; charset="{encoding}"'.format(encoding=self.ENCODING),
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
             'SOAPAction': '"{service_type}#Pause"'.format(
                 service_type=self.service_transport.service_type),
         }
-        data = self.PAUSE_XML.format(
+        data = self.xml['pause'].format(
             encoding=self.ENCODING,
         )
         response = requests.post(
@@ -314,57 +260,16 @@ class UpnpMediaRenderer(object):
         self._debug('pause', url, headers, data, response)
         return response.status_code
 
-    def __eq__(self, other):
-        if isinstance(other, UpnpMediaRenderer):
-            return self.name == other.name
-        if isinstance(other, pulseaudio_dlna.pulseaudio.PulseUpnpBridge):
-            return self.name == other.upnp_device.name
 
-    def __gt__(self, other):
-        if isinstance(other, UpnpMediaRenderer):
-            return self.name > other.name
-        if isinstance(other, pulseaudio_dlna.pulseaudio.PulseUpnpBridge):
-            return self.name > other.upnp_device.name
+class CoinedUpnpMediaRenderer(
+        pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, UpnpMediaRenderer):
 
-    def __str__(self):
-        return '<UpnpMediaRenderer name="{}" short_name="{}" state="{}" protocols={}>'.format(
-            self.name,
-            self.short_name,
-            self.state,
-            ','.join(self.protocols),
-        )
-
-
-class CoinedUpnpMediaRenderer(UpnpMediaRenderer):
-    def __init__(self, *args):
-        UpnpMediaRenderer.__init__(self, *args)
-        self.server_ip = None
-        self.server_port = None
-
-    def set_server_location(self, ip, port):
-        self.server_ip = ip
-        self.server_port = port
-
-    def register(self):
-        encoder = self.get_encoder()
-        server_url = 'http://{ip}:{port}'.format(
-            ip=self.server_ip,
-            port=self.server_port,
-        )
-        stream_name = '/{stream_name}.{suffix}'.format(
-            stream_name=self.short_name,
-            suffix=encoder.suffix,
-        )
-        stream_url = urlparse.urljoin(server_url, stream_name)
-        return UpnpMediaRenderer.register(self, stream_url)
-
-    def __str__(self):
-        return '<CoinedUpnpMediaRenderer name="{}" short_name="{}" state="{}" protocols={}>'.format(
-            self.name,
-            self.short_name,
-            self.state,
-            ','.join(self.protocols),
-        )
+    def play(self):
+        stream_url = self.get_stream_url()
+        if UpnpMediaRenderer.register(self, stream_url) == 200:
+            return UpnpMediaRenderer.play(self)
+        else:
+            logging.error('"{}" registering failed!'.format(self.name))
 
 
 class UpnpMediaRendererFactory(object):
@@ -373,7 +278,7 @@ class UpnpMediaRendererFactory(object):
     def from_url(self, url, type_=UpnpMediaRenderer):
         try:
             response = requests.get(url)
-            logging.debug('Response from upnp device ({url})\n'
+            logging.debug('Response from UPNP device ({url})\n'
                           '{response}'.format(url=url, response=response.text))
         except requests.exceptions.ConnectionError:
             logging.info(
@@ -408,7 +313,5 @@ class UpnpMediaRendererFactory(object):
 
     @classmethod
     def from_header(self, header, type_=UpnpMediaRenderer):
-        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", header)
-        header = {k.lower(): v for k, v in dict(header).items()}
         if header['location']:
             return self.from_url(header['location'], type_)

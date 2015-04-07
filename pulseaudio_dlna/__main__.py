@@ -49,19 +49,20 @@ import logging
 import sys
 import signal
 import socket
-
 import docopt
+
 import pulseaudio_dlna
-import upnp.discover
-import upnp.server
-import upnp.renderer
-import pulseaudio
-import utils.network
+import pulseaudio_dlna.plugins.upnp
+import pulseaudio_dlna.plugins.chromecast
+import pulseaudio_dlna.streamserver
+import pulseaudio_dlna.pulseaudio
+import pulseaudio_dlna.discover
+import pulseaudio_dlna.utils.network
 
 
 class PulseAudioDLNA(object):
     def __init__(self):
-        self.dlna_server = None
+        self.server_process = None
         self.pulse = None
         self.renderers = []
 
@@ -69,8 +70,8 @@ class PulseAudioDLNA(object):
         print('Application is shutting down.')
         if self.pulse is not None:
             self.pulse.cleanup()
-        if self.dlna_server is not None:
-            self.dlna_server.server_close()
+        if self.server_process is not None:
+            self.server_process.server_close()
         sys.exit(1)
 
     def startup(self):
@@ -82,7 +83,7 @@ class PulseAudioDLNA(object):
             logging.basicConfig(level=logging.DEBUG)
 
         if not options['--host']:
-            host = utils.network.default_ipv4()
+            host = pulseaudio_dlna.utils.network.default_ipv4()
             if host is None:
                 print('I could not determiate your host address. '
                       'You must specify it yourself via the --host option!')
@@ -95,53 +96,58 @@ class PulseAudioDLNA(object):
         print('Using localhost: {host}:{port}'.format(
             host=host, port=port))
 
+        plugins = [
+            pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
+            pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
+        ]
+
         if options['--renderer-urls']:
-            for url in options['--renderer-urls'].split(','):
-                renderer = upnp.renderer.UpnpMediaRendererFactory.from_url(
-                    url, upnp.renderer.CoinedUpnpMediaRenderer)
-                if renderer is not None:
-                    self.renderers.append(renderer)
+            for plugin in plugins:
+                locations = options['--renderer-urls'].split(',')
+                self.renderers += plugin.lookup(locations)
         else:
             device_filter = None
             if options['--filter-device']:
                 device_filter = options['--filter-device'].split(',')
-            dlna_discover = upnp.discover.UpnpMediaRendererDiscover(
+            discover = pulseaudio_dlna.discover.RendererDiscover(
                 device_filter=device_filter)
-            dlna_discover.search()
-            self.renderers = dlna_discover.renderers
-            logging.info('Discovery complete.')
+            for plugin in plugins:
+                discover.register(plugin.st_header, plugin)
+            discover.search()
+            self.renderers = discover.renderers
+        logging.info('Discovery complete.')
 
         if len(self.renderers) == 0:
-            print('There were no upnp devices found. Application terminates.')
+            print('There were no devices found. Application terminates.')
             sys.exit(1)
         else:
             logging.info('Found devices:')
-            for upnp_device in self.renderers:
-                upnp_device.activate()
-                print(upnp_device)
-            logging.info('You can now use your upnp devices!')
+            for device in self.renderers:
+                device.activate()
+                print(device)
+            logging.info('You can now use your devices!')
 
         manager = multiprocessing.Manager()
         bridges = manager.list()
 
         try:
-            self.stream_server = upnp.server.ThreadedStreamServer(
+            self.stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges)
         except socket.error:
-            print('The dlna server could not bind to your specified port '
+            print('The streaming server could not bind to your specified port '
                   '({port}). Perhaps this is already in use? Application '
                   'terminates.'.format(port=port))
             sys.exit(1)
 
-        upnp_devices = []
-        for upnp_device in self.renderers:
-            upnp_device.set_server_location(
+        devices = []
+        for device in self.renderers:
+            device.set_server_location(
                 self.stream_server.ip, self.stream_server.port)
-            upnp_devices.append(upnp_device)
+            devices.append(device)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        self.pulse = pulseaudio.PulseWatcher(bridges)
-        self.pulse.set_upnp_devices(upnp_devices)
+        self.pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges)
+        self.pulse.set_devices(devices)
 
         pulse_process = multiprocessing.Process(target=self.pulse.run)
         server_process = multiprocessing.Process(target=self.stream_server.run)

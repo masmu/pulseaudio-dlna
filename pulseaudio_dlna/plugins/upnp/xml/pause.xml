@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
+<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+    <s:Body>
+        <u:Pause xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+            <InstanceID>0</InstanceID>
+        </u:Pause>
+    </s:Body>
+</s:Envelope>

@@ -34,12 +34,15 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-03-29_)
+ * __master__ - (_2015-04-03_)
     - Rewrite of the streaming server
     - Upnp devices can now request their audio format based on their capabilities
     - Added AAC encoder
-    - If a UPNP device stops playing, the streams currently playing on
+    - If a device stops playing, the streams currently playing on
       the corresponding sink are switched back to the default sink
+    - If a device failes to start playing, streams currently playing on
+      the corresponding sink are switched back to the default sink
+    - Added Chromecast support (new dependency: `python-protobuf`)
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad
@@ -119,6 +122,7 @@ will get installed if you install it via the PPA.
 - python-requests
 - python-setproctitle
 - python-gobject
+- python-protobuf
 - vorbis-tools
 - sox
 - lame
@@ -128,7 +132,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -271,6 +275,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Yamaha RX-475 (AV Receiver)
 - Majik DSM
 - [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
+- Google Chromecast
 
 ## Supported encoders ##
 

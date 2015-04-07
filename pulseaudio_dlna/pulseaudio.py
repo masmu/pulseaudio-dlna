@@ -27,7 +27,7 @@ import setproctitle
 import gobject
 import functools
 import copy
-import upnp.renderer
+import pulseaudio_dlna.plugins.renderer
 
 
 class PulseAudio(object):
@@ -239,20 +239,20 @@ class PulseStream(object):
         )
 
 
-class PulseUpnpBridge(object):
-    def __init__(self, sink, upnp_device):
+class PulseBridge(object):
+    def __init__(self, sink, device):
         self.sink = sink
-        self.upnp_device = upnp_device
+        self.device = device
 
     def __cmp__(self, other):
-        if isinstance(other, PulseUpnpBridge):
-            return (self.upnp_device == other.upnp_device and
+        if isinstance(other, PulseBridge):
+            return (self.device == other.device and
                     self.sink == other.sink)
-        if isinstance(other, upnp.renderer.UpnpMediaRenderer):
-            return self.upnp_device == other
+        if isinstance(other, pulseaudio_dlna.plugins.renderer.BaseRenderer):
+            return self.device == other
 
     def __str__(self):
-        return "<Bridge>\n    {}\n    {}\n".format(self.sink, self.upnp_device)
+        return "<Bridge>\n    {}\n    {}\n".format(self.sink, self.device)
 
 
 class PulseWatcher(PulseAudio):
@@ -261,7 +261,7 @@ class PulseWatcher(PulseAudio):
 
         self.bridges = []
         self.bridges_shared = bridges_shared
-        self.upnp_devices = []
+        self.devices = []
 
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
@@ -279,8 +279,8 @@ class PulseWatcher(PulseAudio):
         mainloop = gobject.MainLoop()
         mainloop.run()
 
-    def set_upnp_devices(self, upnp_devices):
-        self.upnp_devices = upnp_devices
+    def set_devices(self, devices):
+        self.devices = devices
         self.update_bridges()
         self.share_bridges()
 
@@ -290,11 +290,11 @@ class PulseWatcher(PulseAudio):
             self.bridges_shared.append(bridge)
 
     def update_bridges(self):
-        for upnp_device in self.upnp_devices:
-            if upnp_device not in self.bridges:
+        for device in self.devices:
+            if device not in self.bridges:
                 sink = self.create_null_sink(
-                    upnp_device.short_name, upnp_device.name)
-                self.bridges.append(PulseUpnpBridge(sink, upnp_device))
+                    device.short_name, device.label)
+                self.bridges.append(PulseBridge(sink, device))
 
     def update(self):
         PulseAudio.update(self)
@@ -333,28 +333,22 @@ class PulseWatcher(PulseAudio):
 
     def _handle_sink_update(self, sink_path):
         for bridge in self.bridges:
-            if bridge.upnp_device.state == bridge.upnp_device.PLAYING:
+            if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
-                    if bridge.upnp_device.stop() == 200:
+                    if bridge.device.stop() == 200:
                         logging.info('"{}" was stopped.'.format(
-                            bridge.upnp_device.name))
+                            bridge.device.label))
                     else:
                         logging.error('"{}" stopping failed!'.format(
-                            bridge.upnp_device.name))
+                            bridge.device.label))
                     continue
             if bridge.sink.object_path == sink_path:
-                if bridge.upnp_device.state == bridge.upnp_device.IDLE:
-                    if bridge.upnp_device.register() == 200:
-                        logging.info('"{}" registered.'.format(
-                            bridge.upnp_device.name))
-                    else:
-                        logging.error('"{}" registering failed!'.format(
-                            bridge.upnp_device.name))
-                if bridge.upnp_device.state == bridge.upnp_device.IDLE or \
-                   bridge.upnp_device.state == bridge.upnp_device.PAUSE:
-                    if bridge.upnp_device.play() == 200:
+                if bridge.device.state == bridge.device.IDLE or \
+                   bridge.device.state == bridge.device.PAUSE:
+                    if bridge.device.play() == 200:
                         logging.info('"{}" is playing.'.format(
-                            bridge.upnp_device.name))
+                            bridge.device.label))
                     else:
                         logging.error('"{}" playing failed!'.format(
-                            bridge.upnp_device.name))
+                            bridge.device.label))
+                        bridge.sink.switch_streams_to_fallback_source()

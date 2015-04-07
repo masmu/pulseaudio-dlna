@@ -203,8 +203,8 @@ class ProcessStream(object):
             for sock in r:
                 if sock in self.sockets:
                     try:
-                        bytes = sock.recv(1024)
-                        if len(bytes) == 0:
+                        data = sock.recv(1024)
+                        if len(data) == 0:
                             self.unregister(sock, lock_override=True, method=3)
                     except socket.error:
                         self.unregister(sock, lock_override=True, method=4)
@@ -212,19 +212,19 @@ class ProcessStream(object):
         finally:
             self.lock.release()
 
-    def _send_data(self, sock, bytes):
-        bytes_total = len(bytes)
+    def _send_data(self, sock, data):
+        bytes_total = len(data)
         bytes_sent = 0
         while bytes_sent < bytes_total:
-            bytes_sent += sock.send(bytes[bytes_sent:])
+            bytes_sent += sock.send(data[bytes_sent:])
 
     def do_processes_exist(self):
-        return self.encoder_process is not None and \
-            self.recorder_process is not None
+        return (self.encoder_process is not None and
+                self.recorder_process is not None)
 
     def do_processes_respond(self):
-        return self.recorder_process.poll() is None and \
-            self.encoder_process.poll() is None
+        return (self.recorder_process.poll() is None and
+                self.encoder_process.poll() is None)
 
     def cleanup(self):
         self._kill_process(self.encoder_process)
@@ -332,7 +332,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             choosen_bridge = None
             for bridge in self.server.bridges:
-                if short_name == bridge.upnp_device.short_name:
+                if short_name == bridge.device.short_name:
                     choosen_bridge = bridge
                     break
 
