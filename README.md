@@ -116,6 +116,7 @@ will get installed if you install it via the PPA.
 
 - python2.7
 - python-pip
+- python-setuptools
 - python-dbus
 - python-beautifulsoup
 - python-docopt
@@ -132,20 +133,20 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
 Since version _0.2.2_ the DBus module should be loaded automatically, if it was
 not loaded before.
 It that does not work, you can load the DBus module in Ubuntu via the following
-command. Note that you 
+command. Note that you
 have to do this every time you restart PulseAudio (or your computer).
 
     pacmd load-module module-dbus-protocol
 
 Or to make changes persistant edit the file `/etc/pulse/default.pa` with your
-favorite editor and append the following line: 
+favorite editor and append the following line:
 
     load-module module-dbus-protocol
 
@@ -243,13 +244,13 @@ _pulseaudio-dlna_.
         -h --help                              Show the help.
 
 Samples:
-- `pulseaudio-dlna` will start 
+- `pulseaudio-dlna` will start
 _pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _mp3_.
-- `pulseaudio-dlna --encoder ogg` will start 
+- `pulseaudio-dlna --encoder ogg` will start
 _pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _Ogg Vorbis_.
-- `pulseaudio-dlna --port 10291 --encoder flac` will start 
+- `pulseaudio-dlna --port 10291 --encoder flac` will start
 _pulseaudio-dlna_ on port _10291_ and stream your PulseAudio streams encoded
 with _FLAC_.
 - `pulseaudio-dlna --filter-device 'Nexus 5,TV'` will just use devices named
