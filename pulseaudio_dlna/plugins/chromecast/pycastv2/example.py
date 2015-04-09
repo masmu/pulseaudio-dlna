@@ -22,11 +22,11 @@ import __init__ as pycastv2
 
 logging.basicConfig(level=logging.DEBUG)
 
-mc = pycastv2.MediaPlayerController('192.168.10.39')
+mc = pycastv2.MediaPlayerController('192.168.1.3')
 try:
     mc.load('http://192.168.1.2:8080/stream.mp3', 'audio/mpeg')
     mc.wait(10)
-    mc.close_application()
-    # mc.stop()
+    mc.disconnect_application()
+    # mc.stop_application()
 finally:
     mc.cleanup()
