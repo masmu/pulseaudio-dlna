@@ -34,6 +34,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.3.5__ - (_2015-04-09_)
+    - Fixed a bug where Sonos description XML could not get parsed correctly
+
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad
 
