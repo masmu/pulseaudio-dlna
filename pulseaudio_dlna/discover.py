@@ -31,7 +31,7 @@ class BaseUpnpMediaRendererDiscover(object):
     MSEARCH = 'M-SEARCH * HTTP/1.1\r\n' + \
               'HOST: {}:{}\r\n'.format(SSDP_ADDRESS, SSDP_PORT) + \
               'MAN: "ssdp:discover"\r\n' + \
-              'MX: 10\r\n' + \
+              'MX: 2\r\n' + \
               'ST: ssdp:all\r\n\r\n'
 
     def search(self, ttl=10, timeout=5, times=4):
