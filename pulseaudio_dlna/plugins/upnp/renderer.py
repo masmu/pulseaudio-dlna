@@ -274,6 +274,8 @@ class CoinedUpnpMediaRenderer(
 
 class UpnpMediaRendererFactory(object):
 
+    ST_HEADER = 'urn:schemas-upnp-org:device:MediaRenderer:1'
+
     @classmethod
     def from_url(self, url, type_=UpnpMediaRenderer):
         try:
@@ -290,22 +292,25 @@ class UpnpMediaRendererFactory(object):
         ip, port = url_object.netloc.split(':')
         services = []
         try:
-            for service in soup.root.device.servicelist.findAll('service'):
-                service = {
-                    'service_type': service.servicetype.text,
-                    'service_id': service.serviceid.text,
-                    'scpd_url': service.scpdurl.text,
-                    'control_url': service.controlurl.text,
-                    'eventsub_url': service.eventsuburl.text,
-                }
-                services.append(service)
-            upnp_device = type_(
-                soup.root.device.friendlyname.text,
-                ip,
-                port,
-                soup.root.device.udn.text,
-                services)
-            return upnp_device
+            for device in soup.root.findAll('device'):
+                if device.devicetype.text != self.ST_HEADER:
+                    continue
+                for service in device.findAll('service'):
+                    service = {
+                        'service_type': service.servicetype.text,
+                        'service_id': service.serviceid.text,
+                        'scpd_url': service.scpdurl.text,
+                        'control_url': service.controlurl.text,
+                        'eventsub_url': service.eventsuburl.text,
+                    }
+                    services.append(service)
+                upnp_device = type_(
+                    soup.root.device.friendlyname.text,
+                    ip,
+                    port,
+                    soup.root.device.udn.text,
+                    services)
+                return upnp_device
         except AttributeError:
             logging.info(
                 'No valid XML returned from {url}.'.format(url=url))
