@@ -144,7 +144,7 @@ class DlnaServer(SocketServer.TCPServer):
             logging.error('You specified an encoder which does not exists!')
             sys.exit(1)
         if type_ == self.ENCODER_LAME:
-            self.encoder_cmd = 'lame -r -b 320 -'
+            self.encoder_cmd = 'lame -V7 --vbr-new -q0 -B192 --lowpass 15.5 --lowpass-width 1 --resample 32 -'
             self.encoder_mime = 'audio/mpeg'
         if type_ == self.ENCODER_FLAC:
             self.encoder_cmd = 'flac - -c --channels 2 --bps 16 --sample-rate 44100 --endian little --sign signed'
