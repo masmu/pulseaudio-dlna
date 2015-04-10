@@ -42,13 +42,13 @@ class BaseEncoder(object):
         return self._suffix
 
 
-class AacEncoder(BaseEncoder):
+class WavEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
-        self._command = 'faac -P -b 320 -X -o - -'
-        self._mime_type = 'audio/aac'
-        self._suffix = 'aac'
-        self._mime_types = ['audio/mp4', 'audio/aac', 'audio/x-aac']
+        self._command = 'sox -t raw -b 16 -e signed -c 2 -r 44100 - -t wav -r 44100 -b 16 -L -e signed -c 2 -'
+        self._mime_type = 'audio/wav'
+        self._suffix = 'wav'
+        self._mime_types = ['audio/wav', 'audio/x-wav']
 
 
 class LameEncoder(BaseEncoder):
@@ -58,6 +58,15 @@ class LameEncoder(BaseEncoder):
         self._mime_type = 'audio/mpeg'
         self._suffix = 'mp3'
         self._mime_types = ['audio/mpeg', 'audio/mp3']
+
+
+class AacEncoder(BaseEncoder):
+    def __init__(self):
+        BaseEncoder.__init__(self)
+        self._command = 'faac -P -b 320 -X -o - -'
+        self._mime_type = 'audio/aac'
+        self._suffix = 'aac'
+        self._mime_types = ['audio/aac', 'audio/x-aac']
 
 
 class FlacEncoder(BaseEncoder):
@@ -85,14 +94,3 @@ class OpusEncoder(BaseEncoder):
         self._mime_type = 'audio/opus'
         self._suffix = 'opus'
         self._mime_types = ['audio/opus', 'audio/x-opus']
-
-
-class WavEncoder(BaseEncoder):
-    def __init__(self):
-        BaseEncoder.__init__(self)
-        self._command = 'sox -t raw -b 16 -e signed -c 2 -r 44100 - -t wav -r 44100 -b 16 -L -e signed -c 2 -'
-        self._mime_type = 'audio/wav'
-        self._suffix = 'wav'
-        self._mime_types = ['audio/wav', 'audio/x-wav']
-
-# MP4Encoder
