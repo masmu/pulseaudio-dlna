@@ -284,9 +284,13 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             pass
 
     def do_HEAD(self):
+        logging.debug('Got the following HEAD request:\n{header}'.format(
+            header=self.headers))
         self.handle_headers()
 
     def do_GET(self):
+        logging.debug('Got the following GET request:\n{header}'.format(
+            header=self.headers))
         bridge, encoder = self.handle_headers()
         if bridge and encoder:
             stream = self.server.stream_manager.get_stream(
@@ -311,6 +315,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         if encoder and bridge:
             self.send_response(200)
             self.send_header('Content-Type', encoder.mime_type)
+            self.send_header('Connection', 'close')
             self.end_headers()
             return bridge, encoder
         else:
