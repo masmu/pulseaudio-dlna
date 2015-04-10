@@ -224,7 +224,7 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
@@ -237,7 +237,7 @@ _pulseaudio-dlna_.
                                                  - flac  Free Lossless Audio Codec (FLAC)
                                                  - wav   Waveform Audio File Format (WAV)
                                                  - opus  Opus Interactive Audio Codec (OPUS)
-        -b --bit-rate=<encoder>                Set the audio encoder's bitrate.
+        -b --bit-rate=<rate>                   Set the audio encoder's bitrate.
         --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                                Devices which get discovered, but won't match the
                                                filter text will be skipped.
