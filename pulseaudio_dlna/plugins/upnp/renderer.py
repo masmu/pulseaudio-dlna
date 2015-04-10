@@ -265,11 +265,14 @@ class CoinedUpnpMediaRenderer(
         pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, UpnpMediaRenderer):
 
     def play(self):
-        stream_url = self.get_stream_url()
-        if UpnpMediaRenderer.register(self, stream_url) == 200:
-            return UpnpMediaRenderer.play(self)
-        else:
-            logging.error('"{}" registering failed!'.format(self.name))
+        try:
+            stream_url = self.get_stream_url()
+            if UpnpMediaRenderer.register(self, stream_url) == 200:
+                return UpnpMediaRenderer.play(self)
+            else:
+                logging.error('"{}" registering failed!'.format(self.name))
+        except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
+            return 500
 
 
 class UpnpMediaRendererFactory(object):

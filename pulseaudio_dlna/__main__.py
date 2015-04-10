@@ -17,19 +17,20 @@
 
 '''
 Usage:
-    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
+    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
     pulseaudio-dlna [-h | --help | --version]
 
 Options:
        --host=<host>                       Set the server ip.
     -p --port=<port>                       Set the server port [default: 8080].
-    -e --encoder=<encoder>                 Set the audio encoder [default: lame].
+    -e --encoder=<encoder>                 Set the audio encoder.
                                            Possible encoders are:
-                                             - lame  MPEG Audio Layer III (MP3)
+                                             - mp3   MPEG Audio Layer III (MP3)
                                              - ogg   Ogg Vorbis
                                              - flac  Free Lossless Audio Codec (FLAC)
                                              - wav   Waveform Audio File Format (WAV)
                                              - opus  Opus Interactive Audio Codec (OPUS)
+    -b --bit-rate=<encoder>                Set the audio encoder's bitrate.
     --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                            Devices which get discovered, but won't match the
                                            filter text will be skipped.
@@ -52,8 +53,10 @@ import socket
 import docopt
 
 import pulseaudio_dlna
+import pulseaudio_dlna.common
 import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.plugins.chromecast
+import pulseaudio_dlna.encoders
 import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.discover
@@ -100,6 +103,39 @@ class PulseAudioDLNA(object):
             pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
             pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
         ]
+
+        if options['--encoder']:
+            for encoder in pulseaudio_dlna.common.supported_encoders:
+                if encoder.suffix == options['--encoder']:
+                    pulseaudio_dlna.common.supported_encoders = [encoder]
+                    break
+            if len(pulseaudio_dlna.common.supported_encoders) != 1:
+                logging.error('You specified an unknown encoder! '
+                              'Application terminates.')
+                sys.exit(1)
+
+        if options['--bit-rate']:
+            for encoder in pulseaudio_dlna.common.supported_encoders:
+                try:
+                    encoder.bit_rate = options['--bit-rate']
+                except pulseaudio_dlna.encoders.UnsupportedBitrateException:
+                    if len(encoder.bit_rates) > 0:
+                        logging.error(
+                            'You specified an invalid bit rate '
+                            'for the encoder! Supported bit rates '
+                            'are "{bit_rates}"! '
+                            'Application terminates.'.format(
+                                bit_rates=','.join(
+                                    str(e) for e in encoder.bit_rates)))
+                    else:
+                        logging.error('You selected encoder does not support '
+                                      'setting a specific bit rate! '
+                                      'Application terminates.')
+                    sys.exit(1)
+
+        logging.info('Loaded encoders:')
+        for encoder in pulseaudio_dlna.common.supported_encoders:
+            print(encoder)
 
         if options['--renderer-urls']:
             for plugin in plugins:

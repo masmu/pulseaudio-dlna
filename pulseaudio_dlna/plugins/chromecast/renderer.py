@@ -70,7 +70,10 @@ class CoinedChromecastRenderer(
         pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, ChromecastRenderer):
 
     def play(self):
-        return ChromecastRenderer.play(self, self.get_stream_url())
+        try:
+            return ChromecastRenderer.play(self, self.get_stream_url())
+        except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
+            return 500
 
 
 class ChromecastRendererFactory(object):

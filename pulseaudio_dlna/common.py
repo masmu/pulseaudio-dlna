@@ -41,7 +41,6 @@ def load_encoders():
                 continue
             if name != 'BaseEncoder' and \
                isinstance(_type(), encoders.BaseEncoder):
-                print('Loaded encoder {encoder} '.format(encoder=name))
                 supported_encoders.append(encoder)
 
 load_encoders()

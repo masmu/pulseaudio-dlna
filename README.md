@@ -34,7 +34,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-04-03_)
+ * __master__ - (_2015-04-10_)
     - Rewrite of the streaming server
     - Upnp devices can now request their audio format based on their capabilities
     - Added AAC encoder
@@ -43,6 +43,8 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - If a device failes to start playing, streams currently playing on
       the corresponding sink are switched back to the default sink
     - Added Chromecast support (new dependency: `python-protobuf`)
+    - Fixed a bug where the application crashed when there was no suitable encoder found
+    - Added the ```--bit-rate``` option
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad
@@ -222,19 +224,20 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
-        -e --encoder=<encoder>                 Set the audio encoder [default: lame].
+        -e --encoder=<encoder>                 Set the audio encoder.
                                                Possible encoders are:
-                                                 - lame  MPEG Audio Layer III (MP3)
+                                                 - mp3   MPEG Audio Layer III (MP3)
                                                  - ogg   Ogg Vorbis
                                                  - flac  Free Lossless Audio Codec (FLAC)
                                                  - wav   Waveform Audio File Format (WAV)
                                                  - opus  Opus Interactive Audio Codec (OPUS)
+        -b --bit-rate=<encoder>                Set the audio encoder's bitrate.
         --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                                Devices which get discovered, but won't match the
                                                filter text will be skipped.
