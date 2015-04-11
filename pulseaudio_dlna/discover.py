@@ -73,7 +73,7 @@ class RendererDiscover(BaseUpnpMediaRendererDiscover):
     def _header_received(self, header, address):
         header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", header)
         header = {k.lower(): v for k, v in dict(header).items()}
-        if header['st']:
+        if 'st' in header:
             st_header = header['st']
             if st_header in self.registered:
                 device = self.registered[st_header].create_device(header)
