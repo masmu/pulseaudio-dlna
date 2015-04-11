@@ -30,6 +30,45 @@ import pulseaudio_dlna.common
 import pulseaudio_dlna.plugins.renderer
 
 
+class UpnpContentFlags(object):
+
+    SENDER_PACED = 80000000
+    LSOP_TIME_BASED_SEEK_SUPPORTED = 40000000
+    LSOP_BYTE_BASED_SEEK_SUPPORTED = 20000000
+    PLAY_CONTAINER_SUPPORTED = 10000000
+    S0_INCREASING_SUPPORTED = 8000000
+    SN_INCREASING_SUPPORTED = 4000000
+    RTSP_PAUSE_SUPPORTED = 2000000
+    STREAMING_TRANSFER_MODE_SUPPORTED = 1000000
+    INTERACTIVE_TRANSFER_MODE_SUPPORTED = 800000
+    BACKGROUND_TRANSFER_MODE_SUPPORTED = 400000
+    CONNECTION_STALLING_SUPPORTED = 200000
+    DLNA_VERSION_15_SUPPORTED = 100000
+
+    def __init__(self, flags=None):
+        self.flags = flags or []
+
+    def __str__(self):
+        return str(sum(self.flags)).zfill(8)
+
+
+class UpnpContentFeatures(object):
+
+    def __init__(self, support_time_seek=False, support_range=False,
+                 transcoded=False, flags=None):
+        self.support_time_seek = False
+        self.support_range = False
+        self.is_transcoded = False
+        self.flags = UpnpContentFlags(flags or [])
+
+    def __str__(self):
+        return 'DLNA.ORG_OP={}{};DLNA.ORG_CI={};DLNA.ORG_FLAGS={}'.format(
+            ('1' if self.support_time_seek else '0'),
+            ('1' if self.support_range else '0'),
+            ('1' if self.is_transcoded else '0'),
+            (str(self.flags) + ('0' * 24)))
+
+
 class UpnpService(object):
 
     SERVICE_TRANSPORT = 'transport'
@@ -154,6 +193,13 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 '"{service_type}#SetAVTransportURI"'.format(
                     service_type=self.service_transport.service_type),
         }
+        content_features = UpnpContentFeatures(
+            flags=[
+                UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
+                UpnpContentFlags.BACKGROUND_TRANSFER_MODE_SUPPORTED,
+                UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
+                UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
+            ])
         metadata = self.xml['register_metadata'].format(
             stream_url=stream_url,
             title='Live Audio',
@@ -161,6 +207,8 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             creator='PulseAudio',
             album='Stream',
             encoding=self.ENCODING,
+            mime_type=self.encoder.mime_type,
+            content_features=str(content_features),
         )
         data = self.xml['register'].format(
             stream_url=stream_url,

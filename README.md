@@ -45,6 +45,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added Chromecast support (new dependency: `python-protobuf`)
     - Fixed a bug where the application crashed when there was no suitable encoder found
     - Added the ```--bit-rate``` option
+    - Added additional headers for DLNA devices
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad

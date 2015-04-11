@@ -27,12 +27,16 @@ import time
 import socket
 import select
 import atexit
+import json
 import BaseHTTPServer
 import SocketServer
 
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.recorders
 import pulseaudio_dlna.common
+
+from pulseaudio_dlna.plugins.upnp.renderer import (
+    UpnpContentFeatures, UpnpContentFlags)
 
 
 class RemoteDevice(object):
@@ -285,12 +289,12 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     def do_HEAD(self):
         logging.debug('Got the following HEAD request:\n{header}'.format(
-            header=self.headers))
+            header=json.dumps(self.headers.items(), indent=2)))
         self.handle_headers()
 
     def do_GET(self):
         logging.debug('Got the following GET request:\n{header}'.format(
-            header=self.headers))
+            header=json.dumps(self.headers.items(), indent=2)))
         bridge, encoder = self.handle_headers()
         if bridge and encoder:
             stream = self.server.stream_manager.get_stream(
@@ -314,8 +318,29 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         bridge, encoder = self.chop_request_path(self.path)
         if encoder and bridge:
             self.send_response(200)
-            self.send_header('Content-Type', encoder.mime_type)
-            self.send_header('Connection', 'close')
+            headers = {
+                'Content-Type': encoder.mime_type,
+                'Connection': 'close',
+            }
+
+            if isinstance(
+                bridge.device,
+                    pulseaudio_dlna.plugins.upnp.renderer.UpnpMediaRenderer):
+                content_features = UpnpContentFeatures(
+                    flags=[
+                        UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
+                        UpnpContentFlags.BACKGROUND_TRANSFER_MODE_SUPPORTED,
+                        UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
+                        UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
+                    ])
+                headers['contentFeatures.dlna.org'] = str(content_features)
+                headers['Ext'] = ''
+                headers['transferMode.dlna.org'] = 'Streaming'
+
+            logging.debug('Sending header:\n{header}'.format(
+                header=json.dumps(headers, indent=2)))
+            for name, value in headers.items():
+                self.send_header(name, value)
             self.end_headers()
             return bridge, encoder
         else:
