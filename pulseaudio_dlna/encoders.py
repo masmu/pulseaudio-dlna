@@ -17,11 +17,14 @@
 
 from __future__ import unicode_literals
 
+import functools
+
 
 class UnsupportedBitrateException():
     pass
 
 
+@functools.total_ordering
 class BaseEncoder(object):
     def __init__(self):
         self._command = ''
@@ -30,6 +33,7 @@ class BaseEncoder(object):
         self._suffix = 'undefined'
         self._bit_rate = None
         self._bit_rates = []
+        self._priority = 0
 
     @property
     def command(self):
@@ -62,6 +66,16 @@ class BaseEncoder(object):
     def bit_rates(self):
         return self._bit_rates
 
+    @property
+    def priority(self):
+        return self._priority
+
+    def __eq__(self, other):
+        return self.priority == other.priority
+
+    def __gt__(self, other):
+        return self.priority > other.priority
+
     def __str__(self):
         return '<{} bit-rate="{}" mime-types="{}">'.format(
             self.__class__.__name__,
@@ -80,6 +94,7 @@ class WavEncoder(BaseEncoder):
         self._mime_types = ['audio/wav', 'audio/x-wav']
         self._bit_rate = None
         self._bit_rates = []
+        self._priority = 18
 
     @property
     def bit_rate(self):
@@ -100,6 +115,7 @@ class LameEncoder(BaseEncoder):
         self._bit_rate = 192
         self._bit_rates = [32, 40, 48, 56, 64, 80, 96, 112,
                            128, 160, 192, 224, 256, 320]
+        self._priority = 15
 
     @property
     def command(self):
@@ -119,6 +135,8 @@ class AacEncoder(BaseEncoder):
         self._bit_rates = [32, 40, 48, 56, 64, 80, 96, 112,
                            128, 160, 192, 224, 256, 320]
         self._bit_rate = 192
+        self._priority = 12
+
 
     @property
     def command(self):
@@ -138,6 +156,7 @@ class FlacEncoder(BaseEncoder):
         self._mime_types = ['audio/flac', 'audio/x-flac']
         self._bit_rate = None
         self._bit_rates = []
+        self._priority = 9
 
     @property
     def bit_rate(self):
@@ -156,6 +175,7 @@ class OggEncoder(BaseEncoder):
         self._suffix = 'ogg'
         self._mime_types = ['audio/ogg', 'audio/x-ogg']
         self._bit_rate = 192
+        self._priority = 6
 
     @property
     def bit_rate(self):
@@ -184,6 +204,7 @@ class OpusEncoder(BaseEncoder):
         self._mime_types = ['audio/opus', 'audio/x-opus']
         self._bit_rate = 192
         self._bit_rates = [i for i in range(6, 257)]
+        self._priority = 3
 
     @property
     def command(self):

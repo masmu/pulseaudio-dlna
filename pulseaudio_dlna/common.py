@@ -42,5 +42,6 @@ def load_encoders():
             if name != 'BaseEncoder' and \
                isinstance(_type(), encoders.BaseEncoder):
                 supported_encoders.append(encoder)
+    supported_encoders.sort(reverse=True)
 
 load_encoders()
