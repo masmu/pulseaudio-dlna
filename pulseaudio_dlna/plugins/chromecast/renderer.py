@@ -20,6 +20,8 @@ from __future__ import unicode_literals
 import requests
 import logging
 import urlparse
+import socket
+import traceback
 import BeautifulSoup
 
 import pycastv2
@@ -42,8 +44,22 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             'audio/wav',
         ]
 
+    def _get_media_player(self):
+        try:
+            return pycastv2.MediaPlayerController(self.ip)
+        except socket.error as e:
+            if e.errno == 111:
+                logging.info(
+                    'The chromecast refused the connection. Perhaps it '
+                    'does not support the castv2 protocol.')
+            else:
+                traceback.print_exc()
+            return None
+
     def play(self, url):
-        cast = pycastv2.MediaPlayerController(self.ip)
+        cast = self._get_media_player()
+        if cast is None:
+            return 500
         try:
             if cast.load(url, self.encoder.mime_type) is True:
                 self.state = self.PLAYING
@@ -53,7 +69,9 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             cast.cleanup()
 
     def stop(self):
-        cast = pycastv2.MediaPlayerController(self.ip)
+        cast = self._get_media_player()
+        if cast is None:
+            return 500
         try:
             self.state = self.IDLE
             if cast.disconnect_application() is True:
