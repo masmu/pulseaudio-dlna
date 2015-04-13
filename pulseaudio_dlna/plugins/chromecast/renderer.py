@@ -111,6 +111,13 @@ class ChromecastRendererFactory(object):
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
+            model_name = soup.root.device.modelname.text
+            if model_name.strip() != 'Eureka Dongle':
+                logging.info(
+                    'The Chromecast seems not to an original Chromecast! '
+                    'Model name: "{model_name}" Skipping device ...'.format(
+                        model_name=model_name))
+                return None
             cast_device = type_(
                 soup.root.device.friendlyname.text,
                 ip)
