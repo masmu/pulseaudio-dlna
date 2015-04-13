@@ -34,7 +34,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-04-10_)
+ * __master__ - (_2015-04-13_)
     - Rewrite of the streaming server
     - Upnp devices can now request their audio format based on their capabilities
     - Added AAC encoder
@@ -46,6 +46,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where the application crashed when there was no suitable encoder found
     - Added the ```--bit-rate``` option
     - Added additional headers for DLNA devices
+    - Added switch back mode also for sinks, not just for streams
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad
@@ -127,6 +128,7 @@ will get installed if you install it via the PPA.
 - python-setproctitle
 - python-gobject
 - python-protobuf
+- python-notify2
 - vorbis-tools
 - sox
 - lame
@@ -136,7 +138,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 

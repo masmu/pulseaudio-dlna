@@ -164,11 +164,12 @@ class PulseAudioDLNA(object):
             logging.info('You can now use your devices!')
 
         manager = multiprocessing.Manager()
+        message_queue = multiprocessing.Queue()
         bridges = manager.list()
 
         try:
             self.stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
-                host, port, bridges)
+                host, port, bridges, message_queue)
         except socket.error:
             print('The streaming server could not bind to your specified port '
                   '({port}). Perhaps this is already in use? Application '
@@ -182,7 +183,7 @@ class PulseAudioDLNA(object):
             devices.append(device)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        self.pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges)
+        self.pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
         self.pulse.set_devices(devices)
 
         pulse_process = multiprocessing.Process(target=self.pulse.run)

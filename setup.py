@@ -55,6 +55,7 @@ setuptools.setup(
         "requests >= 2.2.1",
         "setproctitle >= 1.0.1",
         "protobuf >= 2.5.0",
+        "notify2 >= 0.3",
     ],
     entry_points={
         "console_scripts": [

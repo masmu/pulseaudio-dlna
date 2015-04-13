@@ -18,12 +18,14 @@
 from __future__ import unicode_literals
 
 import sys
+import locale
 import dbus
 import os
-import re
+import struct
 import subprocess
 import logging
 import setproctitle
+import notify2
 import gobject
 import functools
 import copy
@@ -36,6 +38,7 @@ class PulseAudio(object):
         self.sinks = []
 
         self.fallback_sink = None
+        self.system_sinks = []
 
     def _connect(self, signals):
         self.bus = self._get_bus()
@@ -45,17 +48,22 @@ class PulseAudio(object):
             self.core.ListenForSignal(
                 interface.format(sig_name), dbus.Array(signature='o'))
 
-        fallback_sink_path = self.core.Get(
-            'org.PulseAudio.Core1', 'FallbackSink',
-            dbus_interface='org.freedesktop.DBus.Properties')
+        try:
+            fallback_sink_path = self.core.Get(
+                'org.PulseAudio.Core1', 'FallbackSink',
+                dbus_interface='org.freedesktop.DBus.Properties')
+            self.fallback_sink = PulseSinkFactory.new(
+                self.bus, fallback_sink_path)
+        except:
+            logging.info(
+                'Could not get default sink. Perhaps there is no one set?')
 
-        obj = self.bus.get_object(object_path=fallback_sink_path)
-        self.fallback_sink = PulseSink(
-            object_path=str(fallback_sink_path),
-            index=str(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
-            name=str(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
-            module_path=str(obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule')),
-        )
+        system_sink_paths = self.core.Get(
+            'org.PulseAudio.Core1', 'Sinks',
+            dbus_interface='org.freedesktop.DBus.Properties')
+        for sink_path in system_sink_paths:
+            sink = PulseSinkFactory.new(self.bus, sink_path)
+            self.system_sinks.append(sink)
 
     def _get_bus_address(self):
         server_address = os.environ.get('PULSE_DBUS_SERVER', None)
@@ -103,12 +111,7 @@ class PulseAudio(object):
 
         self.streams = []
         for stream_path in stream_paths:
-            obj = self.bus.get_object(object_path=stream_path)
-            stream = PulseStream(
-                object_path=str(stream_path),
-                index=str(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
-                device=str(obj.Get('org.PulseAudio.Core1.Stream', 'Device')),
-            )
+            stream = PulseStreamFactory.new(self.bus, stream_path)
             self.streams.append(stream)
 
     def update_sinks(self):
@@ -118,14 +121,8 @@ class PulseAudio(object):
 
         self.sinks = []
         for sink_path in sink_paths:
-            obj = self.bus.get_object(object_path=sink_path)
-            sink = PulseSink(
-                object_path=str(sink_path),
-                index=str(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
-                name=str(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
-                module_path=str(obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule')),
-                fallback_sink_index=self.fallback_sink.index,
-            )
+            sink = PulseSinkFactory.new(self.bus, sink_path)
+            sink.fallback_sink = self.fallback_sink
             self.sinks.append(sink)
 
     def create_null_sink(self, sink_name, sink_description):
@@ -142,7 +139,7 @@ class PulseAudio(object):
         if module_id > 0:
             self.update_sinks()
             for sink in self.sinks:
-                if sink.module_index == module_id:
+                if int(sink.module.index) == module_id:
                     return sink
 
     def delete_null_sink(self, id):
@@ -154,13 +151,24 @@ class PulseAudio(object):
         subprocess.check_output(cmd)
 
 
+class PulseModuleFactory(object):
+
+    @classmethod
+    def new(self, bus, module_path):
+        obj = bus.get_object(object_path=module_path)
+        return PulseModule(
+            object_path=unicode(module_path),
+            index=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Index')),
+            name=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Name')),
+        )
+
+
 @functools.total_ordering
-class PulseSink(object):
+class PulseModule(object):
 
     __shared_state = {}
 
-    def __init__(self, object_path, index, name, module_path,
-                 fallback_sink_index=None):
+    def __init__(self, object_path, index, name):
         if object_path not in self.__shared_state:
             self.__shared_state[object_path] = {}
         self.__dict__ = self.__shared_state[object_path]
@@ -168,18 +176,6 @@ class PulseSink(object):
         self.object_path = object_path
         self.index = index
         self.name = name
-        self.module_path = module_path
-        self.fallback_sink_index = fallback_sink_index
-
-        self.module_index = int(
-            re.findall(r"/org/pulseaudio/core1/module(\d+)", module_path)[0])
-
-        self.monitor = self.name + '.monitor'
-        self.streams = []
-
-    def switch_streams_to_fallback_source(self):
-        for stream in self.streams:
-            stream.switch_to_source(self.fallback_sink_index)
 
     def __eq__(self, other):
         return self.object_path == other.object_path
@@ -188,11 +184,88 @@ class PulseSink(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        string = '<PulseSink path="{}" name="{}"  index="{}" module="{}">\n'.format(
+        return '<PulseModule path="{}" name="{}" index="{}">\n'.format(
             self.object_path,
             self.name,
             self.index,
-            self.module_index,
+        )
+
+
+class PulseSinkFactory(object):
+
+    @classmethod
+    def new(self, bus, object_path):
+        obj = bus.get_object(object_path=object_path)
+
+        properties = obj.Get('org.PulseAudio.Core1.Device', 'PropertyList')
+        description_bytes = properties.get('device.description', [])
+        label = self._convert_bytes_to_unicode(description_bytes)
+        module_path = unicode(obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule'))
+
+        return PulseSink(
+            object_path=unicode(object_path),
+            index=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
+            name=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
+            label=label,
+            module=PulseModuleFactory.new(bus, module_path),
+        )
+
+    @classmethod
+    def _convert_bytes_to_unicode(self, byte_array):
+        name = bytes()
+        for i, b in enumerate(byte_array):
+            if not (i == len(byte_array) - 1 and int(b) == 0):
+                name += struct.pack('<B', b)
+        return name.decode(locale.getpreferredencoding())
+
+
+@functools.total_ordering
+class PulseSink(object):
+
+    __shared_state = {}
+
+    def __init__(self, object_path, index, name, label, module,
+                 fallback_sink=None):
+        if object_path not in self.__shared_state:
+            self.__shared_state[object_path] = {}
+        self.__dict__ = self.__shared_state[object_path]
+
+        self.object_path = object_path
+        self.index = index
+        self.name = name
+        self.label = label or name
+        self.module = module
+        self.fallback_sink = fallback_sink
+
+        self.monitor = self.name + '.monitor'
+        self.streams = []
+
+    def set_as_default_sink(self):
+        cmd = [
+            'pactl',
+            'set-default-sink',
+            str(self.index),
+        ]
+        subprocess.check_output(cmd)
+
+    def switch_streams_to_fallback_source(self):
+        if self.fallback_sink is not None:
+            for stream in self.streams:
+                stream.switch_to_source(self.fallback_sink.index)
+
+    def __eq__(self, other):
+        return self.object_path == other.object_path
+
+    def __gt__(self, other):
+        return self.object_path > other.object_path
+
+    def __str__(self):
+        string = '<PulseSink path="{}" label="{}" name="{}" index="{}" module="{}">\n'.format(
+            self.object_path,
+            self.label,
+            self.name,
+            self.index,
+            self.module.index,
         )
         if len(self.streams) == 0:
             string = string + '        -- no streams --'
@@ -200,6 +273,18 @@ class PulseSink(object):
             for stream in self.streams:
                 string = string + '        {}\n'.format(stream)
         return string
+
+
+class PulseStreamFactory(object):
+
+    @classmethod
+    def new(self, bus, stream_path):
+        obj = bus.get_object(object_path=stream_path)
+        return PulseStream(
+            object_path=unicode(stream_path),
+            index=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
+            device=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Device')),
+        )
 
 
 @functools.total_ordering
@@ -256,28 +341,55 @@ class PulseBridge(object):
 
 
 class PulseWatcher(PulseAudio):
-    def __init__(self, bridges_shared):
+    def __init__(self, bridges_shared, message_queue):
         PulseAudio.__init__(self)
 
         self.bridges = []
         self.bridges_shared = bridges_shared
         self.devices = []
 
+        self.message_queue = message_queue
+        self.blocked_devices = []
+
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
                 self.on_new_playback_stream),
             ('PlaybackStreamRemoved', 'org.PulseAudio.Core1.{}',
                 self.on_playback_stream_removed),
+            ('FallbackSinkUpdated', 'org.PulseAudio.Core1.{}',
+                self.on_fallback_sink_updated),
             ('DeviceUpdated', 'org.PulseAudio.Core1.Stream.{}',
                 self.on_device_updated),
         )
         self._connect(signals)
         self.update()
+        self.default_sink = self.fallback_sink
 
     def run(self):
         setproctitle.setproctitle('pulse_watcher')
         mainloop = gobject.MainLoop()
+        notify2.init('pulseaudio_dlna', mainloop)
+        gobject.timeout_add(500, self._check_message_queue)
         mainloop.run()
+
+    def _check_message_queue(self):
+        try:
+            message = self.message_queue.get_nowait()
+        except:
+            return True
+
+        message_type = message.get('type', None)
+        if message_type and hasattr(self, message_type):
+            del message['type']
+            getattr(self, message_type)(**message)
+        return True
+
+    def _block_device_handling(self, object_path):
+        self.blocked_devices.append(object_path)
+        gobject.timeout_add(1000, self._unblock_device_handling, object_path)
+
+    def _unblock_device_handling(self, object_path):
+        self.blocked_devices.remove(object_path)
 
     def set_devices(self, devices):
         self.devices = devices
@@ -302,14 +414,65 @@ class PulseWatcher(PulseAudio):
 
     def cleanup(self):
         for bridge in self.bridges:
-            logging.info('remove "{}" sink ...'.format(bridge.sink.name))
-            self.delete_null_sink(bridge.sink.module_index)
+            logging.info('Remove "{}" sink ...'.format(bridge.sink.name))
+            self.delete_null_sink(bridge.sink.module.index)
+
+    def _was_stream_moved(self, moved_stream, ignore_sink):
+        for sink in self.system_sinks:
+            if sink == ignore_sink:
+                continue
+            for stream in sink.streams:
+                if stream == moved_stream:
+                    return True
+        for bridge in self.bridges:
+            if bridge.sink == ignore_sink:
+                continue
+            for stream in bridge.sink.streams:
+                if stream == moved_stream:
+                    return True
+        return False
+
+    def switch_back(self, bridge, reason):
+        notice = notify2.Notification(
+            'Device "{label}"'.format(label=bridge.device.label),
+            '{reason}. Your streams were switched '
+            'back to <b>{name}</b>'.format(
+                reason=reason,
+                name=(self.fallback_sink.label).encode(
+                    locale.getpreferredencoding())))
+        notice.set_timeout(notify2.EXPIRES_DEFAULT)
+        notice.show()
+
+        self._block_device_handling(bridge.sink.object_path)
+        if bridge.sink == self.default_sink:
+            self.fallback_sink.set_as_default_sink()
+        bridge.sink.switch_streams_to_fallback_source()
+
+    def on_bridge_disconnected(self, stopped_bridge):
+
+        for sink in self.sinks:
+            if sink == stopped_bridge.sink:
+                stopped_bridge.sink = sink
+                break
+
+        reason = 'The device disconnected'
+        if len(stopped_bridge.sink.streams) > 1:
+            self.switch_back(stopped_bridge, reason)
+        elif len(stopped_bridge.sink.streams) == 1:
+            stream = stopped_bridge.sink.streams[0]
+            if not self._was_stream_moved(stream, stopped_bridge.sink):
+                self.switch_back(stopped_bridge)
+        elif len(stopped_bridge.sink.streams) == 0:
+            pass
 
     def on_device_updated(self, sink_path):
         logging.info('PulseWatcher.on_device_updated "{path}"'.format(
             path=sink_path))
         self.update()
         self._handle_sink_update(sink_path)
+
+    def on_fallback_sink_updated(self, sink_path):
+        self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
 
     def on_new_playback_stream(self, stream_path):
         logging.info('PulseWatcher.on_new_playback_stream "{path}"'.format(
@@ -332,6 +495,11 @@ class PulseWatcher(PulseAudio):
                     return
 
     def _handle_sink_update(self, sink_path):
+
+        if sink_path in self.blocked_devices:
+            logging.info('{sink_path} was blocked!'.format(sink_path=sink_path))
+            return
+
         for bridge in self.bridges:
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
@@ -351,4 +519,5 @@ class PulseWatcher(PulseAudio):
                     else:
                         logging.error('"{}" playing failed!'.format(
                             bridge.device.label))
-                        bridge.sink.switch_streams_to_fallback_source()
+                        self.switch_back(
+                            bridge, 'The device failed to started.')

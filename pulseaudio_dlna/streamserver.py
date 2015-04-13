@@ -130,34 +130,14 @@ class ProcessStream(object):
                         client=self.sockets[sock].ip,
                         method=method,
                         path=self.path))
-                sink = self.sockets[sock].bridge.sink
+                bridge = self.sockets[sock].bridge
                 del self.sockets[sock]
                 sock.close()
                 self.client_count -= 1
                 if len(self.sockets) == 0:
-
-                    def search_for_moved_stream(bridges, moved_stream, ignore_sink):
-                        for bridge in bridges:
-                            if bridge.sink == ignore_sink:
-                                continue
-                            for stream in bridge.sink.streams:
-                                if stream == moved_stream:
-                                    return True
-                        return False
-
-                    def get_updated_sink(bridges, outdated_sink):
-                        for bridge in self.server.bridges:
-                            if bridge.sink == outdated_sink:
-                                return bridge.sink
-                        return None
-
-                    sink = get_updated_sink(self.server.bridges, sink)
-                    if sink:
-                        for stream in sink.streams:
-                            result = search_for_moved_stream(self.server.bridges, stream, sink)
-                            if result is False:
-                                stream.switch_to_source(sink.fallback_sink_index)
-
+                    self.server.message_queue.put(
+                        {'type': 'on_bridge_disconnected',
+                         'stopped_bridge': bridge})
                     logging.info('Stream closed. '
                                  'Cleaning up remaining processes ...')
                     self.update_thread.pause()
@@ -376,7 +356,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class StreamServer(SocketServer.TCPServer):
 
-    def __init__(self, ip, port, bridges, *args):
+    def __init__(self, ip, port, bridges, message_queue, *args):
         setproctitle.setproctitle('stream_server')
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
@@ -385,6 +365,7 @@ class StreamServer(SocketServer.TCPServer):
         self.ip = ip
         self.port = port
         self.bridges = bridges
+        self.message_queue = message_queue
         self.stream_manager = StreamManager(self)
 
     def get_server_url(self):
