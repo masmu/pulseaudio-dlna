@@ -262,6 +262,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Majik DSM
 - [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
 - [Raumfeld Speaker M](http://raumfeld.com)
+- Pioneer VSX-824 (AV Receiver)
 
 ## Supported encoders ##
 
