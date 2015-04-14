@@ -28,6 +28,8 @@ import select
 
 import cast_channel_pb2
 
+logger = logging.getLogger('pycastv2.cast_socket')
+
 
 class NoResponseException(Exception):
     pass
@@ -54,7 +56,7 @@ class BaseChromecastSocket(object):
 
     def close(self):
         self.sock.close()
-        logging.debug('Chromecast socket was cleaned up.')
+        logger.debug('Chromecast socket was cleaned up.')
 
     def send(self, data, sender_id, destination_id, namespace=None):
         json_data = json.dumps(data)
@@ -86,7 +88,7 @@ class BaseChromecastSocket(object):
             if e.message == 'The read operation timed out':
                 raise NoResponseException()
             else:
-                logging.debug('Catched exception:')
+                logger.debug('Catched exception:')
                 traceback.print_exc()
                 return {}
 
@@ -101,7 +103,7 @@ class CastSocket(BaseChromecastSocket):
     def send(self, command):
         for listener in self.send_listeners:
             command = listener(command)
-        logging.debug('Sending message:\n{command}'.format(
+        logger.debug('Sending message:\n{command}'.format(
             command=command))
         BaseChromecastSocket.send(
             self,
@@ -115,7 +117,7 @@ class CastSocket(BaseChromecastSocket):
         if timeout is not None:
             self.wait_for_read(timeout)
         response = BaseChromecastSocket.read(self)
-        logging.debug('Recieved message:\n {message}'.format(
+        logger.debug('Recieved message:\n {message}'.format(
             message=json.dumps(response, indent=2)))
         for listener in self.read_listeners:
             listener(response)

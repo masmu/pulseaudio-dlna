@@ -38,6 +38,8 @@ import pulseaudio_dlna.common
 from pulseaudio_dlna.plugins.upnp.renderer import (
     UpnpContentFeatures, UpnpContentFlags)
 
+logger = logging.getLogger('pulseaudio_dlna.streamserver')
+
 
 class RemoteDevice(object):
     def __init__(self, bridge, sock):
@@ -45,8 +47,8 @@ class RemoteDevice(object):
         try:
             self.ip, self.port = sock.getsockname()
         except:
-            logging.info('Could not get socket IP and Port. Setting to '
-                         'unknown.')
+            logger.info('Could not get socket IP and Port. Setting to '
+                        'unknown.')
             self.ip = 'unknown'
             self.port = 'unknown'
 
@@ -104,7 +106,7 @@ class ProcessStream(object):
                 if not lock_override:
                     self.lock.acquire()
                 device = RemoteDevice(bridge, sock)
-                logging.info(
+                logger.info(
                     'Client {client} registered to stream {path}.'.format(
                         client=device.ip,
                         path=self.path))
@@ -115,8 +117,8 @@ class ProcessStream(object):
                 if not lock_override:
                     self.lock.release()
         else:
-            logging.info('The same client id tries to register a stream, this '
-                         'should never happen...')
+            logger.info('The same client id tries to register a stream, this '
+                        'should never happen...')
             sys.exit(2)
 
     def unregister(self, sock, lock_override=False, method=0):
@@ -124,7 +126,7 @@ class ProcessStream(object):
             try:
                 if not lock_override:
                     self.lock.acquire()
-                logging.info(
+                logger.info(
                     'Client {client} unregistered stream {path} '
                     'using method {method}.'.format(
                         client=self.sockets[sock].ip,
@@ -138,16 +140,16 @@ class ProcessStream(object):
                     self.server.message_queue.put(
                         {'type': 'on_bridge_disconnected',
                          'stopped_bridge': bridge})
-                    logging.info('Stream closed. '
-                                 'Cleaning up remaining processes ...')
+                    logger.info('Stream closed. '
+                                'Cleaning up remaining processes ...')
                     self.update_thread.pause()
                     self.cleanup()
             finally:
                 if not lock_override:
                     self.lock.release()
         else:
-            logging.info('A client id tries to unregister a stream which is '
-                         'not registered, this should never happen...')
+            logger.info('A client id tries to unregister a stream which is '
+                        'not registered, this should never happen...')
             sys.exit(2)
 
     def communicate(self):
@@ -156,13 +158,13 @@ class ProcessStream(object):
 
             if not self.do_processes_exist():
                 self.create_processes()
-                logging.info(
+                logger.info(
                     'Processes of {path} initialized ...'.format(
                         path=self.path))
             if not self.do_processes_respond():
                 self.cleanup()
                 self.create_processes()
-                logging.info(
+                logger.info(
                     'Processes of {path} reinitialized ...'.format(
                         path=self.path))
 
@@ -221,7 +223,7 @@ class ProcessStream(object):
             pass
 
     def create_processes(self):
-        logging.debug('Starting processes "{recorder} | {encoder}"'.format(
+        logger.debug('Starting processes "{recorder} | {encoder}"'.format(
             recorder=self.recorder.command,
             encoder=self.encoder.command))
         self.recorder_process = subprocess.Popen(
@@ -234,7 +236,7 @@ class ProcessStream(object):
         self.recorder_process.stdout.close()
 
     def shutdown(self):
-        logging.info('Streaming server is shutting down.')
+        logger.info('Streaming server is shutting down.')
         for sock in self.sockets.keys():
             sock.close()
 
@@ -268,12 +270,12 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             pass
 
     def do_HEAD(self):
-        logging.debug('Got the following HEAD request:\n{header}'.format(
+        logger.debug('Got the following HEAD request:\n{header}'.format(
             header=json.dumps(self.headers.items(), indent=2)))
         self.handle_headers()
 
     def do_GET(self):
-        logging.debug('Got the following GET request:\n{header}'.format(
+        logger.debug('Got the following GET request:\n{header}'.format(
             header=json.dumps(self.headers.items(), indent=2)))
         bridge, encoder = self.handle_headers()
         if bridge and encoder:
@@ -290,7 +292,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             try:
                 r, w, e = select.select([self.request], [], [], 0)
             except socket.error:
-                logging.debug('Socket died, releasing request thread.')
+                logger.debug('Socket died, releasing request thread.')
                 break
             time.sleep(1)
 
@@ -317,19 +319,19 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
 
-            logging.debug('Sending header:\n{header}'.format(
+            logger.debug('Sending header:\n{header}'.format(
                 header=json.dumps(headers, indent=2)))
             for name, value in headers.items():
                 self.send_header(name, value)
             self.end_headers()
             return bridge, encoder
         else:
-            logging.info('Error 404: File not found "{}"'.format(self.path))
+            logger.info('Error 404: File not found "{}"'.format(self.path))
             self.send_error(404, 'File not found: %s' % self.path)
             return None, None
 
     def chop_request_path(self, path):
-        logging.info('Requested streaming URL was: {path}'.format(
+        logger.info('Requested streaming URL was: {path}'.format(
             path=path))
         try:
             short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
@@ -352,6 +354,12 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         except (TypeError, ValueError, IndexError):
             pass
         return None, None
+
+    def log_message(self, format, *args):
+        logger.info('Got request from {host} - {args}' .format(
+            host=self.address_string(),
+            time=self.log_date_time_string(),
+            args=','.join(args)))
 
 
 class StreamServer(SocketServer.TCPServer):

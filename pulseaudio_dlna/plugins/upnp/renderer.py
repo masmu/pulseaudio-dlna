@@ -29,6 +29,8 @@ import pulseaudio_dlna.encoders
 import pulseaudio_dlna.common
 import pulseaudio_dlna.plugins.renderer
 
+logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.renderer')
+
 
 class UpnpContentFlags(object):
 
@@ -171,7 +173,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         return content
 
     def _debug(self, action, url, headers, data, response):
-        logging.debug(
+        logger.debug(
             'sending {action} to {url}:\n'
             ' - headers:\n{headers}\n'
             ' - data:\n{data}'
@@ -244,7 +246,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                     if mime_type.startswith('audio/'):
                         self.protocols.append(mime_type)
             except IndexError:
-                logging.info(
+                logger.info(
                     'IndexError: No valid XML returned from {url}.'.format(
                         url=url))
 
@@ -318,7 +320,7 @@ class CoinedUpnpMediaRenderer(
             if UpnpMediaRenderer.register(self, stream_url) == 200:
                 return UpnpMediaRenderer.play(self)
             else:
-                logging.error('"{}" registering failed!'.format(self.name))
+                logger.error('"{}" registering failed!'.format(self.name))
         except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
             return 500
 
@@ -331,10 +333,10 @@ class UpnpMediaRendererFactory(object):
     def from_url(self, url, type_=UpnpMediaRenderer):
         try:
             response = requests.get(url)
-            logging.debug('Response from UPNP device ({url})\n'
-                          '{response}'.format(url=url, response=response.text))
+            logger.debug('Response from UPNP device ({url})\n'
+                         '{response}'.format(url=url, response=response.text))
         except requests.exceptions.ConnectionError:
-            logging.info(
+            logger.info(
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
@@ -363,7 +365,7 @@ class UpnpMediaRendererFactory(object):
                     services)
                 return upnp_device
         except AttributeError:
-            logging.info(
+            logger.info(
                 'No valid XML returned from {url}.'.format(url=url))
             return None
 

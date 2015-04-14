@@ -47,6 +47,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added the ```--bit-rate``` option
     - Added additional headers for DLNA devices
     - Added switch back mode also for sinks, not just for streams
+    - Added better logging
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad

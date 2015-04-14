@@ -26,6 +26,8 @@ import logging
 import pulseaudio_dlna.common
 import pulseaudio_dlna.pulseaudio
 
+logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
+
 
 class NoSuitableEncoderFoundException():
     pass
@@ -105,10 +107,10 @@ class BaseRenderer(object):
                 for mime_type in encoder.mime_types:
                     if mime_type in self.protocols:
                         return encoder
-            logging.info('There was no suitable encoder found for "{name}". '
-                         'The device can play "{protocols}"'.format(
-                             name=self.label,
-                             protocols=','.join(self.protocols)))
+            logger.info('There was no suitable encoder found for "{name}". '
+                        'The device can play "{protocols}"'.format(
+                            name=self.label,
+                            protocols=','.join(self.protocols)))
             raise NoSuitableEncoderFoundException()
         else:
             return self._encoder

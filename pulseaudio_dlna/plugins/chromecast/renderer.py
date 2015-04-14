@@ -27,6 +27,8 @@ import BeautifulSoup
 import pycastv2
 import pulseaudio_dlna.plugins.renderer
 
+logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
+
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
@@ -49,7 +51,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return pycastv2.MediaPlayerController(self.ip)
         except socket.error as e:
             if e.errno == 111:
-                logging.info(
+                logger.info(
                     'The chromecast refused the connection. Perhaps it '
                     'does not support the castv2 protocol.')
             else:
@@ -100,10 +102,10 @@ class ChromecastRendererFactory(object):
     def from_url(self, url, type_=ChromecastRenderer):
         try:
             response = requests.get(url)
-            logging.debug('Response from chromecast device ({url})\n'
-                          '{response}'.format(url=url, response=response.text))
+            logger.debug('Response from chromecast device ({url})\n'
+                         '{response}'.format(url=url, response=response.text))
         except requests.exceptions.ConnectionError:
-            logging.info(
+            logger.info(
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
@@ -113,7 +115,7 @@ class ChromecastRendererFactory(object):
         try:
             model_name = soup.root.device.modelname.text
             if model_name.strip() != 'Eureka Dongle':
-                logging.info(
+                logger.info(
                     'The Chromecast seems not to an original Chromecast! '
                     'Model name: "{model_name}" Skipping device ...'.format(
                         model_name=model_name))
@@ -123,7 +125,7 @@ class ChromecastRendererFactory(object):
                 ip)
             return cast_device
         except AttributeError:
-            logging.info(
+            logger.info(
                 'No valid XML returned from {url}.'.format(url=url))
             return None
 

@@ -31,6 +31,8 @@ import functools
 import copy
 import pulseaudio_dlna.plugins.renderer
 
+logger = logging.getLogger('pulseaudio_dlna.pulseaudio')
+
 
 class PulseAudio(object):
     def __init__(self):
@@ -55,7 +57,7 @@ class PulseAudio(object):
             self.fallback_sink = PulseSinkFactory.new(
                 self.bus, fallback_sink_path)
         except:
-            logging.info(
+            logger.info(
                 'Could not get default sink. Perhaps there is no one set?')
 
         system_sink_paths = self.core.Get(
@@ -91,8 +93,8 @@ class PulseAudio(object):
                 server_address = self._get_bus_address()
                 return dbus.connection.Connection(server_address)
             except dbus.exceptions.DBusException:
-                logging.error('PulseAudio seems not to be running or PulseAudio '
-                              'dbus module could not be loaded.')
+                logger.error('PulseAudio seems not to be running or PulseAudio '
+                             'dbus module could not be loaded.')
                 sys.exit(1)
 
     def update(self):
@@ -414,7 +416,7 @@ class PulseWatcher(PulseAudio):
 
     def cleanup(self):
         for bridge in self.bridges:
-            logging.info('Remove "{}" sink ...'.format(bridge.sink.name))
+            logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
             self.delete_null_sink(bridge.sink.module.index)
 
     def _was_stream_moved(self, moved_stream, ignore_sink):
@@ -461,12 +463,12 @@ class PulseWatcher(PulseAudio):
         elif len(stopped_bridge.sink.streams) == 1:
             stream = stopped_bridge.sink.streams[0]
             if not self._was_stream_moved(stream, stopped_bridge.sink):
-                self.switch_back(stopped_bridge)
+                self.switch_back(stopped_bridge, reason)
         elif len(stopped_bridge.sink.streams) == 0:
             pass
 
     def on_device_updated(self, sink_path):
-        logging.info('PulseWatcher.on_device_updated "{path}"'.format(
+        logger.info('PulseWatcher.on_device_updated "{path}"'.format(
             path=sink_path))
         self.update()
         self._handle_sink_update(sink_path)
@@ -475,7 +477,7 @@ class PulseWatcher(PulseAudio):
         self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
 
     def on_new_playback_stream(self, stream_path):
-        logging.info('PulseWatcher.on_new_playback_stream "{path}"'.format(
+        logger.info('PulseWatcher.on_new_playback_stream "{path}"'.format(
             path=stream_path))
         self.update()
         for sink in self.sinks:
@@ -485,7 +487,7 @@ class PulseWatcher(PulseAudio):
                     return
 
     def on_playback_stream_removed(self, stream_path):
-        logging.info('PulseWatcher.on_playback_stream_removed "{path}"'.format(
+        logger.info('PulseWatcher.on_playback_stream_removed "{path}"'.format(
             path=stream_path))
         for sink in self.sinks:
             for stream in sink.streams:
@@ -497,27 +499,27 @@ class PulseWatcher(PulseAudio):
     def _handle_sink_update(self, sink_path):
 
         if sink_path in self.blocked_devices:
-            logging.info('{sink_path} was blocked!'.format(sink_path=sink_path))
+            logger.info('{sink_path} was blocked!'.format(sink_path=sink_path))
             return
 
         for bridge in self.bridges:
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
                     if bridge.device.stop() == 200:
-                        logging.info('"{}" was stopped.'.format(
+                        logger.info('The device "{}" was stopped.'.format(
                             bridge.device.label))
                     else:
-                        logging.error('"{}" stopping failed!'.format(
+                        logger.error('The device "{}" failed to stop!'.format(
                             bridge.device.label))
                     continue
             if bridge.sink.object_path == sink_path:
                 if bridge.device.state == bridge.device.IDLE or \
                    bridge.device.state == bridge.device.PAUSE:
                     if bridge.device.play() == 200:
-                        logging.info('"{}" is playing.'.format(
+                        logger.info('The device "{}" is playing.'.format(
                             bridge.device.label))
                     else:
-                        logging.error('"{}" playing failed!'.format(
+                        logger.error('The device "{}" failed to play!'.format(
                             bridge.device.label))
                         self.switch_back(
                             bridge, 'The device failed to started.')

@@ -80,23 +80,31 @@ class PulseAudioDLNA(object):
     def startup(self):
         options = docopt.docopt(__doc__, version=pulseaudio_dlna.__version__)
 
+        level = logging.DEBUG
         if not options['--debug']:
-            logging.basicConfig(level=logging.INFO)
-        else:
-            logging.basicConfig(level=logging.DEBUG)
+            level = logging.INFO
+            logging.getLogger('requests').setLevel(logging.WARNING)
+            logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+        logging.basicConfig(
+            level=level,
+            format='%(asctime)s %(name)-46s %(levelname)-8s %(message)s',
+            datefmt='%m-%d %H:%M:%S')
+        logger = logging.getLogger('pulseaudio_dlna')
 
         if not options['--host']:
             host = pulseaudio_dlna.utils.network.default_ipv4()
             if host is None:
-                print('I could not determiate your host address. '
-                      'You must specify it yourself via the --host option!')
+                logger.info(
+                    'I could not determiate your host address. '
+                    'You must specify it yourself via the --host option!')
                 sys.exit(1)
         else:
             host = str(options['--host'])
 
         port = int(options['--port'])
 
-        print('Using localhost: {host}:{port}'.format(
+        logger.info('Using localhost: {host}:{port}'.format(
             host=host, port=port))
 
         plugins = [
@@ -110,8 +118,8 @@ class PulseAudioDLNA(object):
                     pulseaudio_dlna.common.supported_encoders = [encoder]
                     break
             if len(pulseaudio_dlna.common.supported_encoders) != 1:
-                logging.error('You specified an unknown encoder! '
-                              'Application terminates.')
+                logger.error('You specified an unknown encoder! '
+                             'Application terminates.')
                 sys.exit(1)
 
         if options['--bit-rate']:
@@ -120,7 +128,7 @@ class PulseAudioDLNA(object):
                     encoder.bit_rate = options['--bit-rate']
                 except pulseaudio_dlna.encoders.UnsupportedBitrateException:
                     if len(encoder.bit_rates) > 0:
-                        logging.error(
+                        logger.error(
                             'You specified an invalid bit rate '
                             'for the encoder! Supported bit rates '
                             'are "{bit_rates}"! '
@@ -128,12 +136,12 @@ class PulseAudioDLNA(object):
                                 bit_rates=','.join(
                                     str(e) for e in encoder.bit_rates)))
                     else:
-                        logging.error('You selected encoder does not support '
-                                      'setting a specific bit rate! '
-                                      'Application terminates.')
+                        logger.error('You selected encoder does not support '
+                                     'setting a specific bit rate! '
+                                     'Application terminates.')
                     sys.exit(1)
 
-        logging.info('Loaded encoders:')
+        logger.info('Loaded encoders:')
         for encoder in pulseaudio_dlna.common.supported_encoders:
             print(encoder)
 
@@ -151,17 +159,17 @@ class PulseAudioDLNA(object):
                 discover.register(plugin.st_header, plugin)
             discover.search()
             self.renderers = discover.renderers
-        logging.info('Discovery complete.')
+        logger.info('Discovery complete.')
 
         if len(self.renderers) == 0:
-            print('There were no devices found. Application terminates.')
+            logger.info('There were no devices found. Application terminates.')
             sys.exit(1)
         else:
-            logging.info('Found devices:')
+            logger.info('Found devices:')
             for device in self.renderers:
                 device.activate()
                 print(device)
-            logging.info('You can now use your devices!')
+            logger.info('You can now use your devices!')
 
         manager = multiprocessing.Manager()
         message_queue = multiprocessing.Queue()
@@ -171,9 +179,10 @@ class PulseAudioDLNA(object):
             self.stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue)
         except socket.error:
-            print('The streaming server could not bind to your specified port '
-                  '({port}). Perhaps this is already in use? Application '
-                  'terminates.'.format(port=port))
+            logger.info(
+                'The streaming server could not bind to your specified port '
+                '({port}). Perhaps this is already in use? Application '
+                'terminates.'.format(port=port))
             sys.exit(1)
 
         devices = []

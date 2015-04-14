@@ -22,6 +22,8 @@ import logging
 import time
 import re
 
+logger = logging.getLogger('pulseaudio_dlna.discover')
+
 
 class BaseUpnpMediaRendererDiscover(object):
 
@@ -84,7 +86,7 @@ class RendererDiscover(BaseUpnpMediaRendererDiscover):
                         if device.name in self.device_filter:
                             self._add_renderer(device)
                         else:
-                            logging.info('Skipped the device "{name}."'.format(
+                            logger.info('Skipped the device "{name}."'.format(
                                 name=device.name))
 
     def _add_renderer(self, device):

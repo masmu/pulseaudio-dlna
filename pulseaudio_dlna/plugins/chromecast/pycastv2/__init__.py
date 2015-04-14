@@ -23,6 +23,8 @@ import logging
 import commands
 import cast_socket
 
+logger = logging.getLogger('pycastv2')
+
 
 class ChannelClosedException(Exception):
     pass
@@ -125,7 +127,7 @@ class ChromecastController():
                 retries += 1
             return True
         else:
-            logging.debug('Starting not necessary. Application is running ...')
+            logger.debug('Starting not necessary. Application is running ...')
             return True
 
     def stop_application(self):
@@ -140,7 +142,7 @@ class ChromecastController():
                 retries += 1
             return True
         else:
-            logging.debug('Stop not necessary. Backdrop is running ...')
+            logger.debug('Stop not necessary. Backdrop is running ...')
             return True
 
     def disconnect_application(self):
@@ -156,11 +158,11 @@ class ChromecastController():
                     retries += 1
                 return True
             except ChannelClosedException:
-                logging.info('Connection was closed. I guess another '
-                             'client has attached to it.')
+                logger.info('Connection was closed. I guess another '
+                            'client has attached to it.')
                 return True
         else:
-            logging.debug('Closing not necessary. Backdrop is running ...')
+            logger.debug('Closing not necessary. Backdrop is running ...')
             return True
 
     def wait(self, timeout):
@@ -241,7 +243,7 @@ class MediaPlayerController(ChromecastController):
     def _handle_response(self, response):
         if 'type' in response:
             if response['type'] == 'MEDIA_STATUS':
-                logging.debug('Recieved media status ...')
+                logger.debug('Recieved media status ...')
                 status = response['status'][0]
                 self._update_attribute(
                     'media_session_id', status.get('mediaSessionId', None))
