@@ -29,6 +29,7 @@ import notify2
 import gobject
 import functools
 import copy
+
 import pulseaudio_dlna.plugins.renderer
 
 logger = logging.getLogger('pulseaudio_dlna.pulseaudio')
@@ -435,15 +436,21 @@ class PulseWatcher(PulseAudio):
         return False
 
     def switch_back(self, bridge, reason):
-        notice = notify2.Notification(
-            'Device "{label}"'.format(label=bridge.device.label),
-            '{reason}. Your streams were switched '
-            'back to <b>{name}</b>'.format(
-                reason=reason,
-                name=(self.fallback_sink.label).encode(
-                    locale.getpreferredencoding())))
-        notice.set_timeout(notify2.EXPIRES_DEFAULT)
-        notice.show()
+        title = 'Device "{label}"'.format(label=bridge.device.label)
+        message = ('{reason}. Your streams were switched '
+                   'back to <b>{name}</b>'.format(
+                       reason=reason,
+                       name=(self.fallback_sink.label).encode(
+                           locale.getpreferredencoding())))
+        try:
+            notice = notify2.Notification(title, message)
+            notice.set_timeout(notify2.EXPIRES_DEFAULT)
+            notice.show()
+        except:
+            logger.info(
+                'notify2 failed to display: {title} - {message}'.format(
+                    title=title,
+                    message=message))
 
         self._block_device_handling(bridge.sink.object_path)
         if bridge.sink == self.default_sink:
