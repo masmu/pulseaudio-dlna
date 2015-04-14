@@ -91,6 +91,17 @@ After that you can start _pulseaudio-dlna_ via:
 
 Head over the the _using section_ for further instructions.
 
+## Installation for other distributions ##
+
+Some community members are providing packages for others distributions.
+_Keep in mind that since i am not using those, i can hardly support them!_
+
+- Arch Linux
+    [https://aur.archlinux.org/packages/pulseaudio-dlna/](https://aur.archlinux.org/packages/pulseaudio-dlna/)
+- OpenSUSE (_.rpm_)
+    [http://packman.links2linux.de/package/pulseaudio-dlna](http://packman.links2linux.de/package/pulseaudio-dlna)
+
+
 ## Installation via git ##
 
 Other linux users can clone this git repository,
