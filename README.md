@@ -34,7 +34,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-04-13_)
+ * __master__ - (_2015-04-16_)
     - Rewrite of the streaming server
     - Upnp devices can now request their audio format based on their capabilities
     - Added AAC encoder
@@ -48,6 +48,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added additional headers for DLNA devices
     - Added switch back mode also for sinks, not just for streams (new dependency: `python-notify2`)
     - Added better logging
+    - Validate encoders for installed dependencies
 
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad
