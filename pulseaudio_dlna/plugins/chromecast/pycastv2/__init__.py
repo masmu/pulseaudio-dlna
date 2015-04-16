@@ -70,9 +70,12 @@ class ChannelController(object):
             if response_type == 'RECEIVER_STATUS':
                 if 'applications' in response['status']:
                     applications = response['status']['applications'][0]
-                    self.transport_id = applications['transportId']
-                    self.session_id = applications['sessionId']
-                    self.app_id = applications['appId']
+                    self.transport_id = (
+                        applications.get('transportId') or self.transport_id)
+                    self.session_id = (
+                        applications.get('sessionId') or self.session_id)
+                    self.app_id = (
+                        applications.get('appId') or self.app_id)
             elif response_type == 'PING':
                 self.socket.send(commands.PongCommand())
             elif response_type == 'CLOSE':
