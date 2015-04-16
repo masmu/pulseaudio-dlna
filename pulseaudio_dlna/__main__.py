@@ -143,6 +143,7 @@ class PulseAudioDLNA(object):
 
         logger.info('Loaded encoders:')
         for encoder in pulseaudio_dlna.common.supported_encoders:
+            encoder.validate()
             print(encoder)
 
         if options['--renderer-urls']:

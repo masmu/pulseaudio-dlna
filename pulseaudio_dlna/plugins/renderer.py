@@ -104,6 +104,8 @@ class BaseRenderer(object):
     def encoder(self):
         if self._encoder is None:
             for encoder in pulseaudio_dlna.common.supported_encoders:
+                if encoder.state is False:
+                    continue
                 for mime_type in encoder.mime_types:
                     if mime_type in self.protocols:
                         return encoder
