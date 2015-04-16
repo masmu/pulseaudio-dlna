@@ -482,6 +482,7 @@ class PulseWatcher(PulseAudio):
 
     def on_fallback_sink_updated(self, sink_path):
         self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
+        self.update()
 
     def on_new_playback_stream(self, stream_path):
         logger.info('PulseWatcher.on_new_playback_stream "{path}"'.format(
