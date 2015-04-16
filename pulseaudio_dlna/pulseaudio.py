@@ -25,12 +25,12 @@ import struct
 import subprocess
 import logging
 import setproctitle
-import notify2
 import gobject
 import functools
 import copy
 
 import pulseaudio_dlna.plugins.renderer
+import pulseaudio_dlna.notification
 
 logger = logging.getLogger('pulseaudio_dlna.pulseaudio')
 
@@ -371,7 +371,6 @@ class PulseWatcher(PulseAudio):
     def run(self):
         setproctitle.setproctitle('pulse_watcher')
         mainloop = gobject.MainLoop()
-        notify2.init('pulseaudio_dlna', mainloop)
         gobject.timeout_add(500, self._check_message_queue)
         mainloop.run()
 
@@ -442,15 +441,7 @@ class PulseWatcher(PulseAudio):
                        reason=reason,
                        name=(self.fallback_sink.label).encode(
                            locale.getpreferredencoding())))
-        try:
-            notice = notify2.Notification(title, message)
-            notice.set_timeout(notify2.EXPIRES_DEFAULT)
-            notice.show()
-        except:
-            logger.info(
-                'notify2 failed to display: {title} - {message}'.format(
-                    title=title,
-                    message=message))
+        pulseaudio_dlna.notification.show(title, message)
 
         self._block_device_handling(bridge.sink.object_path)
         if bridge.sink == self.default_sink:
