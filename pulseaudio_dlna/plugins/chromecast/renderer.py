@@ -125,7 +125,7 @@ class ChromecastRendererFactory(object):
                 ip)
             return cast_device
         except AttributeError:
-            logger.info(
+            logger.error(
                 'No valid XML returned from {url}.'.format(url=url))
             return None
 

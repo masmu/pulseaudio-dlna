@@ -240,13 +240,13 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             soup = BeautifulSoup.BeautifulSoup(response.content)
             try:
                 self.protocols = []
-                sinks = soup("sink")[0].text
+                sinks = soup('sink')[0].text
                 for sink in sinks.split(','):
                     http_get, w1, mime_type, w2 = sink.strip().split(':')
                     if mime_type.startswith('audio/'):
                         self.protocols.append(mime_type)
             except IndexError:
-                logger.info(
+                logger.error(
                     'IndexError: No valid XML returned from {url}.'.format(
                         url=url))
 
@@ -365,7 +365,7 @@ class UpnpMediaRendererFactory(object):
                     services)
                 return upnp_device
         except AttributeError:
-            logger.info(
+            logger.error(
                 'No valid XML returned from {url}.'.format(url=url))
             return None
 
