@@ -98,7 +98,7 @@ _Keep in mind that since i am not using those, i can hardly support them!_
 
 - Arch Linux
     [https://aur.archlinux.org/packages/pulseaudio-dlna/](https://aur.archlinux.org/packages/pulseaudio-dlna/)
-- OpenSUSE (_.rpm_)
+- openSUSE (_.rpm_)
     [http://packman.links2linux.de/package/pulseaudio-dlna](http://packman.links2linux.de/package/pulseaudio-dlna)
 
 
