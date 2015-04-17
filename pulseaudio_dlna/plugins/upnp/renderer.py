@@ -216,6 +216,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             stream_url=stream_url,
             current_url_metadata=cgi.escape(metadata),
             encoding=self.ENCODING,
+            service_type=self.service_transport.service_type,
         )
         response = requests.post(
             url, data=data.encode(self.ENCODING), headers=headers)
@@ -233,6 +234,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         }
         data = self.xml['get_protocol_info'].format(
             encoding=self.ENCODING,
+            service_type=self.service_connection.service_type,
         )
         response = requests.post(
             url, data=data.encode(self.ENCODING), headers=headers)
@@ -264,6 +266,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         }
         data = self.xml['play'].format(
             encoding=self.ENCODING,
+            service_type=self.service_transport.service_type,
         )
         response = requests.post(
             url, data=data.encode(self.ENCODING), headers=headers)
@@ -283,6 +286,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         }
         data = self.xml['stop'].format(
             encoding=self.ENCODING,
+            service_type=self.service_transport.service_type,
         )
         response = requests.post(
             url, data=data.encode(self.ENCODING), headers=headers)
@@ -302,6 +306,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         }
         data = self.xml['pause'].format(
             encoding=self.ENCODING,
+            service_type=self.service_transport.service_type,
         )
         response = requests.post(
             url, data=data.encode(self.ENCODING), headers=headers)
