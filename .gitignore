@@ -60,3 +60,6 @@ dist/
 bin/
 include/
 local/
+
+*.iml
+.idea
