@@ -96,10 +96,6 @@ class ProcessStream(object):
         self.update_thread.daemon = True
         self.update_thread.start()
 
-    @property
-    def mime_type(self):
-        return self.encoder.mime_type
-
     def register(self, bridge, sock, lock_override=False):
         if sock not in self.sockets:
             try:
