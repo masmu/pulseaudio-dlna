@@ -25,6 +25,10 @@ class UnsupportedBitrateException():
     pass
 
 
+class UnsupportedMimeTypeException():
+    pass
+
+
 @functools.total_ordering
 class BaseEncoder(object):
     def __init__(self):
@@ -50,6 +54,13 @@ class BaseEncoder(object):
     @property
     def mime_type(self):
         return self._mime_type
+
+    @mime_type.setter
+    def mime_type(self, value):
+        if value in self._mime_types:
+            self._mime_type = value
+        else:
+            raise UnsupportedMimeTypeException()
 
     @property
     def mime_types(self):
@@ -214,7 +225,7 @@ class OggEncoder(BaseEncoder):
         self._command = '{binary} {bit_rate} -Q -r -k --ignorelength -'
         self._mime_type = 'audio/ogg'
         self._suffix = 'ogg'
-        self._mime_types = ['audio/ogg', 'audio/x-ogg']
+        self._mime_types = ['audio/ogg', 'audio/x-ogg', 'application/ogg']
         self._bit_rate = 192
         self._priority = 6
         self._enabled = True
