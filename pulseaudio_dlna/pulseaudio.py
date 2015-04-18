@@ -145,13 +145,34 @@ class PulseAudio(object):
                 if int(sink.module.index) == module_id:
                     return sink
 
-    def delete_null_sink(self, id):
+    def unload_sink(self, id):
         cmd = [
             'pactl',
             'unload-module',
             str(id),
         ]
         subprocess.check_output(cmd)
+
+    def create_combined_sink(self, sink_name, sink_description, sinks):
+        cmd = [
+            'pactl',
+            'load-module',
+            'module-combine-sink',
+            'sink_name="{}"'.format(sink_name),
+            'sink_properties=device.description="{}"'.format(
+                sink_description.replace(' ', '\ ')
+            ),
+            'slaves="{slaves}"'.format(
+                slaves=','.join([sink.name for sink in sinks])),
+            'channel_map="left,right"',
+            'channels=2',
+        ]
+        module_id = int(subprocess.check_output(cmd))
+        if module_id > 0:
+            self.update_sinks()
+            for sink in self.sinks:
+                if int(sink.module.index) == module_id:
+                    return sink
 
 
 class PulseModuleFactory(object):
@@ -161,7 +182,7 @@ class PulseModuleFactory(object):
         obj = bus.get_object(object_path=module_path)
         return PulseModule(
             object_path=unicode(module_path),
-            index=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Index')),
+            index=int(obj.Get('org.PulseAudio.Core1.Module', 'Index')),
             name=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Name')),
         )
 
@@ -207,7 +228,7 @@ class PulseSinkFactory(object):
 
         return PulseSink(
             object_path=unicode(object_path),
-            index=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
+            index=int(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
             name=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
             label=label,
             module=PulseModuleFactory.new(bus, module_path),
@@ -283,10 +304,12 @@ class PulseStreamFactory(object):
     @classmethod
     def new(self, bus, stream_path):
         obj = bus.get_object(object_path=stream_path)
+        module_path = unicode(obj.Get('org.PulseAudio.Core1.Stream', 'OwnerModule'))
         return PulseStream(
             object_path=unicode(stream_path),
-            index=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
+            index=int(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
             device=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Device')),
+            module=PulseModuleFactory.new(bus, module_path),
         )
 
 
@@ -295,7 +318,7 @@ class PulseStream(object):
 
     __shared_state = {}
 
-    def __init__(self, object_path, index, device):
+    def __init__(self, object_path, index, device, module):
         if object_path not in self.__shared_state:
             self.__shared_state[object_path] = {}
         self.__dict__ = self.__shared_state[object_path]
@@ -303,6 +326,7 @@ class PulseStream(object):
         self.object_path = object_path
         self.index = index
         self.device = device
+        self.module = module
 
     def switch_to_source(self, index):
         cmd = [
@@ -311,7 +335,10 @@ class PulseStream(object):
             str(self.index),
             str(index),
         ]
-        subprocess.check_output(cmd)
+        try:
+            subprocess.check_output(cmd)
+        except subprocess.CalledProcessError:
+            pass
 
     def __eq__(self, other):
         return self.object_path == other.object_path
@@ -320,10 +347,11 @@ class PulseStream(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        return '<PulseStream path="{}" device="{}" index="{}">'.format(
+        return '<PulseStream path="{}" device="{}" index="{}" module="{}">'.format(
             self.object_path,
             self.device,
             self.index,
+            self.module.index,
         )
 
 
@@ -353,6 +381,7 @@ class PulseWatcher(PulseAudio):
 
         self.message_queue = message_queue
         self.blocked_devices = []
+        self.combined_sinks = []
 
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
@@ -398,6 +427,11 @@ class PulseWatcher(PulseAudio):
         self.update_bridges()
         self.share_bridges()
 
+        sinks = [sink for sink in self.sinks if sink not in self.system_sinks]
+        sink = self.create_combined_sink(
+            'all_devices', 'All Devices', sinks)
+        self.combined_sinks.append(sink)
+
     def share_bridges(self):
         del self.bridges_shared[:]
         for bridge in copy.deepcopy(self.bridges):
@@ -412,12 +446,30 @@ class PulseWatcher(PulseAudio):
 
     def update(self):
         PulseAudio.update(self)
+
+        combined_sink_module_indexes = []
+        for sink in self.sinks:
+            if sink in self.combined_sinks:
+                if len(sink.streams) == 0:
+                    combined_sink_module_indexes.append(sink.module.index)
+
+        for sink in self.sinks:
+            to_be_removed = []
+            for stream in sink.streams:
+                if stream.module.index in combined_sink_module_indexes:
+                    to_be_removed.append(stream)
+            for stream in to_be_removed:
+                sink.streams.remove(stream)
+
         self.share_bridges()
 
     def cleanup(self):
+        for sink in self.combined_sinks:
+            logger.info('Remove "{}" sink ...'.format(sink.name))
+            self.unload_sink(sink.module.index)
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
-            self.delete_null_sink(bridge.sink.module.index)
+            self.unload_sink(bridge.sink.module.index)
 
     def _was_stream_moved(self, moved_stream, ignore_sink):
         for sink in self.system_sinks:
@@ -469,6 +521,24 @@ class PulseWatcher(PulseAudio):
         logger.info('PulseWatcher.on_device_updated "{path}"'.format(
             path=sink_path))
         self.update()
+
+        found = False
+        for sink in self.sinks:
+            if sink.object_path == sink_path:
+                found = True
+                break
+        if found:
+            if sink in self.combined_sinks:
+                if len(sink.streams) > 0:
+                    for s in self.sinks:
+                        has_virtual_streams = False
+                        for stream in s.streams:
+                            if stream.module.index == sink.module.index:
+                                has_virtual_streams = True
+                                break
+                        if has_virtual_streams:
+                            self._handle_sink_update(s.object_path)
+
         self._handle_sink_update(sink_path)
 
     def on_fallback_sink_updated(self, sink_path):
