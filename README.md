@@ -274,8 +274,6 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
 - [Raumfeld Speaker M](http://raumfeld.com)
 - Pioneer VSX-824 (AV Receiver)
-- Sonos PLAY:1
-- Sonos PLAY:3
 
 ## Supported encoders ##
 
