@@ -285,6 +285,8 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Majik DSM
 - [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
 - Google Chromecast
+- Sonos PLAY:1
+- Sonos PLAY:3
 
 ## Supported encoders ##
 
