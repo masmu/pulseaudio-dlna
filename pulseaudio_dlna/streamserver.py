@@ -40,6 +40,9 @@ from pulseaudio_dlna.plugins.upnp.renderer import (
 
 logger = logging.getLogger('pulseaudio_dlna.streamserver')
 
+PROTOCOL_VERSION_V10 = 'HTTP/1.0'
+PROTOCOL_VERSION_V11 = 'HTTP/1.1'
+
 
 class RemoteDevice(object):
     def __init__(self, bridge, sock):
@@ -298,8 +301,13 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             self.send_response(200)
             headers = {
                 'Content-Type': encoder.mime_type,
-                'Connection': 'close',
             }
+
+            if self.request_version == PROTOCOL_VERSION_V10:
+                gb_in_bytes = 1073741824
+                headers['Content-Length'] = gb_in_bytes * 100
+            elif self.request_version == PROTOCOL_VERSION_V11:
+                headers['Connection'] = 'close'
 
             if isinstance(
                 bridge.device,
@@ -327,8 +335,10 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return None, None
 
     def chop_request_path(self, path):
-        logger.info('Requested streaming URL was: {path}'.format(
-            path=path))
+        logger.info(
+            'Requested streaming URL was: {path} ({version})'.format(
+                path=path,
+                version=self.request_version))
         try:
             short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
 
