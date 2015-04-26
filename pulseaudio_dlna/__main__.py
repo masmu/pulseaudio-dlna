@@ -96,7 +96,7 @@ class PulseAudioDLNA(object):
             host = pulseaudio_dlna.utils.network.default_ipv4()
             if host is None:
                 logger.info(
-                    'I could not determiate your host address. '
+                    'I could not determine your host address. '
                     'You must specify it yourself via the --host option!')
                 sys.exit(1)
         else:
