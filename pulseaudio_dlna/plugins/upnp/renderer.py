@@ -326,7 +326,11 @@ class CoinedUpnpMediaRenderer(
                 return UpnpMediaRenderer.play(self)
             else:
                 logger.error('"{}" registering failed!'.format(self.name))
+        except requests.exceptions.ConnectionError:
+            logger.error('The device refused the connection!')
+            return 404
         except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
+            logger.error('Could not find a suitable encoder!')
             return 500
 
 
