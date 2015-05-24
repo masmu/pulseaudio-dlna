@@ -28,6 +28,7 @@ import setproctitle
 import gobject
 import functools
 import copy
+import signal
 
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.notification
@@ -368,11 +369,20 @@ class PulseWatcher(PulseAudio):
         self.update()
         self.default_sink = self.fallback_sink
 
+    def terminate(self, signal_number=None, frame=None):
+        self.cleanup()
+        sys.exit(0)
+
     def run(self):
+        signal.signal(signal.SIGINT, self.terminate)
+        signal.signal(signal.SIGTERM, self.terminate)
         setproctitle.setproctitle('pulse_watcher')
         mainloop = gobject.MainLoop()
         gobject.timeout_add(500, self._check_message_queue)
-        mainloop.run()
+        try:
+            mainloop.run()
+        except KeyboardInterrupt:
+            pass
 
     def _check_message_queue(self):
         try:

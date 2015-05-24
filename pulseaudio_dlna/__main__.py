@@ -72,11 +72,13 @@ class PulseAudioDLNA(object):
 
     def shutdown(self, signal_number=None, frame=None):
         print('Application is shutting down.')
-        if self.pulse is not None:
-            self.pulse.cleanup()
+        if self.pulse_process is not None:
+            self.pulse_process.terminate()
         if self.server_process is not None:
-            self.server_process.server_close()
-        sys.exit(1)
+            self.server_process.terminate()
+        if self.listener_process is not None:
+            self.listener_process.terminate()
+        sys.exit(0)
 
     def startup(self):
         options = docopt.docopt(__doc__, version=pulseaudio_dlna.__version__)
@@ -152,7 +154,7 @@ class PulseAudioDLNA(object):
         bridges = manager.list()
 
         try:
-            self.stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
+            stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue)
         except socket.error:
             logger.info(
@@ -167,16 +169,16 @@ class PulseAudioDLNA(object):
         device_filter = None
         if options['--filter-device']:
             device_filter = options['--filter-device'].split(',')
-        renderer_holder = RendererHolder(self.stream_server, message_queue, plugins, device_filter)
+        renderer_holder = RendererHolder(stream_server, message_queue, plugins, device_filter)
 
-        self.ssdp_listener = ThreadedSSDPListener(renderer_holder)
+        ssdp_listener = ThreadedSSDPListener(renderer_holder)
 
-        pulse_process = multiprocessing.Process(target=self.pulse.run)
-        server_process = multiprocessing.Process(target=self.stream_server.run)
-        listener_process = multiprocessing.Process(target=self.ssdp_listener.run)
-        pulse_process.start()
-        server_process.start()
-        listener_process.start()
+        self.pulse_process = multiprocessing.Process(target=pulse.run)
+        self.server_process = multiprocessing.Process(target=stream_server.run)
+        self.listener_process = multiprocessing.Process(target=ssdp_listener.run)
+        self.pulse_process.start()
+        self.server_process.start()
+        self.listener_process.start()
 
         if options['--renderer-urls']:
             locations = options['--renderer-urls'].split(',')
@@ -190,9 +192,9 @@ class PulseAudioDLNA(object):
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
 
-        pulse_process.join()
-        server_process.join()
-        listener_process.join()
+        self.pulse_process.join()
+        self.server_process.join()
+        self.listener_process.join()
 
 
 def main(argv=sys.argv[1:]):
