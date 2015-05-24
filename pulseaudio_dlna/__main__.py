@@ -54,12 +54,14 @@ import docopt
 
 import pulseaudio_dlna
 import pulseaudio_dlna.common
+from pulseaudio_dlna.discover import RendererDiscover
+from pulseaudio_dlna.listener import ThreadedSSDPListener
 import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.plugins.chromecast
 import pulseaudio_dlna.encoders
+from pulseaudio_dlna.renderers import RendererHolder
 import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
-import pulseaudio_dlna.discover
 import pulseaudio_dlna.utils.network
 
 
@@ -67,7 +69,6 @@ class PulseAudioDLNA(object):
     def __init__(self):
         self.server_process = None
         self.pulse = None
-        self.renderers = []
 
     def shutdown(self, signal_number=None, frame=None):
         print('Application is shutting down.')
@@ -146,32 +147,6 @@ class PulseAudioDLNA(object):
             encoder.validate()
             print(encoder)
 
-        if options['--renderer-urls']:
-            for plugin in plugins:
-                locations = options['--renderer-urls'].split(',')
-                self.renderers += plugin.lookup(locations)
-        else:
-            device_filter = None
-            if options['--filter-device']:
-                device_filter = options['--filter-device'].split(',')
-            discover = pulseaudio_dlna.discover.RendererDiscover(
-                device_filter=device_filter)
-            for plugin in plugins:
-                discover.register(plugin.st_header, plugin)
-            discover.search()
-            self.renderers = discover.renderers
-        logger.info('Discovery complete.')
-
-        if len(self.renderers) == 0:
-            logger.info('There were no devices found. Application terminates.')
-            sys.exit(1)
-        else:
-            logger.info('Found devices:')
-            for device in self.renderers:
-                device.activate()
-                print(device)
-            logger.info('You can now use your devices!')
-
         manager = multiprocessing.Manager()
         message_queue = multiprocessing.Queue()
         bridges = manager.list()
@@ -186,20 +161,30 @@ class PulseAudioDLNA(object):
                 'terminates.'.format(port=port))
             sys.exit(1)
 
-        devices = []
-        for device in self.renderers:
-            device.set_server_location(
-                self.stream_server.ip, self.stream_server.port)
-            devices.append(device)
-
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        self.pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
-        self.pulse.set_devices(devices)
+        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
+
+        device_filter = None
+        if options['--filter-device']:
+            device_filter = options['--filter-device'].split(',')
+        renderer_holder = RendererHolder(self.stream_server, message_queue, plugins, device_filter)
+
+        self.ssdp_listener = ThreadedSSDPListener(renderer_holder)
 
         pulse_process = multiprocessing.Process(target=self.pulse.run)
         server_process = multiprocessing.Process(target=self.stream_server.run)
+        listener_process = multiprocessing.Process(target=self.ssdp_listener.run)
         pulse_process.start()
         server_process.start()
+        listener_process.start()
+
+        if options['--renderer-urls']:
+            locations = options['--renderer-urls'].split(',')
+            renderer_holder.add_renderers_by_url(locations)
+        else:
+            discover = RendererDiscover(renderer_holder)
+            discover.search()
+            logger.info('Discovery complete.')
 
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
@@ -207,6 +192,7 @@ class PulseAudioDLNA(object):
 
         pulse_process.join()
         server_process.join()
+        listener_process.join()
 
 
 def main(argv=sys.argv[1:]):
