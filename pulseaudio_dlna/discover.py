@@ -20,7 +20,6 @@ from __future__ import unicode_literals
 import socket as s
 import logging
 import time
-import re
 
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
@@ -60,35 +59,12 @@ class BaseUpnpMediaRendererDiscover(object):
 
 class RendererDiscover(BaseUpnpMediaRendererDiscover):
 
-    def __init__(self, device_filter=None):
-        self.renderers = None
-        self.registered = {}
-        self.device_filter = device_filter
-
-    def register(self, identifier, _type):
-        self.registered[identifier] = _type
+    def __init__(self, renderer_holder):
+        self.renderer_holder = renderer_holder
 
     def search(self, ttl=10, timeout=5, times=2):
         self.renderers = []
         BaseUpnpMediaRendererDiscover.search(self, ttl, timeout, times)
 
     def _header_received(self, header, address):
-        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", header)
-        header = {k.lower(): v for k, v in dict(header).items()}
-        if 'st' in header:
-            st_header = header['st']
-            if st_header in self.registered:
-                device = self.registered[st_header].create_device(header)
-                if device is not None:
-                    if self.device_filter is None:
-                        self._add_renderer(device)
-                    else:
-                        if device.name in self.device_filter:
-                            self._add_renderer(device)
-                        else:
-                            logger.info('Skipped the device "{name}."'.format(
-                                name=device.name))
-
-    def _add_renderer(self, device):
-        if device not in self.renderers:
-            self.renderers.append(device)
+        self.renderer_holder.add_from_search(header)
