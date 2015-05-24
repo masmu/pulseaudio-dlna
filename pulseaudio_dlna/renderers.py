@@ -22,12 +22,20 @@ logger = logging.getLogger('pulseaudio_dlna.renderers')
 
 
 class RendererHolder(object):
-    def __init__(self, device_filter=None):
+    def __init__(self, stream_server, message_queue,plugins, device_filter=None):
         self.renderers = {}
         self.registered = {}
+        self.stream_server = stream_server
         self.device_filter = device_filter
+        self.message_queue = message_queue
+        for plugin in plugins:
+            self._register(plugin.st_header, plugin)
 
-    def register(self, identifier, _type):
+    def add_renderers_by_url(self, locations):
+        # TODO implement me
+        pass
+
+    def _register(self, identifier, _type):
         self.registered[identifier] = _type
 
     def _retrieve_header_map(self, header):
@@ -44,10 +52,27 @@ class RendererHolder(object):
 
     def _add_renderer_with_filter_check(self, device_id, device):
         if self.device_filter is None or device.name in self.device_filter:
-            self.renderers[device_id] = device
+            self._add_renderer(device_id, device)
         else:
             logger.info('Skipped the device "{name}."'.format(
                 name=device.name))
+
+    def _add_renderer(self, device_id, device):
+        device.activate()
+        device.set_server_location(self.stream_server.ip, self.stream_server.port)
+        self.renderers[device_id] = device
+        self.message_queue.put({
+            'type': 'add_device',
+            'device': device
+        })
+
+    def _remove_renderer_by_id(self, device_id):
+        device = self.renderers[device_id]
+        self.message_queue.put({
+            'type': 'remove_device',
+            'device': device
+        })
+        del self.renderers[device_id]
 
     def add_from_search(self, header):
         header = self._retrieve_header_map(header)
@@ -75,5 +100,6 @@ class RendererHolder(object):
                         if device is not None:
                             self._add_renderer_with_filter_check(device_id, device)
                 elif nts_header == 'ssdp:byebye' and device_id in self.renderers:
-                    del self.renderers[device_id]
-        # TODO inform pulseaudio about changes
+                    nt_header = header['nt']
+                    if nt_header in self.registered:
+                        self._remove_renderer_by_id(device_id)
