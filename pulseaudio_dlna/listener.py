@@ -18,6 +18,7 @@
 import SocketServer
 import socket
 import struct
+import setproctitle
 
 
 class SSDPRequestHandler(SocketServer.BaseRequestHandler):
@@ -41,3 +42,11 @@ class SSDPListener(SocketServer.UDPServer):
         multicast = struct.pack("=4sl", socket.inet_aton("239.255.255.250"), socket.INADDR_ANY)
         self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast)
         self.renderers_holder = renderers_holder
+
+    def run(self):
+        setproctitle.setproctitle('ssdp_listener')
+        SocketServer.UDPServer.serve_forever(self)
+
+
+class ThreadedSSDPListener(SocketServer.ThreadingMixIn, SSDPListener):
+    pass
