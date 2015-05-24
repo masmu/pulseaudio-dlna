@@ -522,3 +522,24 @@ class PulseWatcher(PulseAudio):
                             bridge.device.label))
                         self.switch_back(
                             bridge, 'The device failed to started.')
+
+    def add_device(self, device):
+        self.devices.append(device)
+        sink = self.create_null_sink(
+            device.short_name, device.label)
+        self.bridges.append(PulseBridge(sink, device))
+        self.update()
+        logger.info('Added the device "{name}."'.format(
+            name=device.name))
+
+    def remove_device(self, device):
+        self.devices.remove(device)
+        for bridge in self.bridges:
+            if bridge.device == device:
+                logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
+                self.delete_null_sink(bridge.sink.module.index)
+                self.bridges.remove(bridge)
+                self.update()
+                logger.info('Removed the device "{name}."'.format(
+                    name=device.name))
+                break
