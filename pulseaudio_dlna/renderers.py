@@ -22,10 +22,10 @@ logger = logging.getLogger('pulseaudio_dlna.renderers')
 
 
 class RendererHolder(object):
-    def __init__(self, stream_server, message_queue,plugins, device_filter=None):
+    def __init__(self, stream_server_address, message_queue, plugins, device_filter=None):
         self.renderers = {}
         self.registered = {}
-        self.stream_server = stream_server
+        self.stream_server_address = stream_server_address
         self.device_filter = device_filter
         self.message_queue = message_queue
         for plugin in plugins:
@@ -59,7 +59,8 @@ class RendererHolder(object):
 
     def _add_renderer(self, device_id, device):
         device.activate()
-        device.set_server_location(self.stream_server.ip, self.stream_server.port)
+        ip, port = self.stream_server_address
+        device.set_server_location(ip, port)
         self.renderers[device_id] = device
         self.message_queue.put({
             'type': 'add_device',

@@ -169,9 +169,20 @@ class PulseAudioDLNA(object):
         device_filter = None
         if options['--filter-device']:
             device_filter = options['--filter-device'].split(',')
-        renderer_holder = RendererHolder(stream_server, message_queue, plugins, device_filter)
 
-        ssdp_listener = ThreadedSSDPListener(renderer_holder)
+        locations = None
+        if options['--renderer-urls']:
+            locations = options['--renderer-urls'].split(',')
+
+        try:
+            stream_server_address = stream_server.ip, stream_server.port
+            ssdp_listener = ThreadedSSDPListener(stream_server_address,
+                                                 message_queue, plugins, device_filter, locations)
+        except socket.error:
+            logger.error(
+                'The SSDP listener could not bind to the port 1900/UDP'
+                'Perhaps this is already in use? Application terminates.')
+            sys.exit(1)
 
         self.pulse_process = multiprocessing.Process(target=pulse.run)
         self.server_process = multiprocessing.Process(target=stream_server.run)
@@ -179,14 +190,6 @@ class PulseAudioDLNA(object):
         self.pulse_process.start()
         self.server_process.start()
         self.listener_process.start()
-
-        if options['--renderer-urls']:
-            locations = options['--renderer-urls'].split(',')
-            renderer_holder.add_renderers_by_url(locations)
-        else:
-            discover = RendererDiscover(renderer_holder)
-            discover.search()
-            logger.info('Discovery complete.')
 
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
