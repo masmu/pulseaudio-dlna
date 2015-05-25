@@ -131,14 +131,10 @@ class ProcessStream(object):
                         client=self.sockets[sock].ip,
                         method=method,
                         path=self.path))
-                bridge = self.sockets[sock].bridge
                 del self.sockets[sock]
                 sock.close()
                 self.client_count -= 1
                 if len(self.sockets) == 0:
-                    self.server.message_queue.put(
-                        {'type': 'on_bridge_disconnected',
-                         'stopped_bridge': bridge})
                     logger.info('Stream closed. '
                                 'Cleaning up remaining processes ...')
                     self.update_thread.pause()

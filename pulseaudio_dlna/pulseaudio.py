@@ -458,23 +458,6 @@ class PulseWatcher(PulseAudio):
             self.fallback_sink.set_as_default_sink()
         bridge.sink.switch_streams_to_fallback_source()
 
-    def on_bridge_disconnected(self, stopped_bridge):
-
-        for sink in self.sinks:
-            if sink == stopped_bridge.sink:
-                stopped_bridge.sink = sink
-                break
-
-        reason = 'The device disconnected'
-        if len(stopped_bridge.sink.streams) > 1:
-            self.switch_back(stopped_bridge, reason)
-        elif len(stopped_bridge.sink.streams) == 1:
-            stream = stopped_bridge.sink.streams[0]
-            if not self._was_stream_moved(stream, stopped_bridge.sink):
-                self.switch_back(stopped_bridge, reason)
-        elif len(stopped_bridge.sink.streams) == 0:
-            pass
-
     def on_device_updated(self, sink_path):
         logger.info('PulseWatcher.on_device_updated "{path}"'.format(
             path=sink_path))
