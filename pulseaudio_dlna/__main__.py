@@ -72,11 +72,11 @@ class PulseAudioDLNA(object):
 
     def shutdown(self, signal_number=None, frame=None):
         print('Application is shutting down.')
-        if self.pulse_process is not None:
+        if self.pulse_process is not None and self.pulse_process.is_alive():
             self.pulse_process.terminate()
-        if self.server_process is not None:
+        if self.server_process is not None and self.server_process.is_alive():
             self.server_process.terminate()
-        if self.listener_process is not None:
+        if self.listener_process is not None and self.listener_process.is_alive():
             self.listener_process.terminate()
         sys.exit(0)
 
