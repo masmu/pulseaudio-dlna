@@ -32,8 +32,9 @@ class RendererHolder(object):
             self._register(plugin.st_header, plugin)
 
     def add_renderers_by_url(self, locations):
-        # TODO implement me
-        pass
+        for plugin in self.registered.values():
+            for device in plugin.lookup(locations):
+                self._add_renderer(device.udn, device)
 
     def _register(self, identifier, _type):
         self.registered[identifier] = _type
@@ -45,7 +46,7 @@ class RendererHolder(object):
 
     def _retrieve_device_id(self, header):
         if 'usn' in header:
-            match = re.search("uuid:([0-9a-f\-]+)::.*", header['usn'], re.IGNORECASE)
+            match = re.search("(uuid:[0-9a-f\-]+)::.*", header['usn'], re.IGNORECASE)
             if match:
                 return match.group(1)
         return None
