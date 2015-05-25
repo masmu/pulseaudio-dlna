@@ -157,7 +157,7 @@ class PulseAudioDLNA(object):
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue)
         except socket.error:
-            logger.info(
+            logger.error(
                 'The streaming server could not bind to your specified port '
                 '({port}). Perhaps this is already in use? Application '
                 'terminates.'.format(port=port))
