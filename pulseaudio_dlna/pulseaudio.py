@@ -527,12 +527,15 @@ class PulseWatcher(PulseAudio):
 
     def remove_device(self, device):
         self.devices.remove(device)
-        for bridge in self.bridges:
+        bridge_index_to_remove = None
+        for index, bridge in enumerate(self.bridges):
             if bridge.device == device:
                 logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
+                bridge_index_to_remove = index
                 self.delete_null_sink(bridge.sink.module.index)
-                self.bridges.remove(bridge)
-                self.update()
-                logger.info('Removed the device "{name}."'.format(
-                    name=device.name))
                 break
+        if bridge_index_to_remove is not None:
+            self.bridges.pop(bridge_index_to_remove)
+            self.update()
+            logger.info('Removed the device "{name}."'.format(
+                name=device.name))
