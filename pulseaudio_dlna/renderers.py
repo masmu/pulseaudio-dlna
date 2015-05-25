@@ -17,6 +17,7 @@
 
 import re
 import logging
+import threading
 
 logger = logging.getLogger('pulseaudio_dlna.renderers')
 
@@ -28,6 +29,7 @@ class RendererHolder(object):
         self.stream_server_address = stream_server_address
         self.device_filter = device_filter
         self.message_queue = message_queue
+        self.lock = threading.Lock()
         for plugin in plugins:
             self._register(plugin.st_header, plugin)
 
@@ -79,7 +81,6 @@ class RendererHolder(object):
     def add_from_search(self, header):
         header = self._retrieve_header_map(header)
         device_id = self._retrieve_device_id(header)
-
         if device_id is not None and device_id not in self.renderers:
             if 'st' in header:
                 st_header = header['st']
@@ -92,16 +93,20 @@ class RendererHolder(object):
         header = self._retrieve_header_map(header)
         device_id = self._retrieve_device_id(header)
 
-        if device_id is not None:
-            if 'nts' in header:
-                nts_header = header['nts']
-                if nts_header == 'ssdp:alive' and device_id not in self.renderers and 'nt' in header:
-                    nt_header = header['nt']
-                    if nt_header in self.registered:
-                        device = self.registered[nt_header].create_device(header)
-                        if device is not None:
-                            self._add_renderer_with_filter_check(device_id, device)
-                elif nts_header == 'ssdp:byebye' and device_id in self.renderers:
-                    nt_header = header['nt']
-                    if nt_header in self.registered:
-                        self._remove_renderer_by_id(device_id)
+        try:
+            self.lock.acquire()
+            if device_id is not None:
+                if 'nts' in header:
+                    nts_header = header['nts']
+                    if nts_header == 'ssdp:alive' and device_id not in self.renderers and 'nt' in header:
+                        nt_header = header['nt']
+                        if nt_header in self.registered:
+                            device = self.registered[nt_header].create_device(header)
+                            if device is not None:
+                                self._add_renderer_with_filter_check(device_id, device)
+                    elif nts_header == 'ssdp:byebye' and device_id in self.renderers:
+                        nt_header = header['nt']
+                        if nt_header in self.registered:
+                            self._remove_renderer_by_id(device_id)
+        finally:
+            self.lock.release()
