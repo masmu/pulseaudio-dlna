@@ -275,6 +275,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - [Raumfeld Speaker M](http://raumfeld.com)
 - Pioneer VSX-824 (AV Receiver)
 - [ROCKI] (http://www.myrocki.com/)
+- Sony STR-DN1050 (AV Receiver)
 
 ## Supported encoders ##
 
