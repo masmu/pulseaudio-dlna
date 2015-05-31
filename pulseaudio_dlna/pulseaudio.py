@@ -28,6 +28,7 @@ import setproctitle
 import gobject
 import functools
 import copy
+import signal
 
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.notification
@@ -368,11 +369,20 @@ class PulseWatcher(PulseAudio):
         self.update()
         self.default_sink = self.fallback_sink
 
+    def terminate(self, signal_number=None, frame=None):
+        self.cleanup()
+        sys.exit(0)
+
     def run(self):
+        signal.signal(signal.SIGINT, self.terminate)
+        signal.signal(signal.SIGTERM, self.terminate)
         setproctitle.setproctitle('pulse_watcher')
         mainloop = gobject.MainLoop()
         gobject.timeout_add(500, self._check_message_queue)
-        mainloop.run()
+        try:
+            mainloop.run()
+        except KeyboardInterrupt:
+            pass
 
     def _check_message_queue(self):
         try:
@@ -448,23 +458,6 @@ class PulseWatcher(PulseAudio):
             self.fallback_sink.set_as_default_sink()
         bridge.sink.switch_streams_to_fallback_source()
 
-    def on_bridge_disconnected(self, stopped_bridge):
-
-        for sink in self.sinks:
-            if sink == stopped_bridge.sink:
-                stopped_bridge.sink = sink
-                break
-
-        reason = 'The device disconnected'
-        if len(stopped_bridge.sink.streams) > 1:
-            self.switch_back(stopped_bridge, reason)
-        elif len(stopped_bridge.sink.streams) == 1:
-            stream = stopped_bridge.sink.streams[0]
-            if not self._was_stream_moved(stream, stopped_bridge.sink):
-                self.switch_back(stopped_bridge, reason)
-        elif len(stopped_bridge.sink.streams) == 0:
-            pass
-
     def on_device_updated(self, sink_path):
         logger.info('PulseWatcher.on_device_updated "{path}"'.format(
             path=sink_path))
@@ -522,3 +515,27 @@ class PulseWatcher(PulseAudio):
                             bridge.device.label))
                         self.switch_back(
                             bridge, 'The device failed to started.')
+
+    def add_device(self, device):
+        self.devices.append(device)
+        sink = self.create_null_sink(
+            device.short_name, device.label)
+        self.bridges.append(PulseBridge(sink, device))
+        self.update()
+        logger.info('Added the device "{name}."'.format(
+            name=device.name))
+
+    def remove_device(self, device):
+        self.devices.remove(device)
+        bridge_index_to_remove = None
+        for index, bridge in enumerate(self.bridges):
+            if bridge.device == device:
+                logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
+                bridge_index_to_remove = index
+                self.delete_null_sink(bridge.sink.module.index)
+                break
+        if bridge_index_to_remove is not None:
+            self.bridges.pop(bridge_index_to_remove)
+            self.update()
+            logger.info('Removed the device "{name}."'.format(
+                name=device.name))

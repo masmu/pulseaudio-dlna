@@ -54,12 +54,14 @@ import docopt
 
 import pulseaudio_dlna
 import pulseaudio_dlna.common
+from pulseaudio_dlna.discover import RendererDiscover
+from pulseaudio_dlna.listener import ThreadedSSDPListener
 import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.plugins.chromecast
 import pulseaudio_dlna.encoders
+from pulseaudio_dlna.renderers import RendererHolder
 import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
-import pulseaudio_dlna.discover
 import pulseaudio_dlna.utils.network
 
 
@@ -67,15 +69,16 @@ class PulseAudioDLNA(object):
     def __init__(self):
         self.server_process = None
         self.pulse = None
-        self.renderers = []
 
     def shutdown(self, signal_number=None, frame=None):
         print('Application is shutting down.')
-        if self.pulse is not None:
-            self.pulse.cleanup()
-        if self.server_process is not None:
-            self.server_process.server_close()
-        sys.exit(1)
+        if self.pulse_process is not None and self.pulse_process.is_alive():
+            self.pulse_process.terminate()
+        if self.server_process is not None and self.server_process.is_alive():
+            self.server_process.terminate()
+        if self.listener_process is not None and self.listener_process.is_alive():
+            self.listener_process.terminate()
+        sys.exit(0)
 
     def startup(self):
         options = docopt.docopt(__doc__, version=pulseaudio_dlna.__version__)
@@ -146,67 +149,55 @@ class PulseAudioDLNA(object):
             encoder.validate()
             print(encoder)
 
-        if options['--renderer-urls']:
-            for plugin in plugins:
-                locations = options['--renderer-urls'].split(',')
-                self.renderers += plugin.lookup(locations)
-        else:
-            device_filter = None
-            if options['--filter-device']:
-                device_filter = options['--filter-device'].split(',')
-            discover = pulseaudio_dlna.discover.RendererDiscover(
-                device_filter=device_filter)
-            for plugin in plugins:
-                discover.register(plugin.st_header, plugin)
-            discover.search()
-            self.renderers = discover.renderers
-        logger.info('Discovery complete.')
-
-        if len(self.renderers) == 0:
-            logger.info('There were no devices found. Application terminates.')
-            sys.exit(1)
-        else:
-            logger.info('Found devices:')
-            for device in self.renderers:
-                device.activate()
-                print(device)
-            logger.info('You can now use your devices!')
-
         manager = multiprocessing.Manager()
         message_queue = multiprocessing.Queue()
         bridges = manager.list()
 
         try:
-            self.stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
+            stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue)
         except socket.error:
-            logger.info(
+            logger.error(
                 'The streaming server could not bind to your specified port '
                 '({port}). Perhaps this is already in use? Application '
                 'terminates.'.format(port=port))
             sys.exit(1)
 
-        devices = []
-        for device in self.renderers:
-            device.set_server_location(
-                self.stream_server.ip, self.stream_server.port)
-            devices.append(device)
-
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        self.pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
-        self.pulse.set_devices(devices)
+        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
 
-        pulse_process = multiprocessing.Process(target=self.pulse.run)
-        server_process = multiprocessing.Process(target=self.stream_server.run)
-        pulse_process.start()
-        server_process.start()
+        device_filter = None
+        if options['--filter-device']:
+            device_filter = options['--filter-device'].split(',')
+
+        locations = None
+        if options['--renderer-urls']:
+            locations = options['--renderer-urls'].split(',')
+
+        try:
+            stream_server_address = stream_server.ip, stream_server.port
+            ssdp_listener = ThreadedSSDPListener(stream_server_address,
+                                                 message_queue, plugins, device_filter, locations)
+        except socket.error:
+            logger.error(
+                'The SSDP listener could not bind to the port 1900/UDP'
+                'Perhaps this is already in use? Application terminates.')
+            sys.exit(1)
+
+        self.pulse_process = multiprocessing.Process(target=pulse.run)
+        self.server_process = multiprocessing.Process(target=stream_server.run)
+        self.listener_process = multiprocessing.Process(target=ssdp_listener.run)
+        self.pulse_process.start()
+        self.server_process.start()
+        self.listener_process.start()
 
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
 
-        pulse_process.join()
-        server_process.join()
+        self.pulse_process.join()
+        self.server_process.join()
+        self.listener_process.join()
 
 
 def main(argv=sys.argv[1:]):

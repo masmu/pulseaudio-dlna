@@ -29,8 +29,8 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
     def lookup(self, locations):
         renderers = []
         for url in locations:
-            renderer = pulseaudio_dlna.upnp.renderer.UpnpMediaRendererFactory.from_url(
-                url, pulseaudio_dlna.upnp.renderer.CoinedUpnpMediaRenderer)
+            renderer = pulseaudio_dlna.plugins.upnp.renderer.UpnpMediaRendererFactory.from_url(
+                url, pulseaudio_dlna.plugins.upnp.renderer.CoinedUpnpMediaRenderer)
             if renderer is not None:
                 renderers.append(renderer)
         return renderers
