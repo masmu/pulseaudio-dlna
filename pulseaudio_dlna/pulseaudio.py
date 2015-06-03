@@ -95,8 +95,8 @@ class PulseAudio(object):
                 server_address = self._get_bus_address()
                 return dbus.connection.Connection(server_address)
             except dbus.exceptions.DBusException:
-                logger.error('PulseAudio seems not to be running or PulseAudio '
-                             'dbus module could not be loaded.')
+                logger.error('PulseAudio seems not to be running or PulseAudio'
+                             ' dbus module could not be loaded.')
                 sys.exit(1)
 
     def update(self):
@@ -204,7 +204,8 @@ class PulseSinkFactory(object):
         properties = obj.Get('org.PulseAudio.Core1.Device', 'PropertyList')
         description_bytes = properties.get('device.description', [])
         label = self._convert_bytes_to_unicode(description_bytes)
-        module_path = unicode(obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule'))
+        module_path = unicode(
+            obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule'))
 
         return PulseSink(
             object_path=unicode(object_path),
@@ -264,7 +265,8 @@ class PulseSink(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        string = '<PulseSink path="{}" label="{}" name="{}" index="{}" module="{}">\n'.format(
+        string = ('<PulseSink path="{}" label="{}" name="{}" index="{}" '
+                  'module="{}">\n').format(
             self.object_path,
             self.label,
             self.name,
@@ -522,7 +524,7 @@ class PulseWatcher(PulseAudio):
             device.short_name, device.label)
         self.bridges.append(PulseBridge(sink, device))
         self.update()
-        logger.info('Added the device "{name}."'.format(
+        logger.info('Added the device "{name}".'.format(
             name=device.name))
 
     def remove_device(self, device):
@@ -537,5 +539,5 @@ class PulseWatcher(PulseAudio):
         if bridge_index_to_remove is not None:
             self.bridges.pop(bridge_index_to_remove)
             self.update()
-            logger.info('Removed the device "{name}."'.format(
+            logger.info('Removed the device "{name}".'.format(
                 name=device.name))

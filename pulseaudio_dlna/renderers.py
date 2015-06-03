@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import re
 import logging
 import threading
@@ -23,7 +25,13 @@ logger = logging.getLogger('pulseaudio_dlna.renderers')
 
 
 class RendererHolder(object):
-    def __init__(self, stream_server_address, message_queue, plugins, device_filter=None):
+
+    SSDP_ALIVE = 'ssdp:alive'
+    SSDP_BYEBYE = 'ssdp:byebye'
+
+    def __init__(
+            self, stream_server_address, message_queue, plugins,
+            device_filter=None):
         self.renderers = {}
         self.registered = {}
         self.stream_server_address = stream_server_address
@@ -48,7 +56,8 @@ class RendererHolder(object):
 
     def _retrieve_device_id(self, header):
         if 'usn' in header:
-            match = re.search("(uuid:[0-9a-f\-]+)::.*", header['usn'], re.IGNORECASE)
+            match = re.search(
+                "(uuid:[0-9a-f\-]+)::.*", header['usn'], re.IGNORECASE)
             if match:
                 return match.group(1)
         return None
@@ -81,32 +90,35 @@ class RendererHolder(object):
     def add_from_search(self, header):
         header = self._retrieve_header_map(header)
         device_id = self._retrieve_device_id(header)
-        if device_id is not None and device_id not in self.renderers:
-            if 'st' in header:
-                st_header = header['st']
-                if st_header in self.registered:
-                    device = self.registered[st_header].create_device(header)
-                    if device is not None:
-                        self._add_renderer_with_filter_check(device_id, device)
+
+        if device_id is None:
+            return
+        st_header = header.get('st', None)
+        if st_header and st_header in self.registered:
+            if device_id not in self.renderers:
+                device = self.registered[st_header].create_device(header)
+                if device is not None:
+                    self._add_renderer_with_filter_check(device_id, device)
 
     def process_notify_request(self, header):
         header = self._retrieve_header_map(header)
         device_id = self._retrieve_device_id(header)
 
+        if device_id is None:
+            return
         try:
             self.lock.acquire()
-            if device_id is not None:
-                if 'nts' in header:
-                    nts_header = header['nts']
-                    if nts_header == 'ssdp:alive' and device_id not in self.renderers and 'nt' in header:
-                        nt_header = header['nt']
-                        if nt_header in self.registered:
-                            device = self.registered[nt_header].create_device(header)
-                            if device is not None:
-                                self._add_renderer_with_filter_check(device_id, device)
-                    elif nts_header == 'ssdp:byebye' and device_id in self.renderers:
-                        nt_header = header['nt']
-                        if nt_header in self.registered:
-                            self._remove_renderer_by_id(device_id)
+            nts_header = header.get('nts', None)
+            nt_header = header.get('nt', None)
+            if nt_header and nts_header and nt_header in self.registered:
+                if (nts_header == self.SSDP_ALIVE and
+                        device_id not in self.renderers):
+                    plugin = self.registered[nt_header]
+                    device = plugin.create_device(header)
+                    if device is not None:
+                        self._add_renderer_with_filter_check(device_id, device)
+                elif (nts_header == self.SSDP_BYEBYE and
+                        device_id in self.renderers):
+                    self._remove_renderer_by_id(device_id)
         finally:
             self.lock.release()

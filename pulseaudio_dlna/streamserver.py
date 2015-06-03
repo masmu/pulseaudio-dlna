@@ -386,7 +386,7 @@ class StreamServer(SocketServer.TCPServer):
         )
 
     def run(self):
-        setproctitle.setproctitle('dlna_server')
+        setproctitle.setproctitle('stream_server')
         SocketServer.TCPServer.serve_forever(self)
 
 

@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import unicode_literals
+
 import SocketServer
 import logging
 import socket
@@ -24,6 +26,7 @@ from pulseaudio_dlna.discover import RendererDiscover
 from pulseaudio_dlna.renderers import RendererHolder
 
 logger = logging.getLogger('pulseaudio_dlna.listener')
+
 
 class SSDPRequestHandler(SocketServer.BaseRequestHandler):
     def handle(self):
@@ -41,11 +44,16 @@ class SSDPRequestHandler(SocketServer.BaseRequestHandler):
 
 
 class SSDPListener(SocketServer.UDPServer):
-    def __init__(self, stream_server_address, message_queue, plugins, device_filter=None, renderer_urls=None):
+    def __init__(
+            self, stream_server_address, message_queue, plugins,
+            device_filter=None, renderer_urls=None):
         SocketServer.UDPServer.__init__(self, ('', 1900), SSDPRequestHandler)
-        multicast = struct.pack("=4sl", socket.inet_aton("239.255.255.250"), socket.INADDR_ANY)
-        self.socket.setsockopt(socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast)
-        self.renderers_holder = RendererHolder(stream_server_address, message_queue, plugins, device_filter)
+        multicast = struct.pack(
+            "=4sl", socket.inet_aton("239.255.255.250"), socket.INADDR_ANY)
+        self.socket.setsockopt(
+            socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast)
+        self.renderers_holder = RendererHolder(
+            stream_server_address, message_queue, plugins, device_filter)
         self.renderer_urls = renderer_urls
 
     def run(self):
