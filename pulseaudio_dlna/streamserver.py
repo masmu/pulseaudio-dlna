@@ -17,7 +17,6 @@
 
 from __future__ import unicode_literals
 
-import sys
 import re
 import subprocess
 import threading
@@ -26,6 +25,8 @@ import logging
 import time
 import socket
 import select
+import gobject
+import functools
 import atexit
 import json
 import BaseHTTPServer
@@ -44,16 +45,27 @@ PROTOCOL_VERSION_V10 = 'HTTP/1.0'
 PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 
 
+@functools.total_ordering
 class RemoteDevice(object):
     def __init__(self, bridge, sock):
         self.bridge = bridge
         try:
-            self.ip, self.port = sock.getsockname()
+            self.ip, self.port = sock.getpeername()
         except:
             logger.info('Could not get socket IP and Port. Setting to '
                         'unknown.')
             self.ip = 'unknown'
             self.port = 'unknown'
+
+    def __eq__(self, other):
+        if isinstance(other, RemoteDevice):
+            return self.ip == other.ip
+        raise NotImplementedError
+
+    def __gt__(self, other):
+        if isinstance(other, RemoteDevice):
+            return self.ip > other.ip
+        raise NotImplementedError
 
 
 class ProcessStream(object):
@@ -66,6 +78,7 @@ class ProcessStream(object):
         self.server = server
 
         self.sockets = {}
+        self.timeouts = {}
         self.chunk_size = 1024 * 4
         self.lock = threading.Lock()
         self.client_count = 0
@@ -100,52 +113,65 @@ class ProcessStream(object):
         self.update_thread.start()
 
     def register(self, bridge, sock, lock_override=False):
-        if sock not in self.sockets:
-            try:
-                if not lock_override:
-                    self.lock.acquire()
-                device = RemoteDevice(bridge, sock)
-                logger.info(
-                    'Client {client} registered to stream {path}.'.format(
-                        client=device.ip,
-                        path=self.path))
-                self.sockets[sock] = device
-                self.client_count += 1
-                self.update_thread.resume()
-            finally:
-                if not lock_override:
-                    self.lock.release()
-        else:
-            logger.info('The same client id tries to register a stream, this '
-                        'should never happen...')
-            sys.exit(2)
+        try:
+            if not lock_override:
+                self.lock.acquire()
+            device = RemoteDevice(bridge, sock)
+            logger.info(
+                'Client {client} registered to stream {path}.'.format(
+                    client=device.ip,
+                    path=self.path))
+            self.sockets[sock] = device
+            self.client_count += 1
+            self.update_thread.resume()
+        finally:
+            if not lock_override:
+                self.lock.release()
 
     def unregister(self, sock, lock_override=False, method=0):
-        if sock in self.sockets:
+        try:
+            if not lock_override:
+                self.lock.acquire()
             try:
-                if not lock_override:
-                    self.lock.acquire()
-                logger.info(
-                    'Client {client} unregistered stream {path} '
-                    'using method {method}.'.format(
-                        client=self.sockets[sock].ip,
-                        method=method,
-                        path=self.path))
+                device = self.sockets[sock]
                 del self.sockets[sock]
                 sock.close()
-                self.client_count -= 1
-                if len(self.sockets) == 0:
-                    logger.info('Stream closed. '
-                                'Cleaning up remaining processes ...')
-                    self.update_thread.pause()
-                    self.cleanup()
-            finally:
-                if not lock_override:
-                    self.lock.release()
-        else:
-            logger.info('A client id tries to unregister a stream which is '
-                        'not registered, this should never happen...')
-            sys.exit(2)
+            except KeyError:
+                logger.info('A client id tries to unregister a stream which is '
+                            'not registered, this should never happen...')
+                return
+
+            logger.info(
+                'Client {client} unregistered stream {path} '
+                'using method {method}.'.format(
+                    client=device.ip,
+                    method=method,
+                    path=self.path))
+
+            if device.ip in self.timeouts:
+                gobject.source_remove(self.timeouts[device.ip])
+            self.timeouts[device.ip] = gobject.timeout_add(
+                2000, self._on_delayed_disconnect, device)
+
+            self.client_count -= 1
+        finally:
+            if not lock_override:
+                self.lock.release()
+
+    def _on_delayed_disconnect(self, device):
+        self.timeouts.pop(device.ip)
+
+        if len(self.sockets) == 0:
+            logger.info('Stream closed. '
+                        'Cleaning up remaining processes ...')
+            self.update_thread.pause()
+            self.cleanup()
+
+        if device not in self.sockets.values():
+            self.server.message_queue.put(
+                {'type': 'on_bridge_disconnected',
+                         'stopped_bridge': device.bridge})
+        return False
 
     def communicate(self):
         try:
@@ -368,7 +394,6 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 class StreamServer(SocketServer.TCPServer):
 
     def __init__(self, ip, port, bridges, message_queue, *args):
-        setproctitle.setproctitle('stream_server')
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
             self, ('', port), StreamRequestHandler, *args)
@@ -387,8 +412,41 @@ class StreamServer(SocketServer.TCPServer):
 
     def run(self):
         setproctitle.setproctitle('stream_server')
-        SocketServer.TCPServer.serve_forever(self)
+        self.serve_forever()
 
 
-class ThreadedStreamServer(SocketServer.ThreadingMixIn, StreamServer):
+class GobjectMainLoopMixin:
+
+    def serve_forever(self, poll_interval=0.5):
+        self.mainloop = gobject.MainLoop()
+        gobject.io_add_watch(
+            self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
+        context = self.mainloop.get_context()
+        while True:
+            try:
+                if context.pending():
+                    context.iteration(True)
+                else:
+                    time.sleep(0.1)
+            except KeyboardInterrupt:
+                break
+
+    def _on_new_request(self, sock, *args):
+        self._handle_request_noblock()
+        return True
+
+    def shutdown(self, *args):
+        logger.info(
+            'StreamServer GobjectMainLoopMixin.shutdown() pid: {}'.format(
+                os.getpid()))
+        try:
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except socket.error:
+            pass
+        self.socket.close()
+        sys.exit(0)
+
+
+class ThreadedStreamServer(
+        GobjectMainLoopMixin, SocketServer.ThreadingMixIn, StreamServer):
     pass
