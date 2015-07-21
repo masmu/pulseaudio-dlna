@@ -34,6 +34,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.3.5__ - (_2015-04-09_)
+    - Fixed a bug where Sonos description XML could not get parsed correctly
+
  * __0.3.4__ - (_2015-03-22_)
     - Fixed Makefile for launchpad
 
@@ -87,6 +90,17 @@ After that you can start _pulseaudio-dlna_ via:
     pulseaudio-dlna
 
 Head over the the _using section_ for further instructions.
+
+## Installation for other distributions ##
+
+Some community members are providing packages for others distributions.
+_Keep in mind that since i am not using those, i can hardly support them!_
+
+- Arch Linux
+    [https://aur.archlinux.org/packages/pulseaudio-dlna/](https://aur.archlinux.org/packages/pulseaudio-dlna/)
+- openSUSE (_.rpm_)
+    [http://packman.links2linux.de/package/pulseaudio-dlna](http://packman.links2linux.de/package/pulseaudio-dlna)
+
 
 ## Installation via git ##
 
@@ -258,6 +272,10 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Yamaha RX-475 (AV Receiver)
 - Majik DSM
 - [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
+- [Raumfeld Speaker M](http://raumfeld.com)
+- Pioneer VSX-824 (AV Receiver)
+- [ROCKI] (http://www.myrocki.com/)
+- Sony STR-DN1050 (AV Receiver)
 
 ## Supported encoders ##
 

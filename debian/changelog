@@ -1,3 +1,10 @@
+pulseaudio-dlna (0.3.5) trusty; urgency=low
+
+  * Fixed a bug where Sonos description XML could not get parsed correctly
+
+ -- Massimo Mund <mo@lancode.de>  Sun, 09 Apr 2015 19:41:21 +0100
+
+
 pulseaudio-dlna (0.3.4) trusty; urgency=low
 
   * Fixed Makefile for launchpad
@@ -13,6 +20,7 @@ pulseaudio-dlna (0.3.3) trusty; urgency=low
 
  -- Massimo Mund <mo@lancode.de>  Sun, 22 Mar 2015 20:34:12 +0100
 
+
 pulseaudio-dlna (0.3.2) trusty; urgency=low
 
   * Added the Opus Encoder
@@ -21,11 +29,13 @@ pulseaudio-dlna (0.3.2) trusty; urgency=low
 
  -- Massimo Mund <mo@lancode.de>  Sat, 14 Mar 2015 11:58:31 +0100
 
+
 pulseaudio-dlna (0.3.1) trusty; urgency=low
 
   * Fixed a bug so that AVTransports other than 1 can be used
 
  -- Massimo Mund <mo@lancode.de>  Fri, 13 Feb 2015 20:01:12 +0100
+
 
 pulseaudio-dlna (0.3.0) trusty; urgency=low
 
