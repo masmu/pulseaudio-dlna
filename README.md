@@ -276,6 +276,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Pioneer VSX-824 (AV Receiver)
 - [ROCKI] (http://www.myrocki.com/)
 - Sony STR-DN1050 (AV Receiver)
+- Pure Jongo S3
 
 ## Supported encoders ##
 
