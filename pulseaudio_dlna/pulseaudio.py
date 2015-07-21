@@ -67,7 +67,8 @@ class PulseAudio(object):
             dbus_interface='org.freedesktop.DBus.Properties')
         for sink_path in system_sink_paths:
             sink = PulseSinkFactory.new(self.bus, sink_path)
-            self.system_sinks.append(sink)
+            if sink:
+                self.system_sinks.append(sink)
 
     def _get_bus_address(self):
         server_address = os.environ.get('PULSE_DBUS_SERVER', None)
@@ -116,7 +117,8 @@ class PulseAudio(object):
         self.streams = []
         for stream_path in stream_paths:
             stream = PulseStreamFactory.new(self.bus, stream_path)
-            self.streams.append(stream)
+            if stream:
+                self.streams.append(stream)
 
     def update_sinks(self):
         sink_paths = self.core.Get(
@@ -126,8 +128,9 @@ class PulseAudio(object):
         self.sinks = []
         for sink_path in sink_paths:
             sink = PulseSinkFactory.new(self.bus, sink_path)
-            sink.fallback_sink = self.fallback_sink
-            self.sinks.append(sink)
+            if sink:
+                sink.fallback_sink = self.fallback_sink
+                self.sinks.append(sink)
 
     def create_null_sink(self, sink_name, sink_description):
         cmd = [
@@ -152,19 +155,27 @@ class PulseAudio(object):
             'unload-module',
             str(id),
         ]
-        subprocess.check_output(cmd)
+        try:
+            subprocess.check_output(cmd)
+        except:
+            logger.error('Could not remove entity {id}'.format(id=id))
 
 
 class PulseModuleFactory(object):
 
     @classmethod
     def new(self, bus, module_path):
-        obj = bus.get_object(object_path=module_path)
-        return PulseModule(
-            object_path=unicode(module_path),
-            index=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Index')),
-            name=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Name')),
-        )
+        try:
+            obj = bus.get_object(object_path=module_path)
+            return PulseModule(
+                object_path=unicode(module_path),
+                index=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Index')),
+                name=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Name')),
+            )
+        except dbus.exceptions.DBusException:
+            logger.error('Could not get "{object_path}" from dbus.'.format(
+                object_path=module_path))
+            return None
 
 
 @functools.total_ordering
@@ -199,21 +210,26 @@ class PulseSinkFactory(object):
 
     @classmethod
     def new(self, bus, object_path):
-        obj = bus.get_object(object_path=object_path)
+        try:
+            obj = bus.get_object(object_path=object_path)
 
-        properties = obj.Get('org.PulseAudio.Core1.Device', 'PropertyList')
-        description_bytes = properties.get('device.description', [])
-        label = self._convert_bytes_to_unicode(description_bytes)
-        module_path = unicode(
-            obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule'))
+            properties = obj.Get('org.PulseAudio.Core1.Device', 'PropertyList')
+            description_bytes = properties.get('device.description', [])
+            label = self._convert_bytes_to_unicode(description_bytes)
+            module_path = unicode(
+                obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule'))
 
-        return PulseSink(
-            object_path=unicode(object_path),
-            index=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
-            name=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
-            label=label,
-            module=PulseModuleFactory.new(bus, module_path),
-        )
+            return PulseSink(
+                object_path=unicode(object_path),
+                index=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
+                name=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
+                label=label,
+                module=PulseModuleFactory.new(bus, module_path),
+            )
+        except dbus.exceptions.DBusException:
+            logger.error('Could not get "{object_path}" from dbus.'.format(
+                object_path=object_path))
+            return None
 
     @classmethod
     def _convert_bytes_to_unicode(self, byte_array):
@@ -285,12 +301,17 @@ class PulseStreamFactory(object):
 
     @classmethod
     def new(self, bus, stream_path):
-        obj = bus.get_object(object_path=stream_path)
-        return PulseStream(
-            object_path=unicode(stream_path),
-            index=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
-            device=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Device')),
-        )
+        try:
+            obj = bus.get_object(object_path=stream_path)
+            return PulseStream(
+                object_path=unicode(stream_path),
+                index=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
+                device=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Device')),
+            )
+        except dbus.exceptions.DBusException:
+            logger.error('Could not get "{object_path}" from dbus.'.format(
+                object_path=stream_path))
+            return None
 
 
 @functools.total_ordering
@@ -478,7 +499,7 @@ class PulseWatcher(PulseAudio):
             pass
 
     def on_device_updated(self, sink_path):
-        logger.info('PulseWatcher.on_device_updated "{path}"'.format(
+        logger.info('on_device_updated "{path}"'.format(
             path=sink_path))
         self.update()
         self._handle_sink_update(sink_path)
@@ -488,7 +509,7 @@ class PulseWatcher(PulseAudio):
         self.update()
 
     def on_new_playback_stream(self, stream_path):
-        logger.info('PulseWatcher.on_new_playback_stream "{path}"'.format(
+        logger.info('on_new_playback_stream "{path}"'.format(
             path=stream_path))
         self.update()
         for sink in self.sinks:
@@ -498,7 +519,7 @@ class PulseWatcher(PulseAudio):
                     return
 
     def on_playback_stream_removed(self, stream_path):
-        logger.info('PulseWatcher.on_playback_stream_removed "{path}"'.format(
+        logger.info('on_playback_stream_removed "{path}"'.format(
             path=stream_path))
         for sink in self.sinks:
             for stream in sink.streams:
@@ -541,8 +562,8 @@ class PulseWatcher(PulseAudio):
             device.short_name, device.label)
         self.bridges.append(PulseBridge(sink, device))
         self.update()
-        logger.info('Added the device "{name}".'.format(
-            name=device.name))
+        logger.info('Added the device "{name} ({flavour})".'.format(
+            name=device.name, flavour=device.flavour))
 
     def remove_device(self, device):
         self.devices.remove(device)
