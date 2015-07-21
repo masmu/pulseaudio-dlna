@@ -42,164 +42,38 @@ Options:
 
 from __future__ import unicode_literals
 
-import dbus
-import dbus.mainloop.glib
-import multiprocessing
-import setproctitle
-import logging
 import sys
-import signal
-import socket
+import os
 import docopt
-
-import pulseaudio_dlna
-import pulseaudio_dlna.common
-import pulseaudio_dlna.listener
-import pulseaudio_dlna.plugins.upnp
-import pulseaudio_dlna.plugins.chromecast
-import pulseaudio_dlna.encoders
-import pulseaudio_dlna.streamserver
-import pulseaudio_dlna.pulseaudio
-import pulseaudio_dlna.utils.network
-
-
-class PulseAudioDLNA(object):
-    def __init__(self):
-        self.processes = []
-
-    def shutdown(self, signal_number=None, frame=None):
-        print('Application is shutting down.')
-        for process in self.processes:
-            if process is not None and process.is_alive():
-                process.terminate()
-        sys.exit(0)
-
-    def run_process(self, target):
-        process = multiprocessing.Process(target=target)
-        self.processes.append(process)
-        process.start()
-
-    def startup(self):
-        options = docopt.docopt(__doc__, version=pulseaudio_dlna.__version__)
-
-        level = logging.DEBUG
-        if not options['--debug']:
-            level = logging.INFO
-            logging.getLogger('requests').setLevel(logging.WARNING)
-            logging.getLogger('urllib3').setLevel(logging.WARNING)
-
-        logging.basicConfig(
-            level=level,
-            format='%(asctime)s %(name)-46s %(levelname)-8s %(message)s',
-            datefmt='%m-%d %H:%M:%S')
-        logger = logging.getLogger('pulseaudio_dlna')
-
-        if not options['--host']:
-            host = pulseaudio_dlna.utils.network.default_ipv4()
-            if host is None:
-                logger.info(
-                    'I could not determine your host address. '
-                    'You must specify it yourself via the --host option!')
-                sys.exit(1)
-        else:
-            host = str(options['--host'])
-
-        port = int(options['--port'])
-
-        logger.info('Using localhost: {host}:{port}'.format(
-            host=host, port=port))
-
-        plugins = [
-            pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
-            pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
-        ]
-
-        if options['--encoder']:
-            for encoder in pulseaudio_dlna.common.supported_encoders:
-                if encoder.suffix == options['--encoder']:
-                    pulseaudio_dlna.common.supported_encoders = [encoder]
-                    break
-            if len(pulseaudio_dlna.common.supported_encoders) != 1:
-                logger.error('You specified an unknown encoder! '
-                             'Application terminates.')
-                sys.exit(1)
-
-        if options['--bit-rate']:
-            for encoder in pulseaudio_dlna.common.supported_encoders:
-                try:
-                    encoder.bit_rate = options['--bit-rate']
-                except pulseaudio_dlna.encoders.UnsupportedBitrateException:
-                    if len(encoder.bit_rates) > 0:
-                        logger.error(
-                            'You specified an invalid bit rate '
-                            'for the encoder! Supported bit rates '
-                            'are "{bit_rates}"! '
-                            'Application terminates.'.format(
-                                bit_rates=','.join(
-                                    str(e) for e in encoder.bit_rates)))
-                    else:
-                        logger.error('You selected encoder does not support '
-                                     'setting a specific bit rate! '
-                                     'Application terminates.')
-                    sys.exit(1)
-
-        logger.info('Loaded encoders:')
-        for encoder in pulseaudio_dlna.common.supported_encoders:
-            encoder.validate()
-            print(encoder)
-
-        manager = multiprocessing.Manager()
-        message_queue = multiprocessing.Queue()
-        bridges = manager.list()
-
-        try:
-            stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
-                host, port, bridges, message_queue)
-        except socket.error:
-            logger.error(
-                'The streaming server could not bind to your specified port '
-                '({port}). Perhaps this is already in use? Application '
-                'terminates.'.format(port=port))
-            sys.exit(1)
-
-        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
-
-        device_filter = None
-        if options['--filter-device']:
-            device_filter = options['--filter-device'].split(',')
-
-        locations = None
-        if options['--renderer-urls']:
-            locations = options['--renderer-urls'].split(',')
-
-        try:
-            stream_server_address = stream_server.ip, stream_server.port
-            ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
-                stream_server_address, message_queue, plugins,
-                device_filter, locations)
-        except socket.error:
-            logger.error(
-                'The SSDP listener could not bind to the port 1900/UDP. '
-                'Perhaps this is already in use? Application terminates.')
-            sys.exit(1)
-
-        self.run_process(target=pulse.run)
-        self.run_process(target=stream_server.run)
-        self.run_process(target=ssdp_listener.run)
-
-        setproctitle.setproctitle('pulseaudio-dlna')
-        signal.signal(signal.SIGINT, self.shutdown)
-        signal.signal(signal.SIGTERM, self.shutdown)
-
-        for process in self.processes:
-            process.join()
+import logging
 
 
 def main(argv=sys.argv[1:]):
-    pulseaudio_dlna = PulseAudioDLNA()
-    pulseaudio_dlna.startup()
 
+    import pulseaudio_dlna
+    options = docopt.docopt(__doc__, version=pulseaudio_dlna.__version__)
+
+    level = logging.DEBUG
+    if not options['--debug']:
+        level = logging.INFO
+        logging.getLogger('requests').setLevel(logging.WARNING)
+        logging.getLogger('urllib3').setLevel(logging.WARNING)
+
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s %(name)-46s %(levelname)-8s %(message)s',
+        datefmt='%m-%d %H:%M:%S')
+    logger = logging.getLogger('pulseaudio_dlna.__main__')
+
+    if os.geteuid() == 0:
+        logger.info('Running as root. Starting daemon ...')
+        import pulseaudio_dlna.daemon
+        daemon = pulseaudio_dlna.daemon.Daemon()
+        daemon.run()
+    else:
+        import pulseaudio_dlna.application
+        app = pulseaudio_dlna.application.Application()
+        app.run(options)
 
 if __name__ == "__main__":
     sys.exit(main())

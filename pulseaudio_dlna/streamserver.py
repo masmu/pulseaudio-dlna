@@ -82,8 +82,11 @@ class ProcessStream(object):
         self.chunk_size = 1024 * 4
         self.lock = threading.Lock()
         self.client_count = 0
+        self.reinitialize_count = 0
 
         atexit.register(self.shutdown)
+
+        gobject.timeout_add(10000, self._on_regenerate_reinitialize_count)
 
         class UpdateThread(threading.Thread):
             def __init__(self, stream):
@@ -157,6 +160,11 @@ class ProcessStream(object):
         finally:
             if not lock_override:
                 self.lock.release()
+
+    def _on_regenerate_reinitialize_count(self):
+        if self.reinitialize_count > 0:
+            self.reinitialize_count -= 1
+        return True
 
     def _on_delayed_disconnect(self, device):
         self.timeouts.pop(device.ip)
@@ -244,19 +252,26 @@ class ProcessStream(object):
             pass
 
     def create_processes(self):
-        logger.debug('Starting processes "{recorder} | {encoder}"'.format(
-            recorder=self.recorder.command,
-            encoder=self.encoder.command))
-        self.recorder_process = subprocess.Popen(
-            self.recorder.command.split(' '),
-            stdout=subprocess.PIPE)
-        self.encoder_process = subprocess.Popen(
-            self.encoder.command.split(' '),
-            stdin=self.recorder_process.stdout,
-            stdout=subprocess.PIPE)
-        self.recorder_process.stdout.close()
+        if self.reinitialize_count < 3:
+            self.reinitialize_count += 1
+            logger.debug('Starting processes "{recorder} | {encoder}"'.format(
+                recorder=self.recorder.command,
+                encoder=self.encoder.command))
+            self.recorder_process = subprocess.Popen(
+                self.recorder.command.split(' '),
+                stdout=subprocess.PIPE)
+            self.encoder_process = subprocess.Popen(
+                self.encoder.command.split(' '),
+                stdin=self.recorder_process.stdout,
+                stdout=subprocess.PIPE)
+            self.recorder_process.stdout.close()
+        else:
+            self.update_thread.pause()
+            logger.error('There were more than {} attempts to reinitialize '
+                         'the record process. Aborting.'.format(
+                             self.reinitialize_count))
 
-    def shutdown(self):
+    def shutdown(self, *args):
         logger.info('Streaming server is shutting down.')
         for sock in self.sockets.keys():
             sock.close()
