@@ -116,7 +116,7 @@ class ChromecastRendererFactory(object):
             model_name = soup.root.device.modelname.text
             if model_name.strip() != 'Eureka Dongle':
                 logger.info(
-                    'The Chromecast seems not to an original Chromecast! '
+                    'The Chromecast seems not to be an original Chromecast! '
                     'Model name: "{model_name}" Skipping device ...'.format(
                         model_name=model_name))
                 return None
@@ -131,5 +131,5 @@ class ChromecastRendererFactory(object):
 
     @classmethod
     def from_header(self, header, type_=ChromecastRenderer):
-        if header['location']:
+        if header.get('location', None):
             return self.from_url(header['location'], type_)

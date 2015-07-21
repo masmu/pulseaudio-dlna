@@ -380,5 +380,5 @@ class UpnpMediaRendererFactory(object):
 
     @classmethod
     def from_header(self, header, type_=UpnpMediaRenderer):
-        if header['location']:
+        if header.get('location', None):
             return self.from_url(header['location'], type_)
