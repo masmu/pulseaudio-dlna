@@ -22,7 +22,7 @@ pulseaudio-dlna (0.4.0) trusty; urgency=low
   * Added better logging
   * Validate encoders for installed dependencies
 
- -- Massimo Mund <mo@lancode.de>  Mon, 27 Jul 2015 09:56:12 +0100
+ -- Massimo Mund <mo@lancode.de>  Mon, 27 Jul 2015 10:23:02 +0100
 
 
 pulseaudio-dlna (0.3.5) trusty; urgency=low
