@@ -54,6 +54,8 @@ setuptools.setup(
         "docopt >= 0.6.1",
         "requests >= 2.2.1",
         "setproctitle >= 1.0.1",
+        "protobuf >= 2.5.0",
+        "notify2 >= 0.3",
     ],
     entry_points={
         "console_scripts": [
@@ -63,4 +65,7 @@ setuptools.setup(
     data_files=[
         ("share/man/man1", ["debian/pulseaudio-dlna.1"]),
     ],
+    package_data={
+        "pulseaudio_dlna.plugins.upnp": ["xml/*.xml"],
+    }
 )

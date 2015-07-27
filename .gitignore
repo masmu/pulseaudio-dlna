@@ -59,3 +59,7 @@ target/
 dist/
 bin/
 include/
+local/
+
+*.iml
+.idea

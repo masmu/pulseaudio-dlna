@@ -1,10 +1,10 @@
 # About #
 
 This is _pulseaudio-dlna_. A small DLNA server which brings DLNA / UPNP
-support to PulseAudio and Linux.
+and Chromecast support to PulseAudio and Linux.
 
 It can stream your current PulseAudio playback to different UPNP devices
-(UPNP Media Renderers) in your network.
+(UPNP Media Renderers) or Chromecasts in your network.
 It's main goals are: easy to use, no configuration hassle, no
 big dependencies.
 
@@ -33,6 +33,27 @@ big dependencies.
 If I could help you or if you like my work, you can buy me a [coffee, a beer or pizza](https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=totalexceed%40lancode%2ede&item_name=Donation&no_shipping=2&no_note=1&tax=0&currency_code=EUR&bn=PP%2dDonationsBF&charset=UTF%2d8).
 
 ## Changelog ##
+
+ * __0.4.0__ - (_2015-07-27_)
+    - Added the ```--fake-http10-content-length``` option
+    - The application can now run as root
+    - Catch pulseaudio exceptions for streams, sinks and modules when those are gone
+    - Fixed a bug where a missing ssdp header field made the application crash
+    - New devices are added now during runtime (thanks to [coder-hugo](https://github.com/coder-hugo))
+    - Rewrite of the streaming server
+    - Upnp devices can now request their audio format based on their capabilities
+    - Added AAC encoder
+    - If a device stops playing, the streams currently playing on
+      the corresponding sink are switched back to the default sink
+    - If a device failes to start playing, streams currently playing on
+      the corresponding sink are switched back to the default sink
+    - Added Chromecast support (new dependency: `python-protobuf`)
+    - Fixed a bug where the application crashed when there was no suitable encoder found
+    - Added the ```--bit-rate``` option
+    - Added additional headers for DLNA devices
+    - Added switch back mode also for sinks, not just for streams (new dependency: `python-notify2`)
+    - Added better logging
+    - Validate encoders for installed dependencies
 
  * __0.3.5__ - (_2015-04-09_)
     - Fixed a bug where Sonos description XML could not get parsed correctly
@@ -77,6 +98,11 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Installation via PPA ##
 
+Supported Ubuntu releases:
+- 15.04 (Vivid Vervet)
+- 14.10 (Utopic Unicorn)
+- 14.04.2 LTS (Trusty Tahr)
+
 Ubuntu users can install _pulseaudio-dlna_ via the following [repository](https://launchpad.net/~qos/+archive/ubuntu/pulseaudio-dlna).
 
     sudo apt-add-repository ppa:qos/pulseaudio-dlna
@@ -115,34 +141,38 @@ will get installed if you install it via the PPA.
 
 - python2.7
 - python-pip
+- python-setuptools
 - python-dbus
 - python-beautifulsoup
 - python-docopt
 - python-requests
 - python-setproctitle
 - python-gobject
+- python-protobuf
+- python-notify2
 - vorbis-tools
 - sox
 - lame
 - flac
+- faac
 - opus-tools
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject vorbis-tools sox lame flac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
 Since version _0.2.2_ the DBus module should be loaded automatically, if it was
 not loaded before.
 It that does not work, you can load the DBus module in Ubuntu via the following
-command. Note that you 
+command. Note that you
 have to do this every time you restart PulseAudio (or your computer).
 
     pacmd load-module module-dbus-protocol
 
 Or to make changes persistant edit the file `/etc/pulse/default.pa` with your
-favorite editor and append the following line: 
+favorite editor and append the following line:
 
     load-module module-dbus-protocol
 
@@ -155,18 +185,23 @@ For that method you need some additional dependencies.
 
 #### virtualenv requirements ####
 
-- python-virtualenv
+- python-virtualenv (Ubuntu <= _14.04 Trusty LTS_)
+- virtualenv (Ubuntu >= _14.10 Utopic_)
 - python-dev
 
-You can install all the dependencies in Ubuntu via:
+So all Ubuntu versions prior to _14.10 Utopic_ need to install:
 
     sudo apt-get install python-virtualenv python-dev
+
+All Ubuntu versions above install:
+
+    sudo apt-get install virtualenv python-dev
 
 #### Installing & starting ####
 
 Change to the _project root folder_ and start the installation via:
 
-    make venv
+    make
 
 After that you can start _pulseaudio-dlna_ via:
 
@@ -218,35 +253,37 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
-        -e --encoder=<encoder>                 Set the audio encoder [default: lame].
+        -e --encoder=<encoder>                 Set the audio encoder.
                                                Possible encoders are:
-                                                 - lame  MPEG Audio Layer III (MP3)
+                                                 - mp3   MPEG Audio Layer III (MP3)
                                                  - ogg   Ogg Vorbis
                                                  - flac  Free Lossless Audio Codec (FLAC)
                                                  - wav   Waveform Audio File Format (WAV)
                                                  - opus  Opus Interactive Audio Codec (OPUS)
+        -b --bit-rate=<rate>                   Set the audio encoder's bitrate.
         --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                                Devices which get discovered, but won't match the
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
         --debug                                enables detailed debug messages.
+        --fake-http10-content-length           If set, the content-length of HTTP 1.0 requests will be set to 100 GB.
         -v --version                           Show the version.
         -h --help                              Show the help.
 
 Samples:
-- `pulseaudio-dlna` will start 
+- `pulseaudio-dlna` will start
 _pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _mp3_.
-- `pulseaudio-dlna --encoder ogg` will start 
+- `pulseaudio-dlna --encoder ogg` will start
 _pulseaudio-dlna_ on port _8080_ and stream your PulseAudio streams encoded
 with _Ogg Vorbis_.
-- `pulseaudio-dlna --port 10291 --encoder flac` will start 
+- `pulseaudio-dlna --port 10291 --encoder flac` will start
 _pulseaudio-dlna_ on port _10291_ and stream your PulseAudio streams encoded
 with _FLAC_.
 - `pulseaudio-dlna --filter-device 'Nexus 5,TV'` will just use devices named
@@ -257,6 +294,17 @@ at the specified locations. You can specify multiple locations via urls
 seperated by comma (_,_). Most users won't ever need this option, but since
 UDP multicast packages won't work (most times) over VPN connections this is
 very useful if you ever plan to stream to a UPNP device over VPN.
+
+## Troubleshooting ##
+
+Some devices do not stick to the HTTP 1.0/1.1 standard. Since most devices do,
+_pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
+
+- `--fake-http10-content-length`
+
+    Adds a faked HTTP Content-Length to HTTP 1.0 responses. The length is set 
+    to 100 GB and ensures that the device would keep playing for months.
+    This is necessary for the _Hame Soundrouter_.
 
 ## Tested devices ##
 
@@ -272,6 +320,10 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Yamaha RX-475 (AV Receiver)
 - Majik DSM
 - [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
+- Google Chromecast
+- Sonos PLAY:1
+- Sonos PLAY:3
+- Hame Soundrouter
 - [Raumfeld Speaker M](http://raumfeld.com)
 - Pioneer VSX-824 (AV Receiver)
 - [ROCKI] (http://www.myrocki.com/)
@@ -287,3 +339,4 @@ _pulseaudio-dlna_ supports the following encoders:
 - __flac__  Free Lossless Audio Codec (FLAC)
 - __wav__   Waveform Audio File Format (WAV)
 - __opus__  Opus Interactive Audio Codec (OPUS)
+- __aac__   Advanced Audio Coding (AAC)
