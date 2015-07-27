@@ -108,7 +108,7 @@ class Application(object):
         logger.info('Loaded encoders:')
         for encoder in pulseaudio_dlna.common.supported_encoders:
             encoder.validate()
-            print(encoder)
+            logger.info(encoder)
 
         manager = multiprocessing.Manager()
         message_queue = multiprocessing.Queue()
