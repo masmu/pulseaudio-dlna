@@ -16,22 +16,27 @@
 python ?= python2.7
 user ?= $(shell whoami)
 
-all:
+all: pulseaudio_dlna.egg-info
 
-venv: pulseaudio_dlna.egg-info
+venv:
+	@echo "venv is deprecated. It is just 'make' now."
 
 pulseaudio_dlna.egg-info: setup.py bin/pip
 	bin/pip install --editable . && touch $@
 bin/pip:
 	virtualenv --system-site-packages -p $(python) .
 
+ifdef DEB_HOST_ARCH
+DESTDIR ?= /
+PREFIX ?= usr/
 install:
-	sudo $(python) setup.py develop
-	sudo chown -R $(user) pulseaudio_dlna.egg-info/
-
-uninstall:
-	sudo $(python) setup.py develop --uninstall
-	sudo rm /usr/local/bin/pulseaudio-dlna || true
+	$(python) setup.py install --no-compile --prefix="$(PREFIX)" --root="$(DESTDIR)" --install-layout=deb
+else
+DESTDIR ?= /
+PREFIX ?= /usr/local
+install:
+	$(python) setup.py install --no-compile --prefix="$(PREFIX)" --root="$(DESTDIR)"
+endif
 
 release: manpage
 	pdebuild --buildresult dist
@@ -43,13 +48,6 @@ manpage: debian/pulseaudio-dlna.1
 debian/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
 	help2man "bin/pulseaudio-dlna" > /tmp/pulseaudio-dlna.1
 	mv /tmp/pulseaudio-dlna.1 debian/pulseaudio-dlna.1
-
-ifdef DEB_HOST_ARCH
-DESTDIR ?= /
-PREFIX ?= usr/
-install:
-	$(python) setup.py install --no-compile --prefix="$(PREFIX)" --root="$(DESTDIR)" --install-layout=deb
-endif
 
 clean:
 	rm -rf build dist $(shell find pulseaudio_dlna -name "__pycache__")

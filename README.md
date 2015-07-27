@@ -166,18 +166,23 @@ For that method you need some additional dependencies.
 
 #### virtualenv requirements ####
 
-- python-virtualenv
+- python-virtualenv (Ubuntu <= _14.04 Trusty LTS_)
+- virtualenv (Ubuntu >= _14.10 Utopic_)
 - python-dev
 
-You can install all the dependencies in Ubuntu via:
+So all Ubuntu versions prior to _14.10 Utopic_ need to install:
 
     sudo apt-get install python-virtualenv python-dev
+
+All Ubuntu versions above install:
+
+    sudo apt-get install virtualenv python-dev
 
 #### Installing & starting ####
 
 Change to the _project root folder_ and start the installation via:
 
-    make venv
+    make
 
 After that you can start _pulseaudio-dlna_ via:
 
