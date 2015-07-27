@@ -34,6 +34,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.4.1__ - (_2015-07-27_)
+    - Fixed Makefile for launchpad
+
  * __0.4.0__ - (_2015-07-27_)
     - Added the ```--fake-http10-content-length``` option
     - The application can now run as root
