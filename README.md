@@ -1,10 +1,10 @@
 # About #
 
 This is _pulseaudio-dlna_. A small DLNA server which brings DLNA / UPNP
-support to PulseAudio and Linux.
+and Chromecast support to PulseAudio and Linux.
 
 It can stream your current PulseAudio playback to different UPNP devices
-(UPNP Media Renderers) in your network.
+(UPNP Media Renderers) or Chromecasts in your network.
 It's main goals are: easy to use, no configuration hassle, no
 big dependencies.
 
@@ -34,7 +34,11 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-04-16_)
+ * __master__ - (_2015-07-27_)
+    - The application can now run as root
+    - Catch pulseaudio exceptions for streams, sinks and modules when those are gone
+    - Fixed a bug where a missing ssdp header field made the application crash
+    - New devices are added now during runtime (thanks to [coder-hugo](https://github.com/coder-hugo))
     - Rewrite of the streaming server
     - Upnp devices can now request their audio format based on their capabilities
     - Added AAC encoder
