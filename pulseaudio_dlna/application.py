@@ -153,6 +153,7 @@ class Application(object):
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
+        signal.signal(signal.SIGHUP, self.shutdown)
 
         for process in self.processes:
             process.join()
