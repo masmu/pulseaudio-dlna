@@ -35,6 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 ## Changelog ##
 
  * __master__ - (_2015-07-27_)
+    - Added the ```--fake-http10-content-length``` option
     - The application can now run as root
     - Catch pulseaudio exceptions for streams, sinks and modules when those are gone
     - Fixed a bug where a missing ssdp header field made the application crash
@@ -238,7 +239,7 @@ _pulseaudio-dlna_.
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
@@ -257,6 +258,7 @@ _pulseaudio-dlna_.
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
         --debug                                enables detailed debug messages.
+        --fake-http10-content-length           If set, the content-length of HTTP 1.0 requests will be set to 100 GB.
         -v --version                           Show the version.
         -h --help                              Show the help.
 
@@ -279,6 +281,17 @@ seperated by comma (_,_). Most users won't ever need this option, but since
 UDP multicast packages won't work (most times) over VPN connections this is
 very useful if you ever plan to stream to a UPNP device over VPN.
 
+## Troubleshooting ##
+
+Some devices do not stick to the HTTP 1.0/1.1 standard. Since most devices do,
+_pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
+
+- `--fake-http10-content-length`
+
+    Adds a faked HTTP Content-Length to HTTP 1.0 responses. The length is set 
+    to 100 GB and ensures that the device would keep playing for months.
+    This is necessary for the _Hame Soundrouter_.
+
 ## Tested devices ##
 
 _pulseaudio-dlna_ was successfully tested on the follwing devices / applications:
@@ -296,6 +309,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - Google Chromecast
 - Sonos PLAY:1
 - Sonos PLAY:3
+- Hame Soundrouter
 
 ## Supported encoders ##
 

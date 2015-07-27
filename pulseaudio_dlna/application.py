@@ -24,6 +24,7 @@ import signal
 import setproctitle
 import logging
 import sys
+import socket
 
 import pulseaudio_dlna
 import pulseaudio_dlna.common
@@ -114,9 +115,15 @@ class Application(object):
         message_queue = multiprocessing.Queue()
         bridges = manager.list()
 
+        fake_http10_content_length = False
+        if options['--fake-http10-content-length']:
+            fake_http10_content_length = True
+
         try:
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
-                host, port, bridges, message_queue)
+                host, port, bridges, message_queue,
+                fake_http10_content_length=fake_http10_content_length,
+            )
         except socket.error:
             logger.error(
                 'The streaming server could not bind to your specified port '

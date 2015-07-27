@@ -17,7 +17,7 @@
 
 '''
 Usage:
-    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug]
+    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length]
     pulseaudio-dlna [-h | --help | --version]
 
 Options:
@@ -36,6 +36,7 @@ Options:
                                            filter text will be skipped.
     --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
     --debug                                enables detailed debug messages.
+    --fake-http10-content-length           If set, the content-length of HTTP 1.0 requests will be set to 100 GB.
     -v --version                           Show the version.
     -h --help                              Show the help.
 '''

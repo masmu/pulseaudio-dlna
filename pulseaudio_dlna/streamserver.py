@@ -341,8 +341,9 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             }
 
             if self.request_version == PROTOCOL_VERSION_V10:
-                gb_in_bytes = 1073741824
-                headers['Content-Length'] = gb_in_bytes * 100
+                if self.server.fake_http10_content_length:
+                    gb_in_bytes = 1073741824
+                    headers['Content-Length'] = gb_in_bytes * 100
             elif self.request_version == PROTOCOL_VERSION_V11:
                 headers['Connection'] = 'close'
 
@@ -408,7 +409,9 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class StreamServer(SocketServer.TCPServer):
 
-    def __init__(self, ip, port, bridges, message_queue, *args):
+    def __init__(
+            self, ip, port, bridges, message_queue,
+            fake_http10_content_length=False, *args):
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
             self, ('', port), StreamRequestHandler, *args)
@@ -418,6 +421,7 @@ class StreamServer(SocketServer.TCPServer):
         self.bridges = bridges
         self.message_queue = message_queue
         self.stream_manager = StreamManager(self)
+        self.fake_http10_content_length = fake_http10_content_length
 
     def get_server_url(self):
         return 'http://{ip}:{port}'.format(
