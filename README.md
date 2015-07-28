@@ -128,7 +128,8 @@ _Keep in mind that since i am not using those, i can hardly support them!_
     [https://aur.archlinux.org/packages/pulseaudio-dlna/](https://aur.archlinux.org/packages/pulseaudio-dlna/)
 - openSUSE (_.rpm_)
     [http://packman.links2linux.de/package/pulseaudio-dlna](http://packman.links2linux.de/package/pulseaudio-dlna)
-
+- Fedora
+    [https://copr.fedoraproject.org/coprs/cygn/pulseaudio-dlna/](https://copr.fedoraproject.org/coprs/cygn/pulseaudio-dlna/)
 
 ## Installation via git ##
 
