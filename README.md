@@ -8,6 +8,8 @@ It can stream your current PulseAudio playback to different UPNP devices
 It's main goals are: easy to use, no configuration hassle, no
 big dependencies.
 
+UPNP renderers in your network will show up as pulseaudio sinks.
+
 ![Image of pulseaudio-dlna](https://github.com/masmu/pulseaudio-dlna/blob/master/samples/images/pavucontrol-sample.png)
 
 
@@ -128,7 +130,7 @@ _Keep in mind that since i am not using those, i can hardly support them!_
     [https://aur.archlinux.org/packages/pulseaudio-dlna/](https://aur.archlinux.org/packages/pulseaudio-dlna/)
 - openSUSE (_.rpm_)
     [http://packman.links2linux.de/package/pulseaudio-dlna](http://packman.links2linux.de/package/pulseaudio-dlna)
-- Fedora
+- Fedora - RHEL - CentOS - EPEL
     [https://copr.fedoraproject.org/coprs/cygn/pulseaudio-dlna/](https://copr.fedoraproject.org/coprs/cygn/pulseaudio-dlna/)
 
 ## Installation via git ##
@@ -248,10 +250,7 @@ Note that _pulseaudio-dlna_ has to run all the time while you are listening to
 your music. If you stop _pulseaudio-dlna_ it will cleanly remove the created
 UPNP devices from PulseAudio and your UPNP devices will stop playing.
 
-Also note that _pulseaudio-dlna_ won't search for additional UPNP devices after
-startup. It just does this once and (for me) there is no need in continuously
-doing that. So if you added a new UPNP device to your network, restart
-_pulseaudio-dlna_.
+Since 0.4, new devices are automatically discovered as they appear on the network.
 
 ### CLI ###
 
@@ -311,7 +310,7 @@ _pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
 
 ## Tested devices ##
 
-_pulseaudio-dlna_ was successfully tested on the follwing devices / applications:
+_pulseaudio-dlna_ was successfully tested on the following devices / applications:
 
 - D-Link DCH-M225/E
 - [Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)
@@ -332,6 +331,7 @@ _pulseaudio-dlna_ was successfully tested on the follwing devices / applications
 - [ROCKI] (http://www.myrocki.com/)
 - Sony STR-DN1050 (AV Receiver)
 - Pure Jongo S3
+- [Volumio] (http://volumio.org) 
 
 ## Supported encoders ##
 
