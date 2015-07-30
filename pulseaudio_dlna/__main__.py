@@ -19,6 +19,10 @@
 Usage:
     pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length]
     pulseaudio-dlna [-h | --help | --version]
+    
+    Note that _pulseaudio-dlna_ has to run all the time while you are listening to your music. If you stop _pulseaudio-dlna_ it will cleanly remove the created UPNP devices from PulseAudio and your UPNP devices will stop playing.
+    
+    Since 0.4, new devices are automatically discovered as they appear on the network. 
 
 Options:
        --host=<host>                       Set the server ip.
@@ -30,6 +34,7 @@ Options:
                                              - flac  Free Lossless Audio Codec (FLAC)
                                              - wav   Waveform Audio File Format (WAV)
                                              - opus  Opus Interactive Audio Codec (OPUS)
+                                             - aac   Advanced Audio Coding (FAAC)
     -b --bit-rate=<rate>                   Set the audio encoder's bitrate.
     --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                            Devices which get discovered, but won't match the
@@ -39,7 +44,34 @@ Options:
     --fake-http10-content-length           If set, the content-length of HTTP 1.0 requests will be set to 100 GB.
     -v --version                           Show the version.
     -h --help                              Show the help.
+
+Examples:
+      - pulseaudio-dlna
+      
+      will start pulseaudio-dlna on port 8080 and stream your PulseAudio streams encoded with mp3.
+      
+      - pulseaudio-dlna --encoder ogg                  	
+      
+      will start pulseaudio-dlna on port 8080 and stream your PulseAudio streams encoded with Ogg Vorbis.
+      
+      - pulseaudio-dlna --port 10291 --encoder flac                  	
+      
+      will start pulseaudio-dlna on port 10291 and stream your PulseAudio streams encoded with FLAC.
+      
+      - pulseaudio-dlna --filter-device 'Nexus 5,TV'                  	
+      
+      will just use devices named Nexus 5 or TV even when more devices got discovered.
+      
+      - pulseaudio-dlna --renderer-urls http://192.168.1.7:7676/smp_10_                  	
+      
+      won't discover upnp devices by itself. Instead it will search for upnp renderers
+      at the specified locations. You can specify multiple locations via urls
+      separated by comma (,). Most users won't ever need this option, but since
+      UDP multicast packages won't work (most times) over VPN connections this is
+      very useful if you ever plan to stream to a UPNP device over VPN.
+      
 '''
+
 
 from __future__ import unicode_literals
 
