@@ -44,6 +44,7 @@ Options:
     --fake-http10-content-length           If set, the content-length of HTTP 1.0 requests will be set to 100 GB.
     -v --version                           Show the version.
     -h --help                              Show the help.
+<<<<<<< HEAD
 
 Examples:
       - pulseaudio-dlna
@@ -71,7 +72,34 @@ Examples:
       very useful if you ever plan to stream to a UPNP device over VPN.
       
 '''
+=======
+>>>>>>> 69c0323d3cab1381171a7cfe1fdbc8b1f267ec6a
 
+Examples:
+      - pulseaudio-dlna
+      
+      will start pulseaudio-dlna on port 8080 and stream your PulseAudio streams encoded with mp3.
+      
+      - pulseaudio-dlna --encoder ogg                  	
+      
+      will start pulseaudio-dlna on port 8080 and stream your PulseAudio streams encoded with Ogg Vorbis.
+      
+      - pulseaudio-dlna --port 10291 --encoder flac                  	
+      
+      will start pulseaudio-dlna on port 10291 and stream your PulseAudio streams encoded with FLAC.
+      
+      - pulseaudio-dlna --filter-device 'Nexus 5,TV'                  	
+      
+      will just use devices named Nexus 5 or TV even when more devices got discovered.
+      
+      - pulseaudio-dlna --renderer-urls http://192.168.1.7:7676/smp_10_                  	
+      
+      won't discover upnp devices by itself. Instead it will search for upnp renderers
+      at the specified locations. You can specify multiple locations via urls
+      seperated by comma (,). Most users won't ever need this option, but since
+      UDP multicast packages won't work (most times) over VPN connections this is
+      very useful if you ever plan to stream to a UPNP device over VPN.
+'''
 from __future__ import unicode_literals
 
 import sys
