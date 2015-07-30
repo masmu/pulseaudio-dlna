@@ -35,5 +35,8 @@ def show(title, message, icon=''):
                 title=title,
                 message=message))
 
-
-notify2.init('pulseaudio_dlna')
+try:
+    notify2.init('pulseaudio_dlna')
+except:
+    logger.error('notify2 could not be initialized! Notifications will '
+                 'most likely not work.')
