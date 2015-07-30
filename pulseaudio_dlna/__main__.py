@@ -66,11 +66,12 @@ Examples:
       
       won't discover upnp devices by itself. Instead it will search for upnp renderers
       at the specified locations. You can specify multiple locations via urls
-      separated by comma (,). Most users won't ever need this option, but since
+      seperated by comma (,). Most users won't ever need this option, but since
       UDP multicast packages won't work (most times) over VPN connections this is
       very useful if you ever plan to stream to a UPNP device over VPN.
       
 '''
+
 
 from __future__ import unicode_literals
 
