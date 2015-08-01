@@ -29,6 +29,8 @@ import gobject
 import functools
 import atexit
 import json
+import os
+import signal
 import BaseHTTPServer
 import SocketServer
 
@@ -68,14 +70,15 @@ class RemoteDevice(object):
         raise NotImplementedError
 
 
+@functools.total_ordering
 class ProcessStream(object):
-    def __init__(self, path, recorder, encoder, server):
+    def __init__(self, path, recorder, encoder, manager):
         self.path = path
         self.recorder = recorder
         self.encoder = encoder
         self.recorder_process = None
         self.encoder_process = None
-        self.server = server
+        self.manager = manager
 
         self.sockets = {}
         self.timeouts = {}
@@ -86,22 +89,32 @@ class ProcessStream(object):
 
         atexit.register(self.shutdown)
 
-        gobject.timeout_add(10000, self._on_regenerate_reinitialize_count)
+        gobject.timeout_add(
+            10000, self._on_regenerate_reinitialize_count)
 
         class UpdateThread(threading.Thread):
             def __init__(self, stream):
                 threading.Thread.__init__(self)
                 self.stream = stream
                 self.is_running = False
+                self.do_stop = False
                 self.lock = threading.Lock()
                 self.lock.acquire()
 
             def run(self):
                 while True:
-                    if self.is_running is False:
+                    if self.do_stop:
+                        break
+                    elif self.is_running is False:
                         self.lock.acquire()
                     else:
                         self.stream.communicate()
+                logger.info('Thread stopped for "{}".'.format(
+                    self.stream.path))
+
+            def stop(self):
+                self.do_stop = True
+                self.resume()
 
             def pause(self):
                 self.is_running = False
@@ -173,12 +186,9 @@ class ProcessStream(object):
             logger.info('Stream closed. '
                         'Cleaning up remaining processes ...')
             self.update_thread.pause()
-            self.cleanup()
+            self.terminate_processes()
 
-        if device not in self.sockets.values():
-            self.server.message_queue.put(
-                {'type': 'on_bridge_disconnected',
-                         'stopped_bridge': device.bridge})
+        self.manager._on_device_disconnect(device, self)
         return False
 
     def communicate(self):
@@ -191,7 +201,7 @@ class ProcessStream(object):
                     'Processes of {path} initialized ...'.format(
                         path=self.path))
             if not self.do_processes_respond():
-                self.cleanup()
+                self.terminate_processes()
                 self.create_processes()
                 logger.info(
                     'Processes of {path} reinitialized ...'.format(
@@ -241,15 +251,18 @@ class ProcessStream(object):
         return (self.recorder_process.poll() is None and
                 self.encoder_process.poll() is None)
 
-    def cleanup(self):
-        self._kill_process(self.encoder_process)
-        self._kill_process(self.recorder_process)
+    def terminate_processes(self):
 
-    def _kill_process(self, process):
-        try:
-            process.kill()
-        except:
-            pass
+        def _kill_process(process):
+            pid = process.pid
+            try:
+                os.kill(pid, signal.SIGTERM)
+                _pid, return_code = os.waitpid(pid, 0)
+            except:
+                os.kill(pid, signal.SIGKILL)
+
+        _kill_process(self.encoder_process)
+        _kill_process(self.recorder_process)
 
     def create_processes(self):
         if self.reinitialize_count < 3:
@@ -272,30 +285,68 @@ class ProcessStream(object):
                              self.reinitialize_count))
 
     def shutdown(self, *args):
-        logger.info('Streaming server is shutting down.')
+        self.update_thread.stop()
         for sock in self.sockets.keys():
             sock.close()
+
+    def __eq__(self, other):
+        if isinstance(other, ProcessStream):
+            return self.path == other.path
+        raise NotImplementedError
+
+    def __gt__(self, other):
+        if isinstance(other, ProcessStream):
+            return self.path > other.path
+        raise NotImplementedError
 
 
 class StreamManager(object):
     def __init__(self, server):
-        self.streams = {}
+        self.single_streams = []
+        self.shared_streams = {}
         self.server = server
 
+    def _on_device_disconnect(self, device, stream):
+
+        def _send_bridge_disconnected(bridge):
+            logger.info('Device "{}" disconnected.'.format(bridge.device.name))
+            self.server.message_queue.put({
+                'type': 'on_bridge_disconnected',
+                'stopped_bridge': bridge,
+            })
+
+        if isinstance(stream.encoder, pulseaudio_dlna.encoders.WavEncoder):
+            self.single_streams.remove(stream)
+            if stream not in self.single_streams:
+                _send_bridge_disconnected(device.bridge)
+            stream.shutdown()
+        else:
+            if device not in stream.sockets.values():
+                _send_bridge_disconnected(device.bridge)
+
+    def _create_stream(self, path, bridge, encoder):
+        recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
+            bridge.sink.monitor)
+        stream = ProcessStream(path, recorder, encoder, self)
+        return stream
+
     def get_stream(self, path, bridge, encoder):
-        if path not in self.streams:
-            recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
-                bridge.sink.monitor)
-            stream = ProcessStream(
-                path,
-                recorder,
-                encoder,
-                self.server,
-            )
-            self.streams[path] = stream
+        if isinstance(encoder, pulseaudio_dlna.encoders.WavEncoder):
+            # always create a seperate process stream for wav encoders
+            # since the client devices require the wav header which is
+            # just send at the beginning of each encoding process
+            stream = self._create_stream(path, bridge, encoder)
+            self.single_streams.append(stream)
             return stream
         else:
-            return self.streams[path]
+            # all other encoders can share a process stream depending
+            # on their path
+            if path not in self.shared_streams:
+                stream = self._create_stream(path, bridge, encoder)
+                self.shared_streams[path] = stream
+                return stream
+            else:
+                return self.shared_streams[path]
 
 
 class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -373,10 +424,6 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return None, None
 
     def chop_request_path(self, path):
-        logger.info(
-            'Requested streaming URL was: {path} ({version})'.format(
-                path=path,
-                version=self.request_version))
         try:
             short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
 
