@@ -19,10 +19,10 @@
 Usage:
     pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length]
     pulseaudio-dlna [-h | --help | --version]
-    
+
     Note that _pulseaudio-dlna_ has to run all the time while you are listening to your music. If you stop _pulseaudio-dlna_ it will cleanly remove the created UPNP devices from PulseAudio and your UPNP devices will stop playing.
-    
-    Since 0.4, new devices are automatically discovered as they appear on the network. 
+
+    Since 0.4, new devices are automatically discovered as they appear on the network.
 
 Options:
        --host=<host>                       Set the server ip.
@@ -47,29 +47,29 @@ Options:
 
 Examples:
       - pulseaudio-dlna
-      
+
       will start pulseaudio-dlna on port 8080 and stream your PulseAudio streams encoded with mp3.
-      
-      - pulseaudio-dlna --encoder ogg                  	
-      
+
+      - pulseaudio-dlna --encoder ogg
+
       will start pulseaudio-dlna on port 8080 and stream your PulseAudio streams encoded with Ogg Vorbis.
-      
-      - pulseaudio-dlna --port 10291 --encoder flac                  	
-      
+
+      - pulseaudio-dlna --port 10291 --encoder flac
+
       will start pulseaudio-dlna on port 10291 and stream your PulseAudio streams encoded with FLAC.
-      
-      - pulseaudio-dlna --filter-device 'Nexus 5,TV'                  	
-      
+
+      - pulseaudio-dlna --filter-device 'Nexus 5,TV'
+
       will just use devices named Nexus 5 or TV even when more devices got discovered.
-      
-      - pulseaudio-dlna --renderer-urls http://192.168.1.7:7676/smp_10_                  	
-      
+
+      - pulseaudio-dlna --renderer-urls http://192.168.1.7:7676/smp_10_
+
       won't discover upnp devices by itself. Instead it will search for upnp renderers
       at the specified locations. You can specify multiple locations via urls
       separated by comma (,). Most users won't ever need this option, but since
       UDP multicast packages won't work (most times) over VPN connections this is
       very useful if you ever plan to stream to a UPNP device over VPN.
-      
+
 '''
 
 
