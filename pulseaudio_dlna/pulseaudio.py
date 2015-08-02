@@ -121,16 +121,22 @@ class PulseAudio(object):
                 self.streams.append(stream)
 
     def update_sinks(self):
-        sink_paths = self.core.Get(
-            'org.PulseAudio.Core1', 'Sinks',
-            dbus_interface='org.freedesktop.DBus.Properties')
+        try:
+            sink_paths = self.core.Get(
+                'org.PulseAudio.Core1', 'Sinks',
+                dbus_interface='org.freedesktop.DBus.Properties')
 
-        self.sinks = []
-        for sink_path in sink_paths:
-            sink = PulseSinkFactory.new(self.bus, sink_path)
-            if sink:
-                sink.fallback_sink = self.fallback_sink
-                self.sinks.append(sink)
+            self.sinks = []
+            for sink_path in sink_paths:
+                sink = PulseSinkFactory.new(self.bus, sink_path)
+                if sink:
+                    sink.fallback_sink = self.fallback_sink
+                    self.sinks.append(sink)
+        except dbus.exceptions.DBusException:
+            logger.error(
+                'Could not update sinks. This normally indicates a problem '
+                'with pulseaudio\'s dbus module. Try restarting pulseaudio '
+                'if the problem persists.')
 
     def create_null_sink(self, sink_name, sink_description):
         cmd = [
