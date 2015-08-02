@@ -429,6 +429,10 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return None, None
 
     def chop_request_path(self, path):
+        logger.info(
+            'Requested streaming URL was: {path} ({version})'.format(
+                path=path,
+                version=self.request_version))
         try:
             short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
 

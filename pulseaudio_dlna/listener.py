@@ -55,15 +55,15 @@ class SSDPListener(SocketServer.UDPServer):
         self.renderers_holder = RendererHolder(
             stream_server_address, message_queue, plugins, device_filter)
         self.renderer_urls = renderer_urls
-
-    def run(self):
-        setproctitle.setproctitle('ssdp_listener')
         if self.renderer_urls is not None:
             self.renderers_holder.add_renderers_by_url(self.renderer_urls)
         else:
             discover = RendererDiscover(self.renderers_holder)
             discover.search()
             logger.info('Discovery complete.')
+
+    def run(self):
+        setproctitle.setproctitle('ssdp_listener')
         SocketServer.UDPServer.serve_forever(self)
 
 

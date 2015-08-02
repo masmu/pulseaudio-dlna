@@ -158,8 +158,8 @@ class Application(object):
                 'Perhaps this is already in use? Application terminates.')
             sys.exit(1)
 
-        self.run_process(target=pulse.run)
         self.run_process(target=stream_server.run)
+        self.run_process(target=pulse.run)
         self.run_process(target=ssdp_listener.run)
 
         setproctitle.setproctitle('pulseaudio-dlna')
