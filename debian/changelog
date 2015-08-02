@@ -1,3 +1,12 @@
+pulseaudio-dlna (0.4.3) trusty; urgency=low
+
+    * Fixed a bug when trying to terminate an encoder process
+    * Catch exceptions when trying to update pulseaudio sinks
+    * Fixed a timing issue where the streamserver was not ready but devices were already instructed to play
+
+ -- Massimo Mund <mo@lancode.de>  Sun, 02 Aug 2015 15:06:22 +0100
+
+
 pulseaudio-dlna (0.4.2) trusty; urgency=low
 
   * The mp3 encoder is now prioritize over wav

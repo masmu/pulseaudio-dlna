@@ -36,6 +36,11 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.4.3__ - (_2015-08-02_)
+    - Fixed a bug when trying to terminate an encoder process
+    - Catch exceptions when trying to update pulseaudio sinks
+    - Fixed a timing issue where the streamserver was not ready but devices were already instructed to play
+
  * __0.4.2__ - (_2015-08-02_)
     - The mp3 encoder is now prioritize over wav
     - Added '--disable-switchback' option
