@@ -17,7 +17,7 @@
 
 '''
 Usage:
-    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length]
+    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--disable-switchback]
     pulseaudio-dlna [-h | --help | --version]
 
     Note that _pulseaudio-dlna_ has to run all the time while you are listening to your music. If you stop _pulseaudio-dlna_ it will cleanly remove the created UPNP devices from PulseAudio and your UPNP devices will stop playing.
@@ -42,6 +42,7 @@ Options:
     --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
     --debug                                enables detailed debug messages.
     --fake-http10-content-length           If set, the content-length of HTTP 1.0 requests will be set to 100 GB.
+    --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.
     -v --version                           Show the version.
     -h --help                              Show the help.
 

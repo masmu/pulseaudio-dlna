@@ -119,10 +119,15 @@ class Application(object):
         if options['--fake-http10-content-length']:
             fake_http10_content_length = True
 
+        disable_switchback = False
+        if options['--disable-switchback']:
+            disable_switchback = True
+
         try:
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue,
                 fake_http10_content_length=fake_http10_content_length,
+                disable_switchback=disable_switchback,
             )
         except socket.error:
             logger.error(
