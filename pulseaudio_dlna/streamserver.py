@@ -259,7 +259,10 @@ class ProcessStream(object):
                 os.kill(pid, signal.SIGTERM)
                 _pid, return_code = os.waitpid(pid, 0)
             except:
-                os.kill(pid, signal.SIGKILL)
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except:
+                    pass
 
         _kill_process(self.encoder_process)
         _kill_process(self.recorder_process)
