@@ -329,10 +329,10 @@ _pulseaudio-dlna_ was successfully tested on the following devices / application
 - Hame Soundrouter
 - [Raumfeld Speaker M](http://raumfeld.com)
 - Pioneer VSX-824 (AV Receiver)
-- [ROCKI] (http://www.myrocki.com/)
+- [ROCKI](http://www.myrocki.com/)
 - Sony STR-DN1050 (AV Receiver)
 - Pure Jongo S3
-- [Volumio] (http://volumio.org) 
+- [Volumio](http://volumio.org) 
 
 ## Supported encoders ##
 
