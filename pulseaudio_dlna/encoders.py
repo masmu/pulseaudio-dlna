@@ -136,7 +136,7 @@ class WavEncoder(BaseEncoder):
         self._mime_types = ['audio/wav', 'audio/x-wav']
         self._bit_rate = None
         self._bit_rates = []
-        self._priority = 18
+        self._priority = 15
         self._enabled = True
 
     @property
@@ -159,7 +159,7 @@ class LameEncoder(BaseEncoder):
         self._bit_rate = 192
         self._bit_rates = [32, 40, 48, 56, 64, 80, 96, 112,
                            128, 160, 192, 224, 256, 320]
-        self._priority = 15
+        self._priority = 18
         self._enabled = True
 
     @property
