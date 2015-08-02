@@ -202,6 +202,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
                 UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
             ])
+        mime_type = self.encoder.mime_type
+        if isinstance(self.encoder, pulseaudio_dlna.encoders.WavEncoder):
+            mime_type = 'audio/mpeg'
         metadata = self.xml['register_metadata'].format(
             stream_url=stream_url,
             title='Live Audio',
@@ -209,7 +212,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             creator='PulseAudio',
             album='Stream',
             encoding=self.ENCODING,
-            mime_type=self.encoder.mime_type,
+            mime_type=mime_type,
             content_features=str(content_features),
         )
         data = self.xml['register'].format(
