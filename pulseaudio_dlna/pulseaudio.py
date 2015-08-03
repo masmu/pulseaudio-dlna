@@ -553,6 +553,9 @@ class PulseWatcher(PulseAudio):
         for bridge in self.bridges:
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
+                    logger.info(
+                        'Instructing the device "{}" to stop ...'.format(
+                            bridge.device.label))
                     if bridge.device.stop() == 200:
                         logger.info('The device "{}" was stopped.'.format(
                             bridge.device.label))
@@ -563,6 +566,9 @@ class PulseWatcher(PulseAudio):
             if bridge.sink.object_path == sink_path:
                 if bridge.device.state == bridge.device.IDLE or \
                    bridge.device.state == bridge.device.PAUSE:
+                    logger.info(
+                        'Instructing the device "{}" to play ...'.format(
+                            bridge.device.label))
                     if bridge.device.play() == 200:
                         logger.info('The device "{}" is playing.'.format(
                             bridge.device.label))
