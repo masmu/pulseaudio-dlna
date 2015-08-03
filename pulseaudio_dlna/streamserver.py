@@ -225,15 +225,6 @@ class ProcessStream(object):
                 except socket.error:
                     self.unregister(sock, lock_override=True, method=2)
 
-            for sock in r:
-                if sock in self.sockets:
-                    try:
-                        data = sock.recv(1024)
-                        if len(data) == 0:
-                            self.unregister(sock, lock_override=True, method=3)
-                    except socket.error:
-                        self.unregister(sock, lock_override=True, method=4)
-
         finally:
             self.lock.release()
 
