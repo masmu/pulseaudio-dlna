@@ -383,6 +383,7 @@ class PulseWatcher(PulseAudio):
 
         self.message_queue = message_queue
         self.blocked_devices = []
+        self.signal_timers = {}
 
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
@@ -508,7 +509,7 @@ class PulseWatcher(PulseAudio):
         logger.info('on_device_updated "{path}"'.format(
             path=sink_path))
         self.update()
-        self._handle_sink_update(sink_path)
+        self._delayed_handle_sink_update(sink_path)
 
     def on_fallback_sink_updated(self, sink_path):
         self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
@@ -521,7 +522,7 @@ class PulseWatcher(PulseAudio):
         for sink in self.sinks:
             for stream in sink.streams:
                 if stream.object_path == stream_path:
-                    self._handle_sink_update(sink.object_path)
+                    self._delayed_handle_sink_update(sink.object_path)
                     return
 
     def on_playback_stream_removed(self, stream_path):
@@ -531,10 +532,19 @@ class PulseWatcher(PulseAudio):
             for stream in sink.streams:
                 if stream.object_path == stream_path:
                     self.update()
-                    self._handle_sink_update(sink.object_path)
+                    self._delayed_handle_sink_update(sink.object_path)
                     return
 
+    def _delayed_handle_sink_update(self, sink_path):
+        if self.signal_timers.get(sink_path, None):
+            gobject.source_remove(self.signal_timers[sink_path])
+        self.signal_timers[sink_path] = gobject.timeout_add(
+            500, self._handle_sink_update, sink_path)
+
     def _handle_sink_update(self, sink_path):
+        logger.info('_handle_sink_update {}'.format(sink_path))
+        if sink_path in self.signal_timers:
+            del self.signal_timers[sink_path]
 
         if sink_path in self.blocked_devices:
             logger.info('{sink_path} was blocked!'.format(sink_path=sink_path))
@@ -543,6 +553,9 @@ class PulseWatcher(PulseAudio):
         for bridge in self.bridges:
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
+                    logger.info(
+                        'Instructing the device "{}" to stop ...'.format(
+                            bridge.device.label))
                     if bridge.device.stop() == 200:
                         logger.info('The device "{}" was stopped.'.format(
                             bridge.device.label))
@@ -553,6 +566,9 @@ class PulseWatcher(PulseAudio):
             if bridge.sink.object_path == sink_path:
                 if bridge.device.state == bridge.device.IDLE or \
                    bridge.device.state == bridge.device.PAUSE:
+                    logger.info(
+                        'Instructing the device "{}" to play ...'.format(
+                            bridge.device.label))
                     if bridge.device.play() == 200:
                         logger.info('The device "{}" is playing.'.format(
                             bridge.device.label))
@@ -561,6 +577,7 @@ class PulseWatcher(PulseAudio):
                             bridge.device.label))
                         self.switch_back(
                             bridge, 'The device failed to started.')
+        return False
 
     def add_device(self, device):
         self.devices.append(device)
