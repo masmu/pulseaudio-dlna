@@ -509,7 +509,7 @@ class PulseWatcher(PulseAudio):
         logger.info('on_device_updated "{path}"'.format(
             path=sink_path))
         self.update()
-        self.call_handle_sink_update(sink_path)
+        self._delayed_handle_sink_update(sink_path)
 
     def on_fallback_sink_updated(self, sink_path):
         self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
@@ -522,7 +522,7 @@ class PulseWatcher(PulseAudio):
         for sink in self.sinks:
             for stream in sink.streams:
                 if stream.object_path == stream_path:
-                    self.call_handle_sink_update(sink.object_path)
+                    self._delayed_handle_sink_update(sink.object_path)
                     return
 
     def on_playback_stream_removed(self, stream_path):
@@ -532,19 +532,19 @@ class PulseWatcher(PulseAudio):
             for stream in sink.streams:
                 if stream.object_path == stream_path:
                     self.update()
-                    self.call_handle_sink_update(sink.object_path)
+                    self._delayed_handle_sink_update(sink.object_path)
                     return
 
-    def call_handle_sink_update(self, sink_path):
-        logger.info('--- call_handle_sink_update {}'.format(sink_path))
+    def _delayed_handle_sink_update(self, sink_path):
         if self.signal_timers.get(sink_path, None):
             gobject.source_remove(self.signal_timers[sink_path])
         self.signal_timers[sink_path] = gobject.timeout_add(
             500, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):
-        logger.info('--- _handle_sink_update {}'.format(sink_path))
-        del self.signal_timers[sink_path]
+        logger.info('_handle_sink_update {}'.format(sink_path))
+        if sink_path in self.signal_timers:
+            del self.signal_timers[sink_path]
 
         if sink_path in self.blocked_devices:
             logger.info('{sink_path} was blocked!'.format(sink_path=sink_path))
@@ -577,6 +577,7 @@ class PulseWatcher(PulseAudio):
                             bridge.device.label))
                         self.switch_back(
                             bridge, 'The device failed to started.')
+        return False
 
     def add_device(self, device):
         self.devices.append(device)
