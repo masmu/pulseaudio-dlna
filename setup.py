@@ -56,6 +56,7 @@ setuptools.setup(
         "setproctitle >= 1.0.1",
         "protobuf >= 2.5.0",
         "notify2 >= 0.3",
+        "psutil >= 1.2.1",
     ],
     entry_points={
         "console_scripts": [
