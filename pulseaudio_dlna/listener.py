@@ -46,15 +46,19 @@ class SSDPRequestHandler(SocketServer.BaseRequestHandler):
 class SSDPListener(SocketServer.UDPServer):
     def __init__(
             self, stream_server_address, message_queue, plugins,
-            device_filter=None, renderer_urls=None):
-        SocketServer.UDPServer.__init__(self, ('', 1900), SSDPRequestHandler)
-        multicast = struct.pack(
-            "=4sl", socket.inet_aton("239.255.255.250"), socket.INADDR_ANY)
-        self.socket.setsockopt(
-            socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast)
+            device_filter=None, renderer_urls=None,
+            disable_ssdp_listener=False):
+        self.disable_ssdp_listener = disable_ssdp_listener
+        self.renderer_urls = renderer_urls
         self.renderers_holder = RendererHolder(
             stream_server_address, message_queue, plugins, device_filter)
-        self.renderer_urls = renderer_urls
+        if not self.disable_ssdp_listener:
+            SocketServer.UDPServer.__init__(
+                self, ('', 1900), SSDPRequestHandler)
+            multicast = struct.pack(
+                "=4sl", socket.inet_aton("239.255.255.250"), socket.INADDR_ANY)
+            self.socket.setsockopt(
+                socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast)
         if self.renderer_urls is not None:
             self.renderers_holder.add_renderers_by_url(self.renderer_urls)
         else:
@@ -63,8 +67,9 @@ class SSDPListener(SocketServer.UDPServer):
             logger.info('Discovery complete.')
 
     def run(self):
-        setproctitle.setproctitle('ssdp_listener')
-        SocketServer.UDPServer.serve_forever(self)
+        if not self.disable_ssdp_listener:
+            setproctitle.setproctitle('ssdp_listener')
+            SocketServer.UDPServer.serve_forever(self)
 
 
 class ThreadedSSDPListener(SocketServer.ThreadingMixIn, SSDPListener):
