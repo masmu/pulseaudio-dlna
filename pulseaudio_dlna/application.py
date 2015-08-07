@@ -123,6 +123,10 @@ class Application(object):
         if options['--disable-switchback']:
             disable_switchback = True
 
+        disable_ssdp_listener = False
+        if options['--disable-ssdp-listener']:
+            disable_ssdp_listener = True
+
         try:
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue,
@@ -151,11 +155,13 @@ class Application(object):
             stream_server_address = stream_server.ip, stream_server.port
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
                 stream_server_address, message_queue, plugins,
-                device_filter, locations)
+                device_filter, locations, disable_ssdp_listener)
         except socket.error:
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '
-                'Perhaps this is already in use? Application terminates.')
+                'Perhaps this is already in use? Application terminates. '
+                'You can disable this feature with the '
+                '"--disable-ssdp-listener" flag.')
             sys.exit(1)
 
         self.run_process(target=stream_server.run)

@@ -265,7 +265,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--disable-switchback]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--disable-switchback] [--disable-ssdp-listener]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
@@ -286,6 +286,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
         --debug                                enables detailed debug messages.
         --fake-http10-content-length           If set, the content-length of HTTP 1.0 requests will be set to 100 GB.
         --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.
+        --disable-ssdp-listener                If set, the application won't bind to the port 1900 and therefore the automatic discovery of new devices won't work.
         -v --version                           Show the version.
         -h --help                              Show the help.
 
