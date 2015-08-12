@@ -344,9 +344,14 @@ class UpnpMediaRendererFactory(object):
     @classmethod
     def from_url(self, url, type_=UpnpMediaRenderer):
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=5)
             logger.debug('Response from UPNP device ({url})\n'
                          '{response}'.format(url=url, response=response.text))
+        except requests.exceptions.Timeout:
+            logger.info(
+                'Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return None
         except requests.exceptions.ConnectionError:
             logger.info(
                 'Could no connect to {url}. '
