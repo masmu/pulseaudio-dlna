@@ -225,6 +225,16 @@ class ProcessStream(object):
                 except socket.error:
                     self.unregister(sock, lock_override=True, method=2)
 
+            for sock in r:
+                if sock in self.sockets:
+                    try:
+                        data = sock.recv(1024)
+                        logger.info(
+                            'Read data from socket "{}"'.format(data))
+                    except socket.error:
+                        logger.error(
+                            'Error while reading from socket ...')
+
         finally:
             self.lock.release()
 
