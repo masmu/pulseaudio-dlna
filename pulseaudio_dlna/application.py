@@ -127,6 +127,10 @@ class Application(object):
         if options['--disable-ssdp-listener']:
             disable_ssdp_listener = True
 
+        disable_device_stop = False
+        if options['--disable-device-stop']:
+            disable_device_stop = True
+
         try:
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue,
@@ -141,7 +145,8 @@ class Application(object):
             sys.exit(1)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
+        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
+            bridges, message_queue, disable_device_stop)
 
         device_filter = None
         if options['--filter-device']:
