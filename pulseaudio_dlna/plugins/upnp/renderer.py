@@ -246,6 +246,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             try:
                 self.protocols = []
                 sinks = soup('sink')[0].text
+                logger.debug('Got the following mime types: "{}"'.format(sinks))
                 for sink in sinks.split(','):
                     http_get, w1, mime_type, w2 = sink.strip().split(':')
                     if mime_type.startswith('audio/'):
