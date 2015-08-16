@@ -248,9 +248,11 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 sinks = soup('sink')[0].text
                 logger.debug('Got the following mime types: "{}"'.format(sinks))
                 for sink in sinks.split(','):
-                    http_get, w1, mime_type, w2 = sink.strip().split(':')
-                    if mime_type.startswith('audio/'):
-                        self.protocols.append(mime_type)
+                    attributes = sink.strip().split(':')
+                    if len(attributes) >= 4:
+                        mime_type = attributes[2]
+                        if mime_type.startswith('audio/'):
+                            self.protocols.append(mime_type)
             except IndexError:
                 logger.error(
                     'IndexError: No valid XML returned from {url}.'.format(
