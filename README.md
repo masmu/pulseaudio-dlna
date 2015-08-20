@@ -350,6 +350,7 @@ _pulseaudio-dlna_ was successfully tested on the following devices / application
 - Sony STR-DN1050 (AV Receiver)
 - Pure Jongo S3
 - [Volumio](http://volumio.org) 
+- Logitech Media Server
 
 ## Supported encoders ##
 
