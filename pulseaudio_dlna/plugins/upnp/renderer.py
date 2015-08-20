@@ -242,14 +242,27 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         response = requests.post(
             url, data=data.encode(self.ENCODING), headers=headers)
         if response.status_code == 200:
+
+            mime_prefixes = []
+            for encoder in pulseaudio_dlna.common.supported_encoders:
+                for mime_type in encoder.mime_types:
+                    mime_prefix, mime_settings = mime_type.split('/', 1)
+                    if mime_prefix + '/' not in mime_prefixes:
+                        mime_prefixes.append(mime_prefix + '/')
+
             soup = BeautifulSoup.BeautifulSoup(response.content)
             try:
                 self.protocols = []
                 sinks = soup('sink')[0].text
+                logger.debug('Got the following mime types: "{}"'.format(sinks))
                 for sink in sinks.split(','):
-                    http_get, w1, mime_type, w2 = sink.strip().split(':')
-                    if mime_type.startswith('audio/'):
-                        self.protocols.append(mime_type)
+                    attributes = sink.strip().split(':')
+                    if len(attributes) >= 4:
+                        mime_type = attributes[2]
+                        for mime_prefix in mime_prefixes:
+                            if mime_type.startswith(mime_prefix) and \
+                               mime_type not in self.protocols:
+                                self.protocols.append(mime_type)
             except IndexError:
                 logger.error(
                     'IndexError: No valid XML returned from {url}.'.format(
