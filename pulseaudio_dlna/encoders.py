@@ -222,7 +222,7 @@ class OggEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
         self._binary = 'oggenc'
-        self._command = '{binary} {bit_rate} -Q -r -k --ignorelength -'
+        self._command = '{binary} {bit_rate} -Q -r --ignorelength -'
         self._mime_type = 'audio/ogg'
         self._suffix = 'ogg'
         self._mime_types = ['audio/ogg', 'audio/x-ogg', 'application/ogg']
