@@ -394,7 +394,7 @@ class PulseBridge(object):
 
 
 class PulseWatcher(PulseAudio):
-    def __init__(self, bridges_shared, message_queue, disable_device_stop):
+    def __init__(self, bridges_shared, message_queue):
         PulseAudio.__init__(self)
 
         self.bridges = []
@@ -404,8 +404,6 @@ class PulseWatcher(PulseAudio):
         self.message_queue = message_queue
         self.blocked_devices = []
         self.signal_timers = {}
-
-        self.disable_device_stop = disable_device_stop
 
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
@@ -575,7 +573,7 @@ class PulseWatcher(PulseAudio):
         for bridge in self.bridges:
             logger.info('\n{}'.format(str(bridge)))
             if bridge.device.state == bridge.device.PLAYING:
-                if len(bridge.sink.streams) == 0 and not self.disable_device_stop:
+                if len(bridge.sink.streams) == 0:
                     logger.info(
                         'Instructing the device "{}" to stop ...'.format(
                             bridge.device.label))
