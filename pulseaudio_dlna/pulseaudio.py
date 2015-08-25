@@ -554,7 +554,7 @@ class PulseWatcher(PulseAudio):
         if self.signal_timers.get(sink_path, None):
             gobject.source_remove(self.signal_timers[sink_path])
         self.signal_timers[sink_path] = gobject.timeout_add(
-            500, self._handle_sink_update, sink_path)
+            1000, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):
         logger.info('_handle_sink_update {}'.format(sink_path))
