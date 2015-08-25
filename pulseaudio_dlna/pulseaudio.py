@@ -104,17 +104,12 @@ class PulseAudio(object):
 
         def retry_on_fail(method, tries=5):
             count = 1
-            logger.info('method try {} ({}) ...'.format(count, str(method)))
             while not method():
                 if count > tries:
-                    logger.error('method was aborted.'.format(count))
                     return False
                 count += 1
-                logger.info('method try {} ...'.format(count))
-            logger.info('method was executed successfully.')
             return True
 
-        logger.info('trying to update sinks and streams ...')
         if retry_on_fail(self.update_playback_streams) and \
            retry_on_fail(self.update_sinks):
             for stream in self.streams:
