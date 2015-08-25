@@ -115,9 +115,14 @@ class Application(object):
         message_queue = multiprocessing.Queue()
         bridges = manager.list()
 
-        fake_http10_content_length = False
+        fake_http_content_length = False
+        if options['--fake-http-content-length']:
+            fake_http_content_length = True
         if options['--fake-http10-content-length']:
-            fake_http10_content_length = True
+            logger.warning(
+                'The option "--fake-http10-content-length" is deprecated. '
+                'Please use "--fake-http-content-length" instead.')
+            fake_http_content_length = True
 
         disable_switchback = False
         if options['--disable-switchback']:
@@ -134,7 +139,7 @@ class Application(object):
         try:
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue,
-                fake_http10_content_length=fake_http10_content_length,
+                fake_http_content_length=fake_http_content_length,
                 disable_switchback=disable_switchback,
             )
         except socket.error:

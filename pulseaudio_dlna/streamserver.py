@@ -225,6 +225,16 @@ class ProcessStream(object):
                 except socket.error:
                     self.unregister(sock, lock_override=True, method=2)
 
+            for sock in r:
+                if sock in self.sockets:
+                    try:
+                        data = sock.recv(1024)
+                        logger.info(
+                            'Read data from socket "{}"'.format(data))
+                    except socket.error:
+                        logger.error(
+                            'Error while reading from socket ...')
+
         finally:
             self.lock.release()
 
@@ -387,12 +397,14 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 'Content-Type': encoder.mime_type,
             }
 
-            if self.request_version == PROTOCOL_VERSION_V10:
-                if self.server.fake_http10_content_length:
-                    gb_in_bytes = 1073741824
-                    headers['Content-Length'] = gb_in_bytes * 100
-            elif self.request_version == PROTOCOL_VERSION_V11:
-                headers['Connection'] = 'close'
+            if self.server.fake_http_content_length:
+                gb_in_bytes = 1073741824
+                headers['Content-Length'] = gb_in_bytes * 100
+            else:
+                if self.request_version == PROTOCOL_VERSION_V10:
+                    pass
+                elif self.request_version == PROTOCOL_VERSION_V11:
+                    headers['Connection'] = 'close'
 
             if isinstance(
                 bridge.device,
@@ -458,7 +470,7 @@ class StreamServer(SocketServer.TCPServer):
 
     def __init__(
             self, ip, port, bridges, message_queue,
-            fake_http10_content_length=False, disable_switchback=False, *args):
+            fake_http_content_length=False, disable_switchback=False, *args):
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
             self, ('', port), StreamRequestHandler, *args)
@@ -468,7 +480,7 @@ class StreamServer(SocketServer.TCPServer):
         self.bridges = bridges
         self.message_queue = message_queue
         self.stream_manager = StreamManager(self)
-        self.fake_http10_content_length = fake_http10_content_length
+        self.fake_http_content_length = fake_http_content_length
         self.disable_switchback = disable_switchback
 
     def get_server_url(self):
