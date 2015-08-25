@@ -566,7 +566,7 @@ class PulseWatcher(PulseAudio):
             return
 
         for bridge in self.bridges:
-            logger.info('\n{}'.format(str(bridge)))
+            logger.debug('\n{}'.format(str(bridge)))
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
                     logger.info(
