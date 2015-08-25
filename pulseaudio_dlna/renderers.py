@@ -50,14 +50,14 @@ class RendererHolder(object):
         self.registered[identifier] = _type
 
     def _retrieve_header_map(self, header):
-        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\r\n", header)
-        header = {k.lower(): v for k, v in dict(header).items()}
+        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\n", header)
+        header = {k.lower(): v.strip() for k, v in dict(header).items()}
         return header
 
     def _retrieve_device_id(self, header):
         if 'usn' in header:
             match = re.search(
-                "(uuid:[0-9a-f\-]+)::.*", header['usn'], re.IGNORECASE)
+                "(uuid:.*?)::(.*)", header['usn'], re.IGNORECASE)
             if match:
                 return match.group(1)
         return None
