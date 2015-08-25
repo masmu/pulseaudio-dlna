@@ -57,6 +57,8 @@ class Application(object):
 
     def run(self, options):
 
+        logger.info('Using version: {}'.format(pulseaudio_dlna.__version__))
+
         if not options['--host']:
             host = pulseaudio_dlna.utils.network.default_ipv4()
             if host is None:
