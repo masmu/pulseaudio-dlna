@@ -101,24 +101,41 @@ class PulseAudio(object):
                 sys.exit(1)
 
     def update(self):
-        self.update_playback_streams()
-        self.update_sinks()
 
-        for stream in self.streams:
-            for sink in self.sinks:
-                if sink.object_path == stream.device:
-                    sink.streams.append(stream)
+        def retry_on_fail(method, tries=5):
+            count = 1
+            while not method():
+                if count > tries:
+                    return False
+                count += 1
+            return True
+
+        if retry_on_fail(self.update_playback_streams) and \
+           retry_on_fail(self.update_sinks):
+            for stream in self.streams:
+                for sink in self.sinks:
+                    if sink.object_path == stream.device:
+                        sink.streams.append(stream)
+        else:
+            logger.error(
+                'Could not update sinks and streams. This normally indicates a '
+                'problem with pulseaudio\'s dbus module. Try restarting '
+                'pulseaudio if the problem persists.')
 
     def update_playback_streams(self):
-        stream_paths = self.core.Get(
-            'org.PulseAudio.Core1', 'PlaybackStreams',
-            dbus_interface='org.freedesktop.DBus.Properties')
+        try:
+            stream_paths = self.core.Get(
+                'org.PulseAudio.Core1', 'PlaybackStreams',
+                dbus_interface='org.freedesktop.DBus.Properties')
 
-        self.streams = []
-        for stream_path in stream_paths:
-            stream = PulseStreamFactory.new(self.bus, stream_path)
-            if stream:
-                self.streams.append(stream)
+            self.streams = []
+            for stream_path in stream_paths:
+                stream = PulseStreamFactory.new(self.bus, stream_path)
+                if stream:
+                    self.streams.append(stream)
+            return True
+        except dbus.exceptions.DBusException:
+            return False
 
     def update_sinks(self):
         try:
@@ -132,11 +149,9 @@ class PulseAudio(object):
                 if sink:
                     sink.fallback_sink = self.fallback_sink
                     self.sinks.append(sink)
+            return True
         except dbus.exceptions.DBusException:
-            logger.error(
-                'Could not update sinks. This normally indicates a problem '
-                'with pulseaudio\'s dbus module. Try restarting pulseaudio '
-                'if the problem persists.')
+            return False
 
     def create_null_sink(self, sink_name, sink_description):
         cmd = [
@@ -539,7 +554,7 @@ class PulseWatcher(PulseAudio):
         if self.signal_timers.get(sink_path, None):
             gobject.source_remove(self.signal_timers[sink_path])
         self.signal_timers[sink_path] = gobject.timeout_add(
-            500, self._handle_sink_update, sink_path)
+            1000, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):
         logger.info('_handle_sink_update {}'.format(sink_path))
@@ -551,6 +566,7 @@ class PulseWatcher(PulseAudio):
             return
 
         for bridge in self.bridges:
+            logger.debug('\n{}'.format(str(bridge)))
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
                     logger.info(
