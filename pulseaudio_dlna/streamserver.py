@@ -433,7 +433,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def handle_headers(self):
         bridge, encoder = self.chop_request_path(self.path)
         if encoder and bridge:
-            self.send_response(200)
+            response_code = 200
             headers = {
                 'Content-Type': encoder.mime_type,
             }
@@ -446,6 +446,14 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     pass
                 elif self.request_version == PROTOCOL_VERSION_V11:
                     headers['Connection'] = 'close'
+
+            if self.headers.get('range'):
+                match = re.search(
+                    'bytes=(\d+)-(\d+)?', self.headers['range'], re.IGNORECASE)
+                if match:
+                    start_range = int(match.group(1))
+                    if start_range != 0:
+                        response_code = 206
 
             if isinstance(
                 bridge.device,
@@ -461,8 +469,11 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
 
-            logger.debug('Sending header:\n{header}'.format(
-                header=json.dumps(headers, indent=2)))
+            logger.debug('Sending header ({response_code}):\n{header}'.format(
+                response_code=response_code,
+                header=json.dumps(headers, indent=2),
+            ))
+            self.send_response(response_code)
             for name, value in headers.items():
                 self.send_header(name, value)
             self.end_headers()
