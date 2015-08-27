@@ -255,6 +255,8 @@ class ProcessStream(object):
                         data = sock.recv(1024)
                         logger.info(
                             'Read data from socket "{}"'.format(data))
+                        if len(data) == 0:
+                            self.unregister(sock, lock_override=True, method=3)
                     except socket.error:
                         logger.error(
                             'Error while reading from socket ...')
