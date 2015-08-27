@@ -33,7 +33,6 @@ import os
 import signal
 import BaseHTTPServer
 import SocketServer
-import random
 
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.recorders
@@ -83,7 +82,7 @@ class RemoteDevice(object):
 @functools.total_ordering
 class ProcessStream(object):
     def __init__(self, path, recorder, encoder, manager):
-        self.id = random.randint(100000, 999999)
+        self.id = hex(id(self))
         self.path = path
         self.recorder = recorder
         self.encoder = encoder
@@ -354,7 +353,9 @@ class StreamManager(object):
             })
 
         if isinstance(stream.encoder, pulseaudio_dlna.encoders.WavEncoder):
-            self.single_streams.remove(stream)
+            self.single_streams = [
+                s for s in self.single_streams if stream.id != s.id]
+
             if not self.server.disable_switchback:
                 if stream not in self.single_streams:
                     _send_bridge_disconnected(device.bridge)
