@@ -93,7 +93,7 @@ class ProcessStream(object):
 
         self.sockets = {}
         self.timeouts = {}
-        self.chunk_size = 1024 * 4
+        self.chunk_size = 1024 * 64
         self.lock = threading.Lock()
         self.client_count = 0
         self.reinitialize_count = 0
