@@ -33,6 +33,7 @@ import os
 import signal
 import BaseHTTPServer
 import SocketServer
+import random
 
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.recorders
@@ -51,6 +52,7 @@ PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 class RemoteDevice(object):
     def __init__(self, bridge, sock):
         self.bridge = bridge
+        self.sock = sock
         try:
             self.ip, self.port = sock.getpeername()
         except:
@@ -69,10 +71,19 @@ class RemoteDevice(object):
             return self.ip > other.ip
         raise NotImplementedError
 
+    def __str__(self):
+        return '<{} socket="{}" ip="{}" port="{}">'.format(
+            self.__class__.__name__,
+            str(self.sock),
+            self.ip,
+            self.port,
+        )
+
 
 @functools.total_ordering
 class ProcessStream(object):
     def __init__(self, path, recorder, encoder, manager):
+        self.id = random.randint(100000, 999999)
         self.path = path
         self.recorder = recorder
         self.encoder = encoder
@@ -114,15 +125,28 @@ class ProcessStream(object):
 
             def stop(self):
                 self.do_stop = True
-                self.resume()
+                if self.is_running is False:
+                    self.is_running = True
+                    self.lock.release()
 
             def pause(self):
                 self.is_running = False
 
             def resume(self):
+                if self.do_stop:
+                    logger.error('Trying to resume a stopped thread!')
                 if self.is_running is False:
                     self.is_running = True
                     self.lock.release()
+
+            @property
+            def state(self):
+                if self.do_stop:
+                    return 'stopped'
+                if self.is_running:
+                    return 'running'
+                else:
+                    return 'paused'
 
         self.update_thread = UpdateThread(self)
         self.update_thread.daemon = True
@@ -292,6 +316,7 @@ class ProcessStream(object):
         self.update_thread.stop()
         for sock in self.sockets.keys():
             sock.close()
+        logger.info('Thread exited for "{}".'.format(self.path))
 
     def __eq__(self, other):
         if isinstance(other, ProcessStream):
@@ -302,6 +327,15 @@ class ProcessStream(object):
         if isinstance(other, ProcessStream):
             return self.path > other.path
         raise NotImplementedError
+
+    def __str__(self):
+        return '<{} id="{}" path="{}" state="{}">\n{}'.format(
+            self.__class__.__name__,
+            self.id,
+            self.path,
+            self.update_thread.state,
+            '\n'.join(['      ' + str(device) for device in self.sockets.values()]),
+        )
 
 
 class StreamManager(object):
@@ -353,6 +387,13 @@ class StreamManager(object):
                 return stream
             else:
                 return self.shared_streams[path]
+
+    def __str__(self):
+        return '<{}>\n  single:\n{}\n  shared:\n{}\n'.format(
+            self.__class__.__name__,
+            '\n'.join(['    ' + str(stream) for stream in self.single_streams]),
+            '\n'.join(['    ' + str(stream) for stream in self.shared_streams.values()]),
+        )
 
 
 class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
