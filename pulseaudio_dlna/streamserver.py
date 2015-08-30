@@ -399,7 +399,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             }
 
             if self.server.fake_http_content_length:
-                gb_in_bytes = 1 << 30
+                gb_in_bytes = pow(1024, 3)
                 headers['Content-Length'] = gb_in_bytes * 100
             else:
                 if self.request_version == PROTOCOL_VERSION_V10:
