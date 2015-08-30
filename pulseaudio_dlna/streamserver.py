@@ -25,6 +25,7 @@ import logging
 import time
 import socket
 import select
+import sys
 import gobject
 import functools
 import atexit
@@ -272,13 +273,13 @@ class ProcessStream(object):
         if self.reinitialize_count < 3:
             self.reinitialize_count += 1
             logger.debug('Starting processes "{recorder} | {encoder}"'.format(
-                recorder=self.recorder.command,
-                encoder=self.encoder.command))
+                recorder=' '.join(self.recorder.command),
+                encoder=' '.join(self.encoder.command)))
             self.recorder_process = subprocess.Popen(
-                self.recorder.command.split(' '),
+                self.recorder.command,
                 stdout=subprocess.PIPE)
             self.encoder_process = subprocess.Popen(
-                self.encoder.command.split(' '),
+                self.encoder.command,
                 stdin=self.recorder_process.stdout,
                 stdout=subprocess.PIPE)
             self.recorder_process.stdout.close()
@@ -398,7 +399,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             }
 
             if self.server.fake_http_content_length:
-                gb_in_bytes = 1073741824
+                gb_in_bytes = pow(1024, 3)
                 headers['Content-Length'] = gb_in_bytes * 100
             else:
                 if self.request_version == PROTOCOL_VERSION_V10:
