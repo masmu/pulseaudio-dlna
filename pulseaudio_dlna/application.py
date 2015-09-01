@@ -129,6 +129,10 @@ class Application(object):
         disable_switchback = False
         if options['--disable-switchback']:
             disable_switchback = True
+            
+        persist-stream = False
+        if options['--persist-stream']:
+            persist-stream = True
 
         disable_ssdp_listener = False
         if options['--disable-ssdp-listener']:
