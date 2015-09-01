@@ -130,9 +130,9 @@ class WavEncoder(BaseEncoder):
         BaseEncoder.__init__(self)
         self._binary = 'sox'
         self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
-                         '-r', '44100', '-',
+                         '-r', '48000', '-',
                          '-t', 'wav', '-b', '16', '-e', 'signed', '-c', '2',
-                         '-r', '44100', '-L', '-']
+                         '-r', '48000', '-L', '-']
         self._mime_type = 'audio/wav'
         self._suffix = 'wav'
         self._mime_types = ['audio/wav', 'audio/x-wav']
@@ -201,7 +201,7 @@ class FlacEncoder(BaseEncoder):
         BaseEncoder.__init__(self)
         self._binary = 'flac'
         self._command = ['-', '-c', '--channels', '2', '--bps', '16',
-                         '--sample-rate', '44100'
+                         '--sample-rate', '48000'
                          '--endian little', '--sign', 'signed', '-s']
         self._mime_type = 'audio/flac'
         self._suffix = 'flac'
@@ -255,7 +255,7 @@ class OpusEncoder(BaseEncoder):
         self._binary = 'opusenc'
         self._command = ['--padding', '0', '--max-delay', '0',
                          '--expect-loss', '1', '--framesize', '2.5',
-                         '--raw-rate', '44100',
+                         '--raw-rate', '48000',
                          '--raw', '--bitrate', '64', '-', '-']
         self._mime_type = 'audio/opus'
         self._suffix = 'opus'
