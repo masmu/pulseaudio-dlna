@@ -43,6 +43,7 @@ Options:
     --debug                                enables detailed debug messages.
     --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
     --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.
+    --persist-stream                       If set, persist streaming data even if there is nothing attached to the sink
     --disable-ssdp-listener                If set, the application won't bind to the port 1900 and therefore the automatic discovery of new devices won't work.
     -v --version                           Show the version.
     -h --help                              Show the help.
