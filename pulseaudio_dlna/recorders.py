@@ -31,7 +31,7 @@ class PulseaudioRecorder(BaseRecorder):
     def __init__(self, sink_path):
         BaseRecorder.__init__(self)
         self._sink_path = sink_path
-        self._command = ['parec', '--format=s16le']
+        self._command = ['parec', '--format=s16le', '--rate=48000']
 
     @property
     def command(self):
