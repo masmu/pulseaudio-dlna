@@ -389,7 +389,7 @@ class PulseBridge(object):
 
 
 class PulseWatcher(PulseAudio):
-    def __init__(self, bridges_shared, message_queue):
+    def __init__(self, bridges_shared, message_queue, persist_stream=False):
         PulseAudio.__init__(self)
 
         self.bridges = []
@@ -399,6 +399,8 @@ class PulseWatcher(PulseAudio):
         self.message_queue = message_queue
         self.blocked_devices = []
         self.signal_timers = {}
+        
+        self.persist_stream = persist_stream
 
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
@@ -471,6 +473,9 @@ class PulseWatcher(PulseAudio):
 
     def cleanup(self):
         for bridge in self.bridges:
+            if self.persist_stream and bridge.device.state == bridge.device.PLAYING:
+                logger.info('Stop silent stream on device "{}" ...'.format(bridge.device.label))
+                bridge.device.stop()
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
             self.delete_null_sink(bridge.sink.module.index)
 
@@ -569,15 +574,20 @@ class PulseWatcher(PulseAudio):
             logger.debug('\n{}'.format(str(bridge)))
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
-                    logger.info(
-                        'Instructing the device "{}" to stop ...'.format(
-                            bridge.device.label))
-                    if bridge.device.stop() == 200:
-                        logger.info('The device "{}" was stopped.'.format(
-                            bridge.device.label))
+                    if not self.persist_stream:
+                        logger.info(
+                            'Instructing the device "{}" to stop ...'.format(
+                                bridge.device.label))
+                        if bridge.device.stop() == 200:
+                            logger.info('The device "{}" was stopped.'.format(
+                                bridge.device.label))
+                        else:
+                            logger.error('The device "{}" failed to stop!'.format(
+                                bridge.device.label))
                     else:
-                        logger.error('The device "{}" failed to stop!'.format(
-                            bridge.device.label))
+                        logger.info(
+                            'Continuing silent stream on device "{}" ...'.format(
+                                bridge.device.label))
                     continue
             if bridge.sink.object_path == sink_path:
                 if bridge.device.state == bridge.device.IDLE or \

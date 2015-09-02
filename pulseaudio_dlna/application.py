@@ -130,9 +130,9 @@ class Application(object):
         if options['--disable-switchback']:
             disable_switchback = True
             
-        persist-stream = False
+        persist_stream = False
         if options['--persist-stream']:
-            persist-stream = True
+            persist_stream = True
 
         disable_ssdp_listener = False
         if options['--disable-ssdp-listener']:
@@ -152,7 +152,7 @@ class Application(object):
             sys.exit(1)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
+        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue, persist_stream)
 
         device_filter = None
         if options['--filter-device']:
