@@ -323,50 +323,90 @@ seperated by comma (_,_). Most users won't ever need this option, but since
 UDP multicast packages won't work (most times) over VPN connections this is
 very useful if you ever plan to stream to a UPNP device over VPN.
 
+## Known Issues ##
+
+- **Distorted sound**
+
+    If you experience distorted sound, try to pause / unpause the playback or
+    changing / adjusting the volume. Some encoders handle volume changes
+    better than others. The _lame_ encoder handles this by far better than
+    most of the other ones.
+
+- **There is a delay about a few seconds**
+
+    Since there is HTTP streaming used for the audio data to transport,
+    there is always a buffer involved. This device buffer ensures that even
+    if you suffer from a slow network (e.g. weak wifi) small interruptions
+    won't affect your playback. On the other hand devices will first start
+    to play when this buffer is filled. Most devices do this based on the
+    received amount of data. Therefore inefficient codecs such as _wav_ fill
+    that buffer much faster than efficient codecs do. The result is a
+    noticeable shorter delay in contrast to e.g. _mp3_ or others. Note, that
+    in this case your network should be pretty stable, otherwise your device
+    will quickly run out of data and stop playing. This is normally not a
+    problem with cable connections. E.g. I have a delay about 1-2 seconds
+    with _wav_ and a delay of about 5 seconds with _mp3_ with the same
+    cable connected device. You can decrease the delay when using _wav_ or
+    using high bit rates, but you won't get rid of it completely.
+    My advice: If you have a reliable network, use _wav_. It is lossless
+    and you will get a short delay. If you have not, use another encoder
+    which does not require that much bandwidth to make sure your device
+    will keep playing. Of course you will be effected from a higher delay.
+
 ## Troubleshooting ##
 
 Some devices do not stick to the HTTP 1.0/1.1 standard. Since most devices do,
 _pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
 
-- `--fake-http10-content-length`
+- `--fake-http-content-length`
 
-    Adds a faked HTTP Content-Length to HTTP 1.0 responses. The length is set 
+    Adds a faked HTTP Content-Length to HTTP 1.0/1.1 responses. The length is set 
     to 100 GB and ensures that the device would keep playing for months.
-    This is necessary for the _Hame Soundrouter_.
+    This is e.g. necessary for the _Hame Soundrouter_ and depending on the used
+    encoder for _Sonos_ devices.
 
 ## Tested devices ##
 
-_pulseaudio-dlna_ was successfully tested on the following devices / applications:
+A listed entry means that it was successfully tested, even if there is no specific
+codec information availible.
 
-- D-Link DCH-M225/E
-- [Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)
-- BubbleUPnP (Android App)
-- Samsung Smart TV LED60 (UE60F6300)
-- Samsung Smart TV LED40 (UE40ES6100)
-- Xbmc / Kodi
-- Philips Streamium NP2500 Network Player
-- Yamaha RX-475 (AV Receiver)
-- Majik DSM
-- [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
-- Google Chromecast
-- Sonos PLAY:1
-- Sonos PLAY:3
-- Hame Soundrouter
-- [Raumfeld Speaker M](http://raumfeld.com)
-- Pioneer VSX-824 (AV Receiver)
-- [ROCKI](http://www.myrocki.com/)
-- Sony STR-DN1050 (AV Receiver)
-- Pure Jongo S3
-- [Volumio](http://volumio.org) 
-- Logitech Media Server
+Device                                                                          | mp3                               | wav                               | ogg                               | flac                              | aac                               | opus
+------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
+D-Link DCH-M225/E                                                               | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:
+[Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)                      | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
+BubbleUPnP (Android App)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:
+Samsung Smart TV LED60 (UE60F6300)                                              | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Samsung Smart TV LED40 (UE40ES6100)                                             | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Xbmc / Kodi                                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle: <sup>2</sup>       | :white_circle: <sup>2</sup>
+Philips Streamium NP2500 Network Player                                         | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Yamaha RX-475 (AV Receiver)                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle: <sup>2</sup>       | :no_entry_sign:
+Sonos PLAY:1                                                                    | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+Sonos PLAY:3                                                                    | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+Hame Soundrouter                                                                | :white_check_mark: <sup>1</sup>   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark: <sup>1</sup>   | :no_entry_sign:                   | :no_entry_sign:
+[Raumfeld Speaker M](http://raumfeld.com)                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Pioneer VSX-824 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[ROCKI](http://www.myrocki.com/)                                                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Sony STR-DN1050 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Pure Jongo S3                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Volumio](http://volumio.org)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Logitech Media Server                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+
+<sup>1</sup>) Works when specifing the `--fake-http-content-length` flag
+
+<sup>2</sup>) Is capable of playing the codec, but does not specifiy the correct mime type
 
 ## Supported encoders ##
 
-_pulseaudio-dlna_ supports the following encoders:
+Encoder     | Description                       | Identifier
+------------- | ------------- | -------------
+lame        | MPEG Audio Layer III              | mp3
+oggenc      | Ogg Vorbis                        | ogg
+flac        | Free Lossless Audio Codec         | flac
+sox         | Waveform Audio File Format        | wav
+opusenc     | Opus Interactive Audio Codec      | opus
+faac        | Advanced Audio Coding             | aac
 
-- __lame__  MPEG Audio Layer III (MP3)
-- __ogg__   Ogg Vorbis
-- __flac__  Free Lossless Audio Codec (FLAC)
-- __wav__   Waveform Audio File Format (WAV)
-- __opus__  Opus Interactive Audio Codec (OPUS)
-- __aac__   Advanced Audio Coding (AAC)
+You can select a specific codec using the `--encoder` flag followed by its identifier.
