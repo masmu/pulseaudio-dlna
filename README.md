@@ -337,27 +337,32 @@ _pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
 
 _pulseaudio-dlna_ was successfully tested on the following devices / applications:
 
-- D-Link DCH-M225/E
-- [Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)
-- BubbleUPnP (Android App)
-- Samsung Smart TV LED60 (UE60F6300)
-- Samsung Smart TV LED40 (UE40ES6100)
-- Xbmc / Kodi
-- Philips Streamium NP2500 Network Player
-- Yamaha RX-475 (AV Receiver)
-- Majik DSM
-- [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)
-- Google Chromecast
-- Sonos PLAY:1
-- Sonos PLAY:3
-- Hame Soundrouter
-- [Raumfeld Speaker M](http://raumfeld.com)
-- Pioneer VSX-824 (AV Receiver)
-- [ROCKI](http://www.myrocki.com/)
-- Sony STR-DN1050 (AV Receiver)
-- Pure Jongo S3
-- [Volumio](http://volumio.org) 
-- Logitech Media Server
+Device                                                                          | mp3                               | wav                               | ogg                               | flac                              | aac                               | opus
+------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
+D-Link DCH-M225/E                                                               | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:
+[Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)                      | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
+BubbleUPnP (Android App)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:
+Samsung Smart TV LED60 (UE60F6300)                                              | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Samsung Smart TV LED40 (UE40ES6100)                                             | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Xbmc / Kodi                                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle: <sup>2</sup>       | :white_circle: <sup>2</sup>
+Philips Streamium NP2500 Network Player                                         | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Yamaha RX-475 (AV Receiver)                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle: <sup>2</sup>       | :no_entry_sign:
+Sonos PLAY:1                                                                    | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+Sonos PLAY:3                                                                    | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+Hame Soundrouter                                                                | :white_check_mark: <sup>1</sup>   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark: <sup>1</sup>   | :no_entry_sign:                   | :no_entry_sign:
+[Raumfeld Speaker M](http://raumfeld.com)                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Pioneer VSX-824 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[ROCKI](http://www.myrocki.com/)                                                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Sony STR-DN1050 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Pure Jongo S3                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Volumio](http://volumio.org)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Logitech Media Server                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+
+<sup>1</sup> Works when specifing the `--fake-http-content-length` flag
+<sup>2</sup> Is capable of playing the codec, but does not specifiy the correct mime type
 
 ## Supported encoders ##
 
