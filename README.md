@@ -361,8 +361,9 @@ Pure Jongo S3                                                                   
 [Volumio](http://volumio.org)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Logitech Media Server                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 
-<sup>1</sup> Works when specifing the `--fake-http-content-length` flag
-<sup>2</sup> Is capable of playing the codec, but does not specifiy the correct mime type
+<sup>1</sup>) Works when specifing the `--fake-http-content-length` flag
+
+<sup>2</sup>) Is capable of playing the codec, but does not specifiy the correct mime type
 
 ## Supported encoders ##
 
