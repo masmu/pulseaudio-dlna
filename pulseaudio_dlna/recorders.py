@@ -20,7 +20,7 @@ from __future__ import unicode_literals
 
 class BaseRecorder(object):
     def __init__(self):
-        self._command = ''
+        self._command = []
 
     @property
     def command(self):
@@ -30,9 +30,9 @@ class BaseRecorder(object):
 class PulseaudioRecorder(BaseRecorder):
     def __init__(self, sink_path):
         BaseRecorder.__init__(self)
-        self._command = 'parec --format=s16le -d {sink_path}'
         self._sink_path = sink_path
+        self._command = ['parec', '--format=s16le']
 
     @property
     def command(self):
-        return self._command.format(sink_path=self._sink_path)
+        return self._command + ['-d', self._sink_path]

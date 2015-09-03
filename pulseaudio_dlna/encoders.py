@@ -33,7 +33,7 @@ class UnsupportedMimeTypeException():
 class BaseEncoder(object):
     def __init__(self):
         self._binary = None
-        self._command = ''
+        self._command = []
         self._mime_type = 'undefined'
         self._mime_types = []
         self._suffix = 'undefined'
@@ -49,7 +49,7 @@ class BaseEncoder(object):
 
     @property
     def command(self):
-        return self._command.format(binary=self.binary)
+        return [self.binary] + self._command
 
     @property
     def mime_type(self):
@@ -129,8 +129,10 @@ class WavEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
         self._binary = 'sox'
-        self._command = ('{binary} -t raw -b 16 -e signed -c 2 -r 44100 - -t wav '
-                         '-r 44100 -b 16 -L -e signed -c 2 -')
+        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100', '-',
+                         '-t', 'wav', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100', '-L', '-']
         self._mime_type = 'audio/wav'
         self._suffix = 'wav'
         self._mime_types = ['audio/wav', 'audio/x-wav']
@@ -152,7 +154,7 @@ class LameEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
         self._binary = 'lame'
-        self._command = '{binary} {bit_rate} -r -'
+        self._command = ['-r', '-']
         self._mime_type = 'audio/mpeg'
         self._suffix = 'mp3'
         self._mime_types = ['audio/mpeg', 'audio/mp3']
@@ -165,17 +167,16 @@ class LameEncoder(BaseEncoder):
     @property
     def command(self):
         if self.bit_rate is None:
-            return self._command.format(binary=self.binary, bit_rate='')
+            return super(LameEncoder, self).command
         else:
-            return self._command.format(
-                binary=self.binary, bit_rate='-b ' + str(self.bit_rate))
+            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
 class AacEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
         self._binary = 'faac'
-        self._command = '{binary} {bit_rate} -X -P -o - -'
+        self._command = ['-X', '-P', '-o', '-', '-']
         self._mime_type = 'audio/aac'
         self._suffix = 'aac'
         self._mime_types = ['audio/aac', 'audio/x-aac']
@@ -188,19 +189,18 @@ class AacEncoder(BaseEncoder):
     @property
     def command(self):
         if self.bit_rate is None:
-            return self._command.format(binary=self.binary, bit_rate='')
+            return super(AacEncoder, self).command
         else:
-            return self._command.format(
-                binary=self.binary, bit_rate='-b ' + str(self.bit_rate))
+            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
 class FlacEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
         self._binary = 'flac'
-        self._command = ('{binary} - -c --channels 2 --bps 16 '
-                         '--sample-rate 44100 '
-                         '--endian little --sign signed -s')
+        self._command = ['-', '-c', '--channels', '2', '--bps', '16',
+                         '--sample-rate', '44100',
+                         '--endian', 'little', '--sign', 'signed', '-s']
         self._mime_type = 'audio/flac'
         self._suffix = 'flac'
         self._mime_types = ['audio/flac', 'audio/x-flac']
@@ -222,7 +222,7 @@ class OggEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
         self._binary = 'oggenc'
-        self._command = '{binary} {bit_rate} -Q -r --ignorelength -'
+        self._command = ['-Q', '-r', '--ignorelength', '-']
         self._mime_type = 'audio/ogg'
         self._suffix = 'ogg'
         self._mime_types = ['audio/ogg', 'audio/x-ogg', 'application/ogg']
@@ -241,19 +241,19 @@ class OggEncoder(BaseEncoder):
     @property
     def command(self):
         if self.bit_rate is None:
-            return self._command.format(binary=self.binary, bit_rate='')
+            return super(OggEncoder, self).command
         else:
-            return self._command.format(
-                binary=self.binary, bit_rate='-b ' + str(self.bit_rate))
+            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
 class OpusEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
         self._binary = 'opusenc'
-        self._command = ('{binary} {bit_rate} --padding 0 --max-delay 0 '
-                         '--expect-loss 1 --framesize 2.5 --raw-rate 44100 '
-                         '--raw --bitrate 64 - -')
+        self._command = ['--padding', '0', '--max-delay', '0',
+                         '--expect-loss', '1', '--framesize', '2.5',
+                         '--raw-rate', '44100',
+                         '--raw', '-', '-']
         self._mime_type = 'audio/opus'
         self._suffix = 'opus'
         self._mime_types = ['audio/opus', 'audio/x-opus']
@@ -265,7 +265,7 @@ class OpusEncoder(BaseEncoder):
     @property
     def command(self):
         if self.bit_rate is None:
-            return self._command.format(binary=self.binary, bit_rate='')
+            return super(OggEncoder, self).command
         else:
-            return self._command.format(
-                binary=self.binary, bit_rate='--bitrate ' + str(self.bit_rate))
+            return [self.binary] + \
+                ['--bitrate', str(self.bit_rate)] + self._command
