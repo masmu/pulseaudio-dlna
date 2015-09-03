@@ -399,11 +399,13 @@ Logitech Media Server                                                           
 
 ## Supported encoders ##
 
-_pulseaudio-dlna_ supports the following encoders:
+Encoder     | Description                       | Identifier
+------------- | ------------- | -------------
+lame        | MPEG Audio Layer III              | mp3
+oggenc      | Ogg Vorbis                        | ogg
+flac        | Free Lossless Audio Codec         | flac
+sox         | Waveform Audio File Format        | wav
+opusenc     | Opus Interactive Audio Codec      | opus
+faac        | Advanced Audio Coding             | aac
 
-- __lame__  MPEG Audio Layer III (MP3)
-- __ogg__   Ogg Vorbis
-- __flac__  Free Lossless Audio Codec (FLAC)
-- __wav__   Waveform Audio File Format (WAV)
-- __opus__  Opus Interactive Audio Codec (OPUS)
-- __aac__   Advanced Audio Coding (AAC)
+You can select a specific codec using the `--encoder` flag followed by its identifier.
