@@ -36,12 +36,13 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-08-25_)
+ * __master__ - (_2015-09-03_)
     - Exceptions while updating sink and device informations from pulseaudio are now handled better
     - Changed `--fake-http10-content-length` flag to `--fake-http-content-length` to also support HTTP 1.1 requests
     - Fixed a bug where the supported device mime types could not get parsed correctly
     - Fixed a bug where the device UUID was not parsed correctly
     - Fixed a bug where just mime types beginning with `audio/` where accepted, but not e.g. `application/ogg`
+    - Added ability to continue streaming to DLNA device even if the sink is "silent" (no connected playback streams)
 
  * __0.4.4__ - (_2015-08-07_)
     - Added `--disable-ssdp-listener` option
