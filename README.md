@@ -329,7 +329,7 @@ _pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
 
 - `--fake-http-content-length`
 
-    Adds a faked HTTP Content-Length to HTTP 1.0 responses. The length is set 
+    Adds a faked HTTP Content-Length to HTTP 1.0/1.1 responses. The length is set 
     to 100 GB and ensures that the device would keep playing for months.
     This is e.g. necessary for the _Hame Soundrouter_ and depending on the used
     encoder for _Sonos_ devices.
