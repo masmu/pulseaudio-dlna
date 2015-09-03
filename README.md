@@ -322,6 +322,36 @@ seperated by comma (_,_). Most users won't ever need this option, but since
 UDP multicast packages won't work (most times) over VPN connections this is
 very useful if you ever plan to stream to a UPNP device over VPN.
 
+## Known Issues ##
+
+- **Distorted sound**
+
+    If you experience distorted sound, try to pause / unpause the playback or
+    changing / adjusting the volume. Some encoders handle volume changes
+    better than others. The _lame_ encoder handles this by far better than
+    most of the other ones.
+
+- **There is a delay about a few seconds**
+
+    Since there is HTTP streaming used for the audio data to transport,
+    there is always a buffer involved. This device buffer ensures that even
+    if you suffer from a slow network (e.g. weak wifi) small interruptions
+    won't affect your playback. On the other hand devices will first start
+    to play when this buffer is filled. Most devices do this based on the
+    received amount of data. Therefore inefficient codecs such as _wav_ fill
+    that buffer much faster than efficient codecs do. The result is a
+    noticeable shorter delay in contrast to e.g. _mp3_ or others. Note, that
+    in this case your network should be pretty stable, otherwise your device
+    will quickly run out of data and stop playing. This is normally not a
+    problem with cable connections. E.g. I have a delay about 1-2 seconds
+    with _wav_ and a delay of about 5 seconds with _mp3_ with the same
+    cable connected device. You can decrease the delay when using _wav_ or
+    using high bit rates, but you won't get rid of it completely.
+    My advice: If you have a reliable network, use _wav_. It is lossless
+    and you will get a short delay. If you have not, use another encoder
+    which does not require that much bandwidth to make sure your device
+    will keep playing. Of course you will be effected from a higher delay.
+
 ## Troubleshooting ##
 
 Some devices do not stick to the HTTP 1.0/1.1 standard. Since most devices do,
