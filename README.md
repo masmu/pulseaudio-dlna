@@ -327,11 +327,12 @@ very useful if you ever plan to stream to a UPNP device over VPN.
 Some devices do not stick to the HTTP 1.0/1.1 standard. Since most devices do,
 _pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
 
-- `--fake-http10-content-length`
+- `--fake-http-content-length`
 
     Adds a faked HTTP Content-Length to HTTP 1.0 responses. The length is set 
     to 100 GB and ensures that the device would keep playing for months.
-    This is necessary for the _Hame Soundrouter_.
+    This is e.g. necessary for the _Hame Soundrouter_ and depending on the used
+    encoder for _Sonos_ devices.
 
 ## Tested devices ##
 
