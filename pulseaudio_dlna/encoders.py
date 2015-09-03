@@ -166,11 +166,10 @@ class LameEncoder(BaseEncoder):
 
     @property
     def command(self):
-        command = super(LameEncoder, self).command
         if self.bit_rate is None:
-            return command + self._command
+            return super(LameEncoder, self).command
         else:
-            return command + ['-b', str(self.bit_rate)] + self._command
+            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
 class AacEncoder(BaseEncoder):
@@ -189,11 +188,10 @@ class AacEncoder(BaseEncoder):
 
     @property
     def command(self):
-        command = super(AacEncoder, self).command
         if self.bit_rate is None:
-            return command + self._command
+            return super(AacEncoder, self).command
         else:
-            return command + ['-b', str(self.bit_rate)] + self._command
+            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
 class FlacEncoder(BaseEncoder):
@@ -201,8 +199,8 @@ class FlacEncoder(BaseEncoder):
         BaseEncoder.__init__(self)
         self._binary = 'flac'
         self._command = ['-', '-c', '--channels', '2', '--bps', '16',
-                         '--sample-rate', '44100'
-                         '--endian little', '--sign', 'signed', '-s']
+                         '--sample-rate', '44100',
+                         '--endian', 'little', '--sign', 'signed', '-s']
         self._mime_type = 'audio/flac'
         self._suffix = 'flac'
         self._mime_types = ['audio/flac', 'audio/x-flac']
@@ -242,11 +240,10 @@ class OggEncoder(BaseEncoder):
 
     @property
     def command(self):
-        command = super(OggEncoder, self).command
         if self.bit_rate is None:
-            return command + self._command
+            return super(OggEncoder, self).command
         else:
-            return command + ['-b', str(self.bit_rate)] + self._command
+            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
 class OpusEncoder(BaseEncoder):
@@ -256,7 +253,7 @@ class OpusEncoder(BaseEncoder):
         self._command = ['--padding', '0', '--max-delay', '0',
                          '--expect-loss', '1', '--framesize', '2.5',
                          '--raw-rate', '44100',
-                         '--raw', '--bitrate', '64', '-', '-']
+                         '--raw', '-', '-']
         self._mime_type = 'audio/opus'
         self._suffix = 'opus'
         self._mime_types = ['audio/opus', 'audio/x-opus']
@@ -267,8 +264,8 @@ class OpusEncoder(BaseEncoder):
 
     @property
     def command(self):
-        command = super(OggEncoder, self).command
         if self.bit_rate is None:
-            return command + self._command
+            return super(OggEncoder, self).command
         else:
-            return command + ['--bitrate', str(self.bit_rate)] + self._command
+            return [self.binary] + \
+                ['--bitrate', str(self.bit_rate)] + self._command
