@@ -52,6 +52,7 @@ PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 class RemoteDevice(object):
     def __init__(self, bridge, sock):
         self.bridge = bridge
+        self.sock = sock
         try:
             self.ip, self.port = sock.getpeername()
         except:
@@ -70,10 +71,19 @@ class RemoteDevice(object):
             return self.ip > other.ip
         raise NotImplementedError
 
+    def __str__(self):
+        return '<{} socket="{}" ip="{}" port="{}">'.format(
+            self.__class__.__name__,
+            str(self.sock),
+            self.ip,
+            self.port,
+        )
+
 
 @functools.total_ordering
 class ProcessStream(object):
     def __init__(self, path, recorder, encoder, manager):
+        self.id = hex(id(self))
         self.path = path
         self.recorder = recorder
         self.encoder = encoder
@@ -115,15 +125,28 @@ class ProcessStream(object):
 
             def stop(self):
                 self.do_stop = True
-                self.resume()
+                if self.is_running is False:
+                    self.is_running = True
+                    self.lock.release()
 
             def pause(self):
                 self.is_running = False
 
             def resume(self):
+                if self.do_stop:
+                    logger.error('Trying to resume a stopped thread!')
                 if self.is_running is False:
                     self.is_running = True
                     self.lock.release()
+
+            @property
+            def state(self):
+                if self.do_stop:
+                    return 'stopped'
+                if self.is_running:
+                    return 'running'
+                else:
+                    return 'paused'
 
         self.update_thread = UpdateThread(self)
         self.update_thread.daemon = True
@@ -142,6 +165,7 @@ class ProcessStream(object):
             self.client_count += 1
             self.update_thread.resume()
         finally:
+            logger.info('\n' + str(self.manager))
             if not lock_override:
                 self.lock.release()
 
@@ -232,6 +256,8 @@ class ProcessStream(object):
                         data = sock.recv(1024)
                         logger.info(
                             'Read data from socket "{}"'.format(data))
+                        if len(data) == 0:
+                            self.unregister(sock, lock_override=True, method=3)
                     except socket.error:
                         logger.error(
                             'Error while reading from socket ...')
@@ -293,6 +319,7 @@ class ProcessStream(object):
         self.update_thread.stop()
         for sock in self.sockets.keys():
             sock.close()
+        logger.info('Thread exited for "{}".'.format(self.path))
 
     def __eq__(self, other):
         if isinstance(other, ProcessStream):
@@ -303,6 +330,15 @@ class ProcessStream(object):
         if isinstance(other, ProcessStream):
             return self.path > other.path
         raise NotImplementedError
+
+    def __str__(self):
+        return '<{} id="{}" path="{}" state="{}">\n{}'.format(
+            self.__class__.__name__,
+            self.id,
+            self.path,
+            self.update_thread.state,
+            '\n'.join(['      ' + str(device) for device in self.sockets.values()]),
+        )
 
 
 class StreamManager(object):
@@ -321,7 +357,9 @@ class StreamManager(object):
             })
 
         if isinstance(stream.encoder, pulseaudio_dlna.encoders.WavEncoder):
-            self.single_streams.remove(stream)
+            self.single_streams = [
+                s for s in self.single_streams if stream.id != s.id]
+
             if not self.server.disable_switchback:
                 if stream not in self.single_streams:
                     _send_bridge_disconnected(device.bridge)
@@ -330,6 +368,8 @@ class StreamManager(object):
             if not self.server.disable_switchback:
                 if device not in stream.sockets.values():
                     _send_bridge_disconnected(device.bridge)
+
+        logger.info('\n' + str(self))
 
     def _create_stream(self, path, bridge, encoder):
         recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
@@ -354,6 +394,13 @@ class StreamManager(object):
                 return stream
             else:
                 return self.shared_streams[path]
+
+    def __str__(self):
+        return '<{}>\n  single:\n{}\n  shared:\n{}\n'.format(
+            self.__class__.__name__,
+            '\n'.join(['    ' + str(stream) for stream in self.single_streams]),
+            '\n'.join(['    ' + str(stream) for stream in self.shared_streams.values()]),
+        )
 
 
 class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
@@ -393,7 +440,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def handle_headers(self):
         bridge, encoder = self.chop_request_path(self.path)
         if encoder and bridge:
-            self.send_response(200)
+            response_code = 200
             headers = {
                 'Content-Type': encoder.mime_type,
             }
@@ -406,6 +453,14 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     pass
                 elif self.request_version == PROTOCOL_VERSION_V11:
                     headers['Connection'] = 'close'
+
+            if self.headers.get('range'):
+                match = re.search(
+                    'bytes=(\d+)-(\d+)?', self.headers['range'], re.IGNORECASE)
+                if match:
+                    start_range = int(match.group(1))
+                    if start_range != 0:
+                        response_code = 206
 
             if isinstance(
                 bridge.device,
@@ -421,8 +476,11 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
 
-            logger.debug('Sending header:\n{header}'.format(
-                header=json.dumps(headers, indent=2)))
+            logger.debug('Sending header ({response_code}):\n{header}'.format(
+                response_code=response_code,
+                header=json.dumps(headers, indent=2),
+            ))
+            self.send_response(response_code)
             for name, value in headers.items():
                 self.send_header(name, value)
             self.end_headers()

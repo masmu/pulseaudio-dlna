@@ -221,10 +221,17 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             encoding=self.ENCODING,
             service_type=self.service_transport.service_type,
         )
-        response = requests.post(
-            url, data=data.encode(self.ENCODING), headers=headers)
-        self._debug('register', url, headers, data, response)
-        return response.status_code
+        try:
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=3)
+            self._debug('register', url, headers, data, response)
+            return response.status_code
+        except requests.exceptions.Timeout:
+            logger.error(
+                'Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return 408
 
     def get_protocol_info(self):
         url = self.service_connection.control_url
@@ -284,12 +291,19 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             encoding=self.ENCODING,
             service_type=self.service_transport.service_type,
         )
-        response = requests.post(
-            url, data=data.encode(self.ENCODING), headers=headers)
-        if response.status_code == 200:
-            self.state = self.PLAYING
-        self._debug('play', url, headers, data, response)
-        return response.status_code
+        try:
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=3)
+            if response.status_code == 200:
+                self.state = self.PLAYING
+            self._debug('play', url, headers, data, response)
+            return response.status_code
+        except requests.exceptions.Timeout:
+            logger.error(
+                'Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return 408
 
     def stop(self):
         url = self.service_transport.control_url
@@ -304,12 +318,19 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             encoding=self.ENCODING,
             service_type=self.service_transport.service_type,
         )
-        response = requests.post(
-            url, data=data.encode(self.ENCODING), headers=headers)
-        if response.status_code == 200:
-            self.state = self.IDLE
-        self._debug('stop', url, headers, data, response)
-        return response.status_code
+        try:
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=3)
+            if response.status_code == 200:
+                self.state = self.IDLE
+            self._debug('stop', url, headers, data, response)
+            return response.status_code
+        except requests.exceptions.Timeout:
+            logger.error(
+                'Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return 408
 
     def pause(self):
         url = self.service_transport.control_url
@@ -324,12 +345,19 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             encoding=self.ENCODING,
             service_type=self.service_transport.service_type,
         )
-        response = requests.post(
-            url, data=data.encode(self.ENCODING), headers=headers)
-        if response.status_code == 200:
-            self.state = self.PAUSE
-        self._debug('pause', url, headers, data, response)
-        return response.status_code
+        try:
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=3)
+            if response.status_code == 200:
+                self.state = self.PAUSE
+            self._debug('pause', url, headers, data, response)
+            return response.status_code
+        except requests.exceptions.Timeout:
+            logger.error(
+                'Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return 408
 
 
 class CoinedUpnpMediaRenderer(
