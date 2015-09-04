@@ -165,7 +165,6 @@ class ProcessStream(object):
             self.client_count += 1
             self.update_thread.resume()
         finally:
-            logger.info('\n' + str(self.manager))
             if not lock_override:
                 self.lock.release()
 
@@ -368,8 +367,6 @@ class StreamManager(object):
             if not self.server.disable_switchback:
                 if device not in stream.sockets.values():
                     _send_bridge_disconnected(device.bridge)
-
-        logger.info('\n' + str(self))
 
     def _create_stream(self, path, bridge, encoder):
         recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
