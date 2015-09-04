@@ -389,7 +389,7 @@ class PulseBridge(object):
 
 
 class PulseWatcher(PulseAudio):
-    def __init__(self, bridges_shared, message_queue, persist_stream=False):
+    def __init__(self, bridges_shared, message_queue, disable_switchback=False, persist_stream=False):
         PulseAudio.__init__(self)
 
         self.bridges = []
@@ -401,6 +401,8 @@ class PulseWatcher(PulseAudio):
         self.signal_timers = {}
         
         self.persist_stream = persist_stream
+
+        self.disable_switchback = disable_switchback
 
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
@@ -514,16 +516,24 @@ class PulseWatcher(PulseAudio):
             if sink == stopped_bridge.sink:
                 stopped_bridge.sink = sink
                 break
+        for bridge in self.bridges:
+            if bridge.device == stopped_bridge.device:
+                stopped_bridge.device = bridge.device
+                break
 
-        reason = 'The device disconnected'
-        if len(stopped_bridge.sink.streams) > 1:
-            self.switch_back(stopped_bridge, reason)
-        elif len(stopped_bridge.sink.streams) == 1:
-            stream = stopped_bridge.sink.streams[0]
-            if not self._was_stream_moved(stream, stopped_bridge.sink):
+        stopped_bridge.device.state = \
+            pulseaudio_dlna.plugins.renderer.BaseRenderer.IDLE
+
+        if not self.disable_switchback:
+            reason = 'The device disconnected'
+            if len(stopped_bridge.sink.streams) > 1:
                 self.switch_back(stopped_bridge, reason)
-        elif len(stopped_bridge.sink.streams) == 0:
-            pass
+            elif len(stopped_bridge.sink.streams) == 1:
+                stream = stopped_bridge.sink.streams[0]
+                if not self._was_stream_moved(stream, stopped_bridge.sink):
+                    self.switch_back(stopped_bridge, reason)
+            elif len(stopped_bridge.sink.streams) == 0:
+                pass
 
     def on_device_updated(self, sink_path):
         logger.info('on_device_updated "{path}"'.format(
@@ -578,12 +588,15 @@ class PulseWatcher(PulseAudio):
                         logger.info(
                             'Instructing the device "{}" to stop ...'.format(
                                 bridge.device.label))
-                        if bridge.device.stop() == 200:
+                        return_code = bridge.device.stop()
+                        if return_code == 200:
                             logger.info('The device "{}" was stopped.'.format(
                                 bridge.device.label))
                         else:
-                            logger.error('The device "{}" failed to stop!'.format(
-                                bridge.device.label))
+                            logger.error(
+                                'The device "{}" failed to stop! ({})'.format(
+                                    bridge.device.label,
+                                    return_code))
                     else:
                         logger.info(
                             'Continuing silent stream on device "{}" ...'.format(
@@ -595,14 +608,19 @@ class PulseWatcher(PulseAudio):
                     logger.info(
                         'Instructing the device "{}" to play ...'.format(
                             bridge.device.label))
-                    if bridge.device.play() == 200:
+                    return_code = bridge.device.play()
+                    if return_code == 200:
                         logger.info('The device "{}" is playing.'.format(
                             bridge.device.label))
                     else:
-                        logger.error('The device "{}" failed to play!'.format(
-                            bridge.device.label))
+                        logger.error(
+                            'The device "{}" failed to play! ({})'.format(
+                                bridge.device.label,
+                                return_code))
                         self.switch_back(
-                            bridge, 'The device failed to started.')
+                            bridge,
+                            'The device failed to start playing. ({})'.format(
+                                return_code))
         return False
 
     def add_device(self, device):

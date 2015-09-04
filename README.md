@@ -36,12 +36,16 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-09-03_)
+ * __master__ - (_2015-09-04_)
     - Exceptions while updating sink and device informations from pulseaudio are now handled better
     - Changed `--fake-http10-content-length` flag to `--fake-http-content-length` to also support HTTP 1.1 requests
     - Fixed a bug where the supported device mime types could not get parsed correctly
     - Fixed a bug where the device UUID was not parsed correctly
     - Fixed a bug where just mime types beginning with `audio/` where accepted, but not e.g. `application/ogg`
+    - The stream server will now respond with 206 when receiving requests with `range` header
+    - UPNP control commands have now a timeout of 3 seconds
+    - Fixed a bug where the wrong stream was removed from the stream manager
+    - Fixed several bugs caused by purely relying on stopping actions for the devices idle state
     - Added ability to continue streaming to DLNA device even if the sink is "silent" (no connected playback streams)
 
  * __0.4.4__ - (_2015-08-07_)
@@ -351,7 +355,7 @@ very useful if you ever plan to stream to a UPNP device over VPN.
     My advice: If you have a reliable network, use _wav_. It is lossless
     and you will get a short delay. If you have not, use another encoder
     which does not require that much bandwidth to make sure your device
-    will keep playing. Of course you will be effected from a higher delay.
+    will keep playing. Of course you will be affected from a higher delay.
 
 ## Troubleshooting ##
 
