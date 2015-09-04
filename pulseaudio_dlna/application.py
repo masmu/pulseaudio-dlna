@@ -142,6 +142,7 @@ class Application(object):
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue,
                 fake_http_content_length=fake_http_content_length,
+                disable_switchback=disable_switchback,
             )
         except socket.error:
             logger.error(
