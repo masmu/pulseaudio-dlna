@@ -359,14 +359,12 @@ class StreamManager(object):
             self.single_streams = [
                 s for s in self.single_streams if stream.id != s.id]
 
-            if not self.server.disable_switchback:
-                if stream not in self.single_streams:
-                    _send_bridge_disconnected(device.bridge)
+            if stream not in self.single_streams:
+                _send_bridge_disconnected(device.bridge)
             stream.shutdown()
         else:
-            if not self.server.disable_switchback:
-                if device not in stream.sockets.values():
-                    _send_bridge_disconnected(device.bridge)
+            if device not in stream.sockets.values():
+                _send_bridge_disconnected(device.bridge)
 
     def _create_stream(self, path, bridge, encoder):
         recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
@@ -526,7 +524,7 @@ class StreamServer(SocketServer.TCPServer):
 
     def __init__(
             self, ip, port, bridges, message_queue,
-            fake_http_content_length=False, disable_switchback=False, *args):
+            fake_http_content_length=False, *args):
         SocketServer.TCPServer.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
             self, ('', port), StreamRequestHandler, *args)
@@ -537,7 +535,6 @@ class StreamServer(SocketServer.TCPServer):
         self.message_queue = message_queue
         self.stream_manager = StreamManager(self)
         self.fake_http_content_length = fake_http_content_length
-        self.disable_switchback = disable_switchback
 
     def get_server_url(self):
         return 'http://{ip}:{port}'.format(

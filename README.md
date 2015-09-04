@@ -45,6 +45,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - The stream server will now respond with 206 when receiving requests with `range` header
     - UPNP control commands have now a timeout of 3 seconds
     - Fixed a bug where the wrong stream was removed from the stream manager
+    - Fixed several bugs caused by purely relying on stopping actions for the devices idle state
 
  * __0.4.4__ - (_2015-08-07_)
     - Added `--disable-ssdp-listener` option

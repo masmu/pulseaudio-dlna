@@ -138,7 +138,6 @@ class Application(object):
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue,
                 fake_http_content_length=fake_http_content_length,
-                disable_switchback=disable_switchback,
             )
         except socket.error:
             logger.error(
@@ -148,7 +147,10 @@ class Application(object):
             sys.exit(1)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
-        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(bridges, message_queue)
+        pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
+            bridges, message_queue,
+            disable_switchback=disable_switchback,
+        )
 
         device_filter = None
         if options['--filter-device']:
