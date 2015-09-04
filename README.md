@@ -36,12 +36,15 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-08-25_)
+ * __master__ - (_2015-09-04_)
     - Exceptions while updating sink and device informations from pulseaudio are now handled better
     - Changed `--fake-http10-content-length` flag to `--fake-http-content-length` to also support HTTP 1.1 requests
     - Fixed a bug where the supported device mime types could not get parsed correctly
     - Fixed a bug where the device UUID was not parsed correctly
     - Fixed a bug where just mime types beginning with `audio/` where accepted, but not e.g. `application/ogg`
+    - The stream server will now respond with 206 when receiving requests with `range` header
+    - UPNP control commands have now a timeout of 3 seconds
+    - Fixed a bug where the wrong stream was removed from the stream manager
 
  * __0.4.4__ - (_2015-08-07_)
     - Added `--disable-ssdp-listener` option
