@@ -350,7 +350,7 @@ very useful if you ever plan to stream to a UPNP device over VPN.
     My advice: If you have a reliable network, use _wav_. It is lossless
     and you will get a short delay. If you have not, use another encoder
     which does not require that much bandwidth to make sure your device
-    will keep playing. Of course you will be effected from a higher delay.
+    will keep playing. Of course you will be affected from a higher delay.
 
 ## Troubleshooting ##
 
