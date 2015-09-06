@@ -71,6 +71,7 @@ class RendererHolder(object):
 
     def _add_renderer(self, device_id, device):
         device.activate()
+        logger.debug('\n' + device.__str__(True))
         ip, port = self.stream_server_address
         device.set_server_location(ip, port)
         self.renderers[device_id] = device

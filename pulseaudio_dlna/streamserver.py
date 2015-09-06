@@ -36,6 +36,7 @@ import BaseHTTPServer
 import SocketServer
 
 import pulseaudio_dlna.encoders
+import pulseaudio_dlna.codecs
 import pulseaudio_dlna.recorders
 import pulseaudio_dlna.common
 
@@ -346,7 +347,7 @@ class StreamManager(object):
         self.shared_streams = {}
         self.server = server
 
-    def _on_device_disconnect(self, device, stream):
+    def _on_device_disconnect(self, remote_device, stream):
 
         def _send_bridge_disconnected(bridge):
             logger.info('Device "{}" disconnected.'.format(bridge.device.name))
@@ -355,36 +356,39 @@ class StreamManager(object):
                 'stopped_bridge': bridge,
             })
 
-        if isinstance(stream.encoder, pulseaudio_dlna.encoders.WavEncoder):
+        if isinstance(
+                remote_device.bridge.device.codec,
+                pulseaudio_dlna.codecs.WavCodec):
             self.single_streams = [
                 s for s in self.single_streams if stream.id != s.id]
 
             if stream not in self.single_streams:
-                _send_bridge_disconnected(device.bridge)
+                _send_bridge_disconnected(remote_device.bridge)
             stream.shutdown()
         else:
-            if device not in stream.sockets.values():
-                _send_bridge_disconnected(device.bridge)
+            if remote_device not in stream.sockets.values():
+                _send_bridge_disconnected(remote_device.bridge)
 
-    def _create_stream(self, path, bridge, encoder):
+    def _create_stream(self, path, bridge):
         recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
             bridge.sink.monitor)
-        stream = ProcessStream(path, recorder, encoder, self)
+        stream = ProcessStream(
+            path, recorder, bridge.device.codec.encoder, self)
         return stream
 
-    def get_stream(self, path, bridge, encoder):
-        if isinstance(encoder, pulseaudio_dlna.encoders.WavEncoder):
-            # always create a seperate process stream for wav encoders
+    def get_stream(self, path, bridge):
+        if isinstance(bridge.device.codec, pulseaudio_dlna.codecs.WavCodec):
+            # always create a seperate process stream for wav codecs
             # since the client devices require the wav header which is
             # just send at the beginning of each encoding process
-            stream = self._create_stream(path, bridge, encoder)
+            stream = self._create_stream(path, bridge)
             self.single_streams.append(stream)
             return stream
         else:
-            # all other encoders can share a process stream depending
+            # all other codecs can share a process stream depending
             # on their path
             if path not in self.shared_streams:
-                stream = self._create_stream(path, bridge, encoder)
+                stream = self._create_stream(path, bridge)
                 self.shared_streams[path] = stream
                 return stream
             else:
@@ -413,10 +417,9 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_GET(self):
         logger.debug('Got the following GET request:\n{header}'.format(
             header=json.dumps(self.headers.items(), indent=2)))
-        bridge, encoder = self.handle_headers()
-        if bridge and encoder:
-            stream = self.server.stream_manager.get_stream(
-                self.path, bridge, encoder)
+        bridge = self.handle_headers()
+        if bridge:
+            stream = self.server.stream_manager.get_stream(self.path, bridge)
             stream.register(bridge, self.request)
             self.keep_connection_alive()
 
@@ -433,11 +436,11 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             time.sleep(1)
 
     def handle_headers(self):
-        bridge, encoder = self.chop_request_path(self.path)
-        if encoder and bridge:
+        bridge = self.chop_request_path(self.path)
+        if bridge:
             response_code = 200
             headers = {
-                'Content-Type': encoder.mime_type,
+                'Content-Type': bridge.device.codec.specific_mime_type,
             }
 
             if self.server.fake_http_content_length:
@@ -479,7 +482,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             for name, value in headers.items():
                 self.send_header(name, value)
             self.end_headers()
-            return bridge, encoder
+            return bridge
         else:
             logger.info('Error 404: File not found "{}"'.format(self.path))
             self.send_error(404, 'File not found: %s' % self.path)
@@ -492,25 +495,12 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 version=self.request_version))
         try:
             short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
-
-            choosen_encoder = None
-            for encoder in pulseaudio_dlna.common.supported_encoders:
-                if encoder.suffix == suffix:
-                    choosen_encoder = encoder
-                    break
-
-            choosen_bridge = None
             for bridge in self.server.bridges:
                 if short_name == bridge.device.short_name:
-                    choosen_bridge = bridge
-                    break
-
-            if choosen_bridge is not None and choosen_encoder is not None:
-                return bridge, encoder
-
+                    return bridge
         except (TypeError, ValueError, IndexError):
             pass
-        return None, None
+        return None
 
     def log_message(self, format, *args):
         args = [unicode(arg) for arg in args]

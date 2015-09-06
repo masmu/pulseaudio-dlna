@@ -20,8 +20,10 @@ from __future__ import unicode_literals
 import inspect
 
 import encoders
+import codecs
 
 supported_encoders = []
+supported_codecs = []
 
 
 def load_encoders():
@@ -44,4 +46,26 @@ def load_encoders():
                 supported_encoders.append(encoder)
     supported_encoders.sort(reverse=True)
 
+
+def load_codecs():
+    for (name, _type) in inspect.getmembers(codecs):
+        forbidden_members = [
+            '__builtins__',
+            '__doc__',
+            '__file__',
+            '__name__',
+            '__package__',
+            'unicode_literals'
+        ]
+        if name not in forbidden_members:
+            try:
+                codec = _type()
+            except:
+                continue
+            if name != 'BaseCodec' and \
+               isinstance(_type(), codecs.BaseCodec):
+                supported_codecs.append(codec)
+    supported_codecs.sort(reverse=True)
+
 load_encoders()
+load_codecs()

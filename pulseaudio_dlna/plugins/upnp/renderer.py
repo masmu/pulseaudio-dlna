@@ -135,7 +135,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         self.port = port
         self.state = self.IDLE
         self.encoder = encoder
-        self.protocols = []
+        self.codecs = []
 
         self.udn = udn
         self.xml = self._load_xml_files()
@@ -202,8 +202,8 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
                 UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
             ])
-        mime_type = self.encoder.mime_type
-        if isinstance(self.encoder, pulseaudio_dlna.encoders.WavEncoder):
+        mime_type = self.codec.mime_type
+        if isinstance(self.codec, pulseaudio_dlna.codecs.WavCodec):
             mime_type = 'audio/mpeg'
         metadata = self.xml['register_metadata'].format(
             stream_url=stream_url,
@@ -249,27 +249,20 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         response = requests.post(
             url, data=data.encode(self.ENCODING), headers=headers)
         if response.status_code == 200:
-
-            mime_prefixes = []
-            for encoder in pulseaudio_dlna.common.supported_encoders:
-                for mime_type in encoder.mime_types:
-                    mime_prefix, mime_settings = mime_type.split('/', 1)
-                    if mime_prefix + '/' not in mime_prefixes:
-                        mime_prefixes.append(mime_prefix + '/')
-
             soup = BeautifulSoup.BeautifulSoup(response.content)
             try:
-                self.protocols = []
+                self.codecs = []
                 sinks = soup('sink')[0].text
                 logger.debug('Got the following mime types: "{}"'.format(sinks))
                 for sink in sinks.split(','):
                     attributes = sink.strip().split(':')
                     if len(attributes) >= 4:
                         mime_type = attributes[2]
-                        for mime_prefix in mime_prefixes:
-                            if mime_type.startswith(mime_prefix) and \
-                               mime_type not in self.protocols:
-                                self.protocols.append(mime_type)
+                        for codec in pulseaudio_dlna.common.supported_codecs:
+                            if codec.accepts(mime_type.lower()) and \
+                               codec not in self.codecs:
+                                self.codecs.append(type(codec)(mime_type))
+                self.prioritize_codecs()
             except IndexError:
                 logger.error(
                     'IndexError: No valid XML returned from {url}.'.format(

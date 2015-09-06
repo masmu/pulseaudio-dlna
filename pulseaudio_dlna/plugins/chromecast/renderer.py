@@ -26,6 +26,7 @@ import BeautifulSoup
 
 import pycastv2
 import pulseaudio_dlna.plugins.renderer
+import pulseaudio_dlna.codecs
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
@@ -39,11 +40,14 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         self.ip = ip
         self.port = 8009
         self.state = self.IDLE
-        self.protocols = [
-            'audio/mp3',
-            'audio/mp4',
-            'audio/ogg',
-            'audio/wav',
+        self.codecs = []
+
+    def activate(self):
+        self.codecs = [
+            pulseaudio_dlna.codecs.Mp3Codec(),
+            pulseaudio_dlna.codecs.AacCodec(),
+            pulseaudio_dlna.codecs.OggCodec(),
+            pulseaudio_dlna.codecs.WavCodec(),
         ]
 
     def _get_media_player(self):
@@ -63,7 +67,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         if cast is None:
             return 500
         try:
-            if cast.load(url, self.encoder.mime_type) is True:
+            if cast.load(url, self.codec.mime_type) is True:
                 self.state = self.PLAYING
                 return 200
             return 500

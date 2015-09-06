@@ -36,7 +36,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-09-04_)
+ * __master__ - (_2015-09-06_)
     - Exceptions while updating sink and device informations from pulseaudio are now handled better
     - Changed `--fake-http10-content-length` flag to `--fake-http-content-length` to also support HTTP 1.1 requests
     - Fixed a bug where the supported device mime types could not get parsed correctly
@@ -46,6 +46,8 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - UPNP control commands have now a timeout of 3 seconds
     - Fixed a bug where the wrong stream was removed from the stream manager
     - Fixed several bugs caused by purely relying on stopping actions for the devices idle state
+    - Added L16 Encoder
+    - The encoder option can now handle multiple options seperated by comma
 
  * __0.4.4__ - (_2015-08-07_)
     - Added `--disable-ssdp-listener` option
@@ -282,19 +284,21 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
-        -e --encoder=<encoder>                 Set the audio encoder.
+        -e --encoder=<encoders>                Set the audio encoder.
                                                Possible encoders are:
                                                  - mp3   MPEG Audio Layer III (MP3)
-                                                 - ogg   Ogg Vorbis
+                                                 - ogg   Ogg Vorbis (OGG)
                                                  - flac  Free Lossless Audio Codec (FLAC)
                                                  - wav   Waveform Audio File Format (WAV)
                                                  - opus  Opus Interactive Audio Codec (OPUS)
+                                                 - aac   Advanced Audio Coding (AAC)
+                                                 - l16   Linear PCM (L16)
         -b --bit-rate=<rate>                   Set the audio encoder's bitrate.
         --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                                Devices which get discovered, but won't match the
@@ -373,29 +377,30 @@ _pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
 A listed entry means that it was successfully tested, even if there is no specific
 codec information availible.
 
-Device                                                                          | mp3                               | wav                               | ogg                               | flac                              | aac                               | opus
-------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
-D-Link DCH-M225/E                                                               | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:
-[Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)                      | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
-BubbleUPnP (Android App)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:
-Samsung Smart TV LED60 (UE60F6300)                                              | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Samsung Smart TV LED40 (UE40ES6100)                                             | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Xbmc / Kodi                                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle: <sup>2</sup>       | :white_circle: <sup>2</sup>
-Philips Streamium NP2500 Network Player                                         | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Yamaha RX-475 (AV Receiver)                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-[Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle: <sup>2</sup>       | :no_entry_sign:
-Sonos PLAY:1                                                                    | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
-Sonos PLAY:3                                                                    | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :white_check_mark: <sup>1</sup>   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
-Hame Soundrouter                                                                | :white_check_mark: <sup>1</sup>   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark: <sup>1</sup>   | :no_entry_sign:                   | :no_entry_sign:
-[Raumfeld Speaker M](http://raumfeld.com)                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Pioneer VSX-824 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-[ROCKI](http://www.myrocki.com/)                                                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Sony STR-DN1050 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Pure Jongo S3                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-[Volumio](http://volumio.org)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Logitech Media Server                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Device                                                                          | mp3                               | wav                               | ogg                               | flac                              | aac                               | opus                              | l16
+------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
+D-Link DCH-M225/E                                                               | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+[Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)                      | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
+BubbleUPnP (Android App)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:
+Samsung Smart TV LED60 (UE60F6300)                                              | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Samsung Smart TV LED40 (UE40ES6100)                                             | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Samsung Smart TV LED48 (UE48JU6560)                                             | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_circle:<sup>2</sup>        | :no_entry_sign:                   | :no_entry_sign:
+Xbmc / Kodi                                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle:<sup>2</sup>        | :white_circle:<sup>2</sup>        | :white_check_mark:
+Philips Streamium NP2500 Network Player                                         | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Yamaha RX-475 (AV Receiver)                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+Sonos PLAY:1                                                                    | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
+Sonos PLAY:3                                                                    | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
+Hame Soundrouter                                                                | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
+[Raumfeld Speaker M](http://raumfeld.com)                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Pioneer VSX-824 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[ROCKI](http://www.myrocki.com/)                                                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Sony STR-DN1050 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Pure Jongo S3                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Volumio](http://volumio.org)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Logitech Media Server                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 
 <sup>1</sup>) Works when specifing the `--fake-http-content-length` flag
 
@@ -411,5 +416,6 @@ flac        | Free Lossless Audio Codec         | flac
 sox         | Waveform Audio File Format        | wav
 opusenc     | Opus Interactive Audio Codec      | opus
 faac        | Advanced Audio Coding             | aac
+sox         | Linear PCM                        | l16
 
 You can select a specific codec using the `--encoder` flag followed by its identifier.

@@ -17,8 +17,11 @@
 
 from __future__ import unicode_literals
 
-import functools
 import distutils.spawn
+
+
+class InvalidBitrateException():
+    pass
 
 
 class UnsupportedBitrateException():
@@ -29,19 +32,14 @@ class UnsupportedMimeTypeException():
     pass
 
 
-@functools.total_ordering
 class BaseEncoder(object):
+
+    _state = False
+
     def __init__(self):
         self._binary = None
         self._command = []
-        self._mime_type = 'undefined'
-        self._mime_types = []
-        self._suffix = 'undefined'
         self._bit_rate = None
-        self._bit_rates = []
-        self._priority = 0
-        self._state = False
-        self._enabled = False
 
     @property
     def binary(self):
@@ -52,117 +50,91 @@ class BaseEncoder(object):
         return [self.binary] + self._command
 
     @property
-    def mime_type(self):
-        return self._mime_type
-
-    @mime_type.setter
-    def mime_type(self, value):
-        if value in self._mime_types:
-            self._mime_type = value
-        else:
-            raise UnsupportedMimeTypeException()
-
-    @property
-    def mime_types(self):
-        return self._mime_types
-
-    @property
-    def suffix(self):
-        return self._suffix
-
-    @property
-    def bit_rate(self):
-        return self._bit_rate
-
-    @bit_rate.setter
-    def bit_rate(self, value):
-        if int(value) in self.bit_rates:
-            self._bit_rate = value
-        else:
-            raise UnsupportedBitrateException()
-
-    @property
-    def bit_rates(self):
-        return self._bit_rates
-
-    @property
-    def priority(self):
-        return self._priority
-
-    @property
     def state(self):
-        if self._enabled:
-            return self._state
-        return False
-
-    @property
-    def enabled(self):
-        return self._enabled
-
-    @enabled.setter
-    def enabled(self, value):
-        self._enabled = value
+        return type(self)._state
 
     def validate(self):
         result = distutils.spawn.find_executable(self.binary)
         if result is not None and result.endswith(self.binary):
-            self._state = True
-        return self._state
+            type(self)._state = True
+        return type(self)._state
 
-    def __eq__(self, other):
-        return self.priority == other.priority
+    @property
+    def default_bit_rate(self):
+        raise UnsupportedBitrateException()
 
-    def __gt__(self, other):
-        return self.priority > other.priority
-
-    def __str__(self):
-        return '<{} bit-rate="{}" state="{}" enabled="{}" mime-types="{}">'.format(
-            self.__class__.__name__,
-            unicode(self.bit_rate),
-            unicode(self.state),
-            unicode(self.enabled),
-            ','.join(self.mime_types),
-        )
-
-
-class WavEncoder(BaseEncoder):
-    def __init__(self):
-        BaseEncoder.__init__(self)
-        self._binary = 'sox'
-        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
-                         '-r', '44100', '-',
-                         '-t', 'wav', '-b', '16', '-e', 'signed', '-c', '2',
-                         '-r', '44100', '-L', '-']
-        self._mime_type = 'audio/wav'
-        self._suffix = 'wav'
-        self._mime_types = ['audio/wav', 'audio/x-wav']
-        self._bit_rate = None
-        self._bit_rates = []
-        self._priority = 15
-        self._enabled = True
+    @default_bit_rate.setter
+    def default_bit_rate(self, value):
+        raise UnsupportedBitrateException()
 
     @property
     def bit_rate(self):
-        return self._bit_rate
+        raise UnsupportedBitrateException()
 
     @bit_rate.setter
     def bit_rate(self, value):
         raise UnsupportedBitrateException()
 
+    @property
+    def supported_bit_rates(self):
+        raise UnsupportedBitrateException()
 
-class LameEncoder(BaseEncoder):
-    def __init__(self):
+    def __str__(self):
+        return '<{} state="{}">'.format(
+            self.__class__.__name__,
+            unicode(self.state),
+        )
+
+
+class BitRateMixin(object):
+
+    DEFAULT_BIT_RATE = 192
+
+    @property
+    def default_bit_rate(self):
+        return type(self).DEFAULT_BIT_RATE
+
+    @default_bit_rate.setter
+    def default_bit_rate(self, value):
+        if int(value) in self.supported_bit_rates:
+            type(self).DEFAULT_BIT_RATE = value
+        else:
+            raise InvalidBitrateException()
+
+    @property
+    def bit_rate(self):
+        return self._bit_rate
+
+    @bit_rate.setter
+    def bit_rate(self, value):
+        if int(value) in self.SUPPORTED_BIT_RATES:
+            self._bit_rate = value
+        else:
+            raise UnsupportedBitrateException()
+
+    @property
+    def supported_bit_rates(self):
+        return self.SUPPORTED_BIT_RATES
+
+    def __str__(self):
+        return '<{} state="{}" bit-rate="{}">'.format(
+            self.__class__.__name__,
+            unicode(self.state),
+            unicode(self.DEFAULT_BIT_RATE),
+        )
+
+
+class LameEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
+                           128, 160, 192, 224, 256, 320]
+
+    def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or LameEncoder.DEFAULT_BIT_RATE
+
         self._binary = 'lame'
         self._command = ['-r', '-']
-        self._mime_type = 'audio/mpeg'
-        self._suffix = 'mp3'
-        self._mime_types = ['audio/mpeg', 'audio/mp3']
-        self._bit_rate = 192
-        self._bit_rates = [32, 40, 48, 56, 64, 80, 96, 112,
-                           128, 160, 192, 224, 256, 320]
-        self._priority = 18
-        self._enabled = True
 
     @property
     def command(self):
@@ -172,19 +144,70 @@ class LameEncoder(BaseEncoder):
             return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
-class AacEncoder(BaseEncoder):
+class WavEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
+        self._binary = 'sox'
+        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100', '-',
+                         '-t', 'wav', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100',
+                         '-L', '-',
+                         ]
+
+
+class L16Encoder(BaseEncoder):
+    def __init__(self, sample_rate=None, channels=None):
+        BaseEncoder.__init__(self)
+        self._sample_rate = sample_rate or 44100
+        self._channels = channels or 2
+
+        self._binary = 'sox'
+        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100', '-',
+                         '-t', 'wav', '-b', '16', '-e', 'signed',
+                         '-c', str(self.channels),
+                         '-r', '44100',
+                         '-B', '-',
+                         'rate', str(self.sample_rate),
+                         ]
+
+    @property
+    def sample_rate(self):
+        return self._sample_rate
+
+    @sample_rate.setter
+    def sample_rate(self, value):
+        self._sample_rate = int(value)
+
+    @property
+    def channels(self):
+        return self._channels
+
+    @channels.setter
+    def channels(self, value):
+        self._channels = int(value)
+
+    def __str__(self):
+        return '<{} state="{}" sample-rate="{}" channels="{}">'.format(
+            self.__class__.__name__,
+            unicode(self.state),
+            unicode(self.sample_rate),
+            unicode(self.channels),
+        )
+
+
+class AacEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
+                           128, 160, 192, 224, 256, 320]
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or AacEncoder.DEFAULT_BIT_RATE
+
         self._binary = 'faac'
         self._command = ['-X', '-P', '-o', '-', '-']
-        self._mime_type = 'audio/aac'
-        self._suffix = 'aac'
-        self._mime_types = ['audio/aac', 'audio/x-aac']
-        self._bit_rates = [32, 40, 48, 56, 64, 80, 96, 112,
-                           128, 160, 192, 224, 256, 320]
-        self._bit_rate = 192
-        self._priority = 12
-        self._enabled = True
 
     @property
     def command(self):
@@ -194,49 +217,17 @@ class AacEncoder(BaseEncoder):
             return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
-class FlacEncoder(BaseEncoder):
-    def __init__(self):
+class OggEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
+                           128, 160, 192, 224, 256, 320]
+
+    def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
-        self._binary = 'flac'
-        self._command = ['-', '-c', '--channels', '2', '--bps', '16',
-                         '--sample-rate', '44100',
-                         '--endian', 'little', '--sign', 'signed', '-s']
-        self._mime_type = 'audio/flac'
-        self._suffix = 'flac'
-        self._mime_types = ['audio/flac', 'audio/x-flac']
-        self._bit_rate = None
-        self._bit_rates = []
-        self._priority = 9
-        self._enabled = True
+        self.bit_rate = bit_rate or OggEncoder.DEFAULT_BIT_RATE
 
-    @property
-    def bit_rate(self):
-        return self._bit_rate
-
-    @bit_rate.setter
-    def bit_rate(self, value):
-        raise UnsupportedBitrateException()
-
-
-class OggEncoder(BaseEncoder):
-    def __init__(self):
-        BaseEncoder.__init__(self)
         self._binary = 'oggenc'
         self._command = ['-Q', '-r', '--ignorelength', '-']
-        self._mime_type = 'audio/ogg'
-        self._suffix = 'ogg'
-        self._mime_types = ['audio/ogg', 'audio/x-ogg', 'application/ogg']
-        self._bit_rate = 192
-        self._priority = 6
-        self._enabled = True
-
-    @property
-    def bit_rate(self):
-        return self._bit_rate
-
-    @bit_rate.setter
-    def bit_rate(self, value):
-        self._bit_rate = int(value)
 
     @property
     def command(self):
@@ -246,26 +237,34 @@ class OggEncoder(BaseEncoder):
             return [self.binary] + ['-b', str(self.bit_rate)] + self._command
 
 
-class OpusEncoder(BaseEncoder):
-    def __init__(self):
+class FlacEncoder(BaseEncoder):
+
+    def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
+        self._binary = 'flac'
+        self._command = ['-', '-c', '--channels', '2', '--bps', '16',
+                         '--sample-rate', '44100',
+                         '--endian', 'little', '--sign', 'signed', '-s']
+
+
+class OpusEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [i for i in range(6, 257)]
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or OpusEncoder.DEFAULT_BIT_RATE
+
         self._binary = 'opusenc'
         self._command = ['--padding', '0', '--max-delay', '0',
                          '--expect-loss', '1', '--framesize', '2.5',
                          '--raw-rate', '44100',
                          '--raw', '-', '-']
-        self._mime_type = 'audio/opus'
-        self._suffix = 'opus'
-        self._mime_types = ['audio/opus', 'audio/x-opus']
-        self._bit_rate = 192
-        self._bit_rates = [i for i in range(6, 257)]
-        self._priority = 3
-        self._enabled = True
 
     @property
     def command(self):
         if self.bit_rate is None:
-            return super(OggEncoder, self).command
+            return super(OpusEncoder, self).command
         else:
             return [self.binary] + \
                 ['--bitrate', str(self.bit_rate)] + self._command

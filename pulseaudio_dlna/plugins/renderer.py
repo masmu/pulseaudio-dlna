@@ -50,7 +50,7 @@ class BaseRenderer(object):
         self._state = None
         self._encoder = None
         self._flavour = None
-        self._protocols = []
+        self._codecs = []
 
     @property
     def name(self):
@@ -101,25 +101,16 @@ class BaseRenderer(object):
         self._state = value
 
     @property
-    def encoder(self):
-        if self._encoder is None:
-            for encoder in pulseaudio_dlna.common.supported_encoders:
-                if encoder.state is False:
-                    continue
-                for mime_type in encoder.mime_types:
-                    if mime_type in self.protocols:
-                        return encoder
-            logger.info('There was no suitable encoder found for "{name}". '
-                        'The device can play "{protocols}"'.format(
-                            name=self.label,
-                            protocols=','.join(self.protocols)))
-            raise NoSuitableEncoderFoundException()
-        else:
-            return self._encoder
-
-    @encoder.setter
-    def encoder(self, value):
-        self._encoder = value
+    def codec(self):
+        for codec in self.codecs:
+            if codec.enabled and codec.encoder.state:
+                return codec
+        logger.info('There was no suitable encoder found for "{name}". '
+                    'The device can play "{codecs}"'.format(
+                        name=self.label,
+                        codecs=','.join(
+                            [codec.mime_type for codec in self.codecs])))
+        raise NoSuitableEncoderFoundException()
 
     @property
     def flavour(self):
@@ -130,12 +121,12 @@ class BaseRenderer(object):
         self._flavour = value
 
     @property
-    def protocols(self):
-        return self._protocols
+    def codecs(self):
+        return self._codecs
 
-    @protocols.setter
-    def protocols(self, value):
-        self._protocols = value
+    @codecs.setter
+    def codecs(self, value):
+        self._codecs = value
 
     def activate(self):
         pass
@@ -149,6 +140,21 @@ class BaseRenderer(object):
     def stop(self):
         raise NotImplementedError()
 
+    def prioritize_codecs(self):
+
+        def sorting_algorithm(codec):
+            if isinstance(codec, pulseaudio_dlna.codecs.L16Codec):
+                value = codec.priority * 100000
+                if codec.sample_rate:
+                    value += codec.sample_rate / 1000
+                if codec.channels:
+                    value *= codec.channels
+                return value
+            else:
+                return codec.priority * 100000
+
+        self.codecs.sort(key=sorting_algorithm, reverse=True)
+
     def __eq__(self, other):
         if isinstance(other, BaseRenderer):
             return self.short_name == other.short_name
@@ -161,13 +167,15 @@ class BaseRenderer(object):
         if isinstance(other, pulseaudio_dlna.pulseaudio.PulseBridge):
             return self.short_name > other.device.short_name
 
-    def __str__(self):
-        return '<{} name="{}" short="{}" state="{}" protocols="{}">'.format(
+    def __str__(self, detailed=False):
+        return '<{} name="{}" short="{}" state="{}">{}'.format(
             self.__class__.__name__,
             self.name,
             self.short_name,
             self.state,
-            ','.join(self.protocols),
+            '\n' + '\n'.join(
+                ['  ' + codec.__str__(
+                    detailed) for codec in self.codecs]) if detailed else '',
         )
 
 
@@ -187,7 +195,7 @@ class CoinedBaseRendererMixin():
         )
         stream_name = '/{stream_name}.{suffix}'.format(
             stream_name=self.short_name,
-            suffix=self.encoder.suffix,
+            suffix=self.codec.suffix,
         )
         return urlparse.urljoin(server_url, stream_name)
 

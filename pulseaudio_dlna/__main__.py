@@ -17,24 +17,21 @@
 
 '''
 Usage:
-    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoder>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener]
+    pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener]
     pulseaudio-dlna [-h | --help | --version]
-
-    Note that _pulseaudio-dlna_ has to run all the time while you are listening to your music. If you stop _pulseaudio-dlna_ it will cleanly remove the created UPNP devices from PulseAudio and your UPNP devices will stop playing.
-
-    Since 0.4, new devices are automatically discovered as they appear on the network.
 
 Options:
        --host=<host>                       Set the server ip.
     -p --port=<port>                       Set the server port [default: 8080].
-    -e --encoder=<encoder>                 Set the audio encoder.
+    -e --encoder=<encoders>                Set the audio encoder.
                                            Possible encoders are:
                                              - mp3   MPEG Audio Layer III (MP3)
-                                             - ogg   Ogg Vorbis
+                                             - ogg   Ogg Vorbis (OGG)
                                              - flac  Free Lossless Audio Codec (FLAC)
                                              - wav   Waveform Audio File Format (WAV)
                                              - opus  Opus Interactive Audio Codec (OPUS)
-                                             - aac   Advanced Audio Coding (FAAC)
+                                             - aac   Advanced Audio Coding (AAC)
+                                             - l16   Linear PCM (L16)
     -b --bit-rate=<rate>                   Set the audio encoder's bitrate.
     --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                            Devices which get discovered, but won't match the

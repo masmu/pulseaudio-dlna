@@ -80,30 +80,44 @@ class Application(object):
         ]
 
         if options['--encoder']:
-            for encoder in pulseaudio_dlna.common.supported_encoders:
-                if encoder.suffix == options['--encoder']:
-                    pulseaudio_dlna.common.supported_encoders = [encoder]
-                    break
-            if len(pulseaudio_dlna.common.supported_encoders) != 1:
-                logger.error('You specified an unknown encoder! '
-                             'Application terminates.')
-                sys.exit(1)
+            for identifier in options['--encoder'].split(','):
+                found = False
+                for codec in pulseaudio_dlna.common.supported_codecs:
+                    if codec.identifier == identifier:
+                        codec.enabled = True
+                        found = True
+                        continue
+                if not found:
+                    logger.error('You specified an unknown codec! '
+                                 'Application terminates.')
+                    sys.exit(1)
+        else:
+            for codec in pulseaudio_dlna.common.supported_codecs:
+                codec.enabled = True
 
         if options['--bit-rate']:
-            for encoder in pulseaudio_dlna.common.supported_encoders:
+            for codec in pulseaudio_dlna.common.supported_codecs:
+                if not codec.enabled:
+                    continue
+                encoder = codec.encoder
                 try:
-                    encoder.bit_rate = options['--bit-rate']
+                    encoder.default_bit_rate = options['--bit-rate']
                 except pulseaudio_dlna.encoders.UnsupportedBitrateException:
-                    if len(encoder.bit_rates) > 0:
+                    continue
+                except pulseaudio_dlna.encoders.InvalidBitrateException:
+                    if len(encoder.supported_bit_rates) > 0:
                         logger.error(
                             'You specified an invalid bit rate '
-                            'for the encoder! Supported bit rates '
+                            'for the {encoder}!'
+                            ' Supported bit rates '
                             'are "{bit_rates}"! '
                             'Application terminates.'.format(
+                                encoder=encoder.__class__.__name__,
                                 bit_rates=','.join(
-                                    str(e) for e in encoder.bit_rates)))
+                                    str(e) for e in encoder.supported_bit_rates
+                                )))
                     else:
-                        logger.error('You selected encoder does not support '
+                        logger.error('Your selected encoder does not support '
                                      'setting a specific bit rate! '
                                      'Application terminates.')
                     sys.exit(1)
@@ -113,6 +127,10 @@ class Application(object):
             encoder.validate()
             logger.info(encoder)
 
+        logger.info('Loaded codecs:')
+        for codec in pulseaudio_dlna.common.supported_codecs:
+            logger.info(codec)
+        sys.exit(0)
         manager = multiprocessing.Manager()
         message_queue = multiprocessing.Queue()
         bridges = manager.list()
