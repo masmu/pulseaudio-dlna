@@ -130,7 +130,7 @@ class Application(object):
         logger.info('Loaded codecs:')
         for codec in pulseaudio_dlna.common.supported_codecs:
             logger.info(codec)
-        sys.exit(0)
+
         manager = multiprocessing.Manager()
         message_queue = multiprocessing.Queue()
         bridges = manager.list()
