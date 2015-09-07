@@ -48,6 +48,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed several bugs caused by purely relying on stopping actions for the devices idle state
     - Added L16 Encoder
     - The encoder option can now handle multiple options seperated by comma
+    - Added the `--create-device-config` flag
 
  * __0.4.4__ - (_2015-08-07_)
     - Added `--disable-ssdp-listener` option
@@ -285,9 +286,18 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 
     Usage:
         pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener]
+        pulseaudio-dlna [--create-device-config]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
+        --create-device-config                 Discovers all devices in your network and write a config for them.
+                                               That config can be editied manually to adjust various settings.
+                                               You can set:
+                                                 - Device name
+                                                 - Codec order (The first one is used if the encoder binary is available on your system)
+                                                 - Various codec settings such as the mime type or
+                                                   the bit rate (depends on the codec)
+                                               A written config is loaded by default if the --encoder or --bit-rate options are not used.
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
         -e --encoder=<encoders>                Set the audio encoder.

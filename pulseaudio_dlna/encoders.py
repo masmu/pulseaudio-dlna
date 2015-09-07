@@ -120,7 +120,7 @@ class BitRateMixin(object):
         return '<{} state="{}" bit-rate="{}">'.format(
             self.__class__.__name__,
             unicode(self.state),
-            unicode(self.DEFAULT_BIT_RATE),
+            unicode(self.bit_rate),
         )
 
 

@@ -41,7 +41,8 @@ class BaseRenderer(object):
     PAUSE = 'paused'
     STOP = 'stopped'
 
-    def __init__(self):
+    def __init__(self, udn):
+        self._udn = udn
         self._name = None
         self._short_name = None
         self._label = None
@@ -51,6 +52,14 @@ class BaseRenderer(object):
         self._encoder = None
         self._flavour = None
         self._codecs = []
+
+    @property
+    def udn(self):
+        return self._udn
+
+    @udn.setter
+    def udn(self, value):
+        self._udn = value
 
     @property
     def name(self):
@@ -154,6 +163,22 @@ class BaseRenderer(object):
                 return codec.priority * 100000
 
         self.codecs.sort(key=sorting_algorithm, reverse=True)
+
+    def set_codecs_from_config(self, config):
+        self.name = config['name']
+        for codec_properties in config['codecs']:
+            codec_type = pulseaudio_dlna.codecs.get_codec_by_identifier(
+                codec_properties['identifier'])
+            codec = codec_type(codec_properties['mime_type'])
+            for k, v in codec_properties.iteritems():
+                forbidden_attributes = ['mime_type', 'identifier']
+                if hasattr(codec, k) and k not in forbidden_attributes:
+                    setattr(codec, k, v)
+            self.codecs.append(codec)
+        logger.debug(
+            'Loaded the following device configuration:\n{}'.format(
+                self.__str__(True)))
+        return True
 
     def __eq__(self, other):
         if isinstance(other, BaseRenderer):

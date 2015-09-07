@@ -25,6 +25,8 @@ import setproctitle
 import logging
 import sys
 import socket
+import json
+import os
 
 import pulseaudio_dlna
 import pulseaudio_dlna.common
@@ -40,6 +42,14 @@ logger = logging.getLogger('pulseaudio_dlna.application')
 
 
 class Application(object):
+
+    ENCODING = 'utf-8'
+    DEVICE_CONFIG_PATHS = [
+        os.path.expanduser('~/.local/share/pulseaudio-dlna'),
+        '/etc/pulseaudio-dlna',
+    ]
+    DEVICE_CONFIG = 'devices.json'
+
     def __init__(self):
         self.processes = []
 
@@ -78,6 +88,14 @@ class Application(object):
             pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
             pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
         ]
+
+        if options['--create-device-config']:
+            self.create_device_config(plugins)
+            sys.exit(0)
+
+        device_config = None
+        if not options['--encoder'] and not options['--bit-rate']:
+            device_config = self.read_device_config()
 
         if options['--encoder']:
             for identifier in options['--encoder'].split(','):
@@ -182,7 +200,7 @@ class Application(object):
             stream_server_address = stream_server.ip, stream_server.port
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
                 stream_server_address, message_queue, plugins,
-                device_filter, locations, disable_ssdp_listener)
+                device_filter, device_config, locations, disable_ssdp_listener)
         except socket.error:
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '
@@ -202,3 +220,80 @@ class Application(object):
 
         for process in self.processes:
             process.join()
+
+    def create_device_config(self, plugins):
+        holder = pulseaudio_dlna.renderers.RendererHolder(
+            ('', 0), multiprocessing.Queue(), plugins)
+        discover = pulseaudio_dlna.discover.RendererDiscover(holder)
+        discover.search()
+
+        def device_filter(obj):
+            if isinstance(
+                    obj, pulseaudio_dlna.plugins.renderer.BaseRenderer):
+                return {
+                    'name': obj.name,
+                    'flavour': obj.flavour,
+                    'codecs': obj.codecs,
+                }
+            elif isinstance(obj, pulseaudio_dlna.codecs.BaseCodec):
+                attributes = ['priority', 'suffix', 'mime_type']
+                d = {
+                    k: v for k, v in obj.__dict__.iteritems()
+                    if k not in attributes
+                }
+                d['mime_type'] = obj.specific_mime_type
+                return d
+            else:
+                return obj.__dict__
+
+        json_text = json.dumps(
+            holder.renderers, default=device_filter, indent=4)
+
+        for config_path in self.DEVICE_CONFIG_PATHS:
+            config_file = os.path.join(config_path, self.DEVICE_CONFIG)
+            if not os.path.exists(config_path):
+                try:
+                    os.makedirs(config_path)
+                except (OSError, IOError):
+                    continue
+            try:
+                with open(config_file, 'w') as h:
+                    h.write(json_text.encode(self.ENCODING))
+                    logger.info('Found the following devices:')
+                    for device in holder.renderers.values():
+                        logger.info('{name} ({flavour})'.format(
+                            name=device.name, flavour=device.flavour))
+                        for codec in device.codecs:
+                            logger.info('  - {}'.format(
+                                codec.__class__.__name__))
+                    logger.info(
+                        'Your config was successfully written to "{}"'.format(
+                            config_file))
+                    return
+            except (OSError, IOError):
+                continue
+
+        logger.error(
+            'Your device config could not be written to any of the '
+            'locations "{}"'.format(','.join(self.DEVICE_CONFIG_PATHS)))
+
+    def read_device_config(self):
+        for config_path in self.DEVICE_CONFIG_PATHS:
+            config_file = os.path.join(config_path, self.DEVICE_CONFIG)
+            if os.path.isfile(config_file) and \
+               os.access(config_file, os.R_OK):
+                with open(config_file, 'r') as h:
+                    json_text = h.read().decode(self.ENCODING)
+                    json_text = json_text.replace('\n', '')
+                    try:
+                        device_config = json.loads(json_text)
+                        logger.info(
+                            'Loaded device config "{}"'.format(
+                                config_file))
+                        return device_config
+                        break
+                    except ValueError:
+                        logger.error(
+                            'Unable to parse "{}"! '
+                            'Check the file for syntax errors ...'.format(
+                                config_file))

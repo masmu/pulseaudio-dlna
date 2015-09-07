@@ -20,10 +20,20 @@ from __future__ import unicode_literals
 import functools
 import logging
 import re
+import inspect
+import sys
 
 import pulseaudio_dlna.encoders
 
 logger = logging.getLogger('pulseaudio_dlna.codecs')
+
+
+def get_codec_by_identifier(identifier):
+    for name, _type in inspect.getmembers(sys.modules[__name__]):
+        if inspect.isclass(_type) and issubclass(_type, BaseCodec):
+            if _type is not BaseCodec and _type().identifier == identifier:
+                return _type
+    return None
 
 
 @functools.total_ordering

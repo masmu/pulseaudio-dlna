@@ -128,7 +128,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     ENCODING = 'utf-8'
 
     def __init__(self, name, ip, port, udn, services, encoder=None):
-        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self)
+        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self, udn)
         self.flavour = 'DLNA'
         self.name = name
         self.ip = ip
@@ -137,7 +137,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         self.encoder = encoder
         self.codecs = []
 
-        self.udn = udn
         self.xml = self._load_xml_files()
         self.service_transport = None
         self.service_connection = None
@@ -152,8 +151,11 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             if service.type == UpnpService.SERVICE_RENDERING:
                 self.service_rendering = service
 
-    def activate(self):
-        self.get_protocol_info()
+    def activate(self, config):
+        if config:
+            self.set_codecs_from_config(config)
+        else:
+            self.get_protocol_info()
 
     def _load_xml_files(self):
         content = {}

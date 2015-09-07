@@ -33,8 +33,8 @@ logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
-    def __init__(self, name, ip):
-        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self)
+    def __init__(self, name, ip, udn):
+        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self, udn)
         self.flavour = 'Chromecast'
         self.name = name
         self.ip = ip
@@ -42,13 +42,16 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         self.state = self.IDLE
         self.codecs = []
 
-    def activate(self):
-        self.codecs = [
-            pulseaudio_dlna.codecs.Mp3Codec(),
-            pulseaudio_dlna.codecs.AacCodec(),
-            pulseaudio_dlna.codecs.OggCodec(),
-            pulseaudio_dlna.codecs.WavCodec(),
-        ]
+    def activate(self, config):
+        if config:
+            self.set_codecs_from_config(config)
+        else:
+            self.codecs = [
+                pulseaudio_dlna.codecs.Mp3Codec(),
+                pulseaudio_dlna.codecs.AacCodec(),
+                pulseaudio_dlna.codecs.OggCodec(),
+                pulseaudio_dlna.codecs.WavCodec(),
+            ]
 
     def _get_media_player(self):
         try:
@@ -126,7 +129,8 @@ class ChromecastRendererFactory(object):
                 return None
             cast_device = type_(
                 soup.root.device.friendlyname.text,
-                ip)
+                ip,
+                soup.root.device.udn.text)
             return cast_device
         except AttributeError:
             logger.error(
