@@ -174,7 +174,7 @@ class L16Codec(BaseCodec):
 @functools.total_ordering
 class AacCodec(BitRateMixin, BaseCodec):
 
-    SUPPORTED_MIME_TYPES = ['audio/aac', 'audio/x-aac', 'audio/mp4']
+    SUPPORTED_MIME_TYPES = ['audio/aac', 'audio/x-aac']
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
