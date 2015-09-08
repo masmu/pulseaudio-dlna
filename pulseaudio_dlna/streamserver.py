@@ -486,7 +486,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         else:
             logger.info('Error 404: File not found "{}"'.format(self.path))
             self.send_error(404, 'File not found: %s' % self.path)
-            return None, None
+            return None
 
     def chop_request_path(self, path):
         logger.info(
