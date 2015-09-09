@@ -49,6 +49,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added L16 Encoder
     - The encoder option can now handle multiple options seperated by comma
     - Added the `--create-device-config` flag
+    - Fixed a bug where the dbus session was bound from the wrong process
 
  * __0.4.4__ - (_2015-08-07_)
     - Added `--disable-ssdp-listener` option

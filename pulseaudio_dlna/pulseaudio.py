@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import sys
 import locale
 import dbus
+import dbus.mainloop.glib
 import os
 import struct
 import subprocess
@@ -402,6 +403,16 @@ class PulseWatcher(PulseAudio):
 
         self.disable_switchback = disable_switchback
 
+    def terminate(self, signal_number=None, frame=None):
+        self.cleanup()
+        sys.exit(0)
+
+    def run(self):
+        signal.signal(signal.SIGINT, self.terminate)
+        signal.signal(signal.SIGTERM, self.terminate)
+        setproctitle.setproctitle('pulse_watcher')
+
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
                 self.on_new_playback_stream),
@@ -416,14 +427,6 @@ class PulseWatcher(PulseAudio):
         self.update()
         self.default_sink = self.fallback_sink
 
-    def terminate(self, signal_number=None, frame=None):
-        self.cleanup()
-        sys.exit(0)
-
-    def run(self):
-        signal.signal(signal.SIGINT, self.terminate)
-        signal.signal(signal.SIGTERM, self.terminate)
-        setproctitle.setproctitle('pulse_watcher')
         mainloop = gobject.MainLoop()
         gobject.timeout_add(500, self._check_message_queue)
         try:

@@ -17,8 +17,6 @@
 
 from __future__ import unicode_literals
 
-import dbus
-import dbus.mainloop.glib
 import multiprocessing
 import signal
 import setproctitle
@@ -182,7 +180,6 @@ class Application(object):
                 'terminates.'.format(port=port))
             sys.exit(1)
 
-        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
             bridges, message_queue,
             disable_switchback=disable_switchback,
