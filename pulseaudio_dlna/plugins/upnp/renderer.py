@@ -126,6 +126,7 @@ class UpnpService(object):
 class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     ENCODING = 'utf-8'
+    REQUEST_TIMEOUT = 10
 
     def __init__(self, name, ip, port, udn, services, encoder=None):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self, udn)
@@ -226,7 +227,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         try:
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=3)
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
             self._debug('register', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
@@ -248,27 +249,35 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             encoding=self.ENCODING,
             service_type=self.service_connection.service_type,
         )
-        response = requests.post(
-            url, data=data.encode(self.ENCODING), headers=headers)
-        if response.status_code == 200:
-            soup = BeautifulSoup.BeautifulSoup(response.content)
-            try:
-                self.codecs = []
-                sinks = soup('sink')[0].text
-                logger.debug('Got the following mime types: "{}"'.format(sinks))
-                for sink in sinks.split(','):
-                    attributes = sink.strip().split(':')
-                    if len(attributes) >= 4:
-                        mime_type = attributes[2]
-                        for codec in pulseaudio_dlna.common.supported_codecs:
-                            if codec.accepts(mime_type.lower()) and \
-                               codec not in self.codecs:
-                                self.codecs.append(type(codec)(mime_type))
-                self.prioritize_codecs()
-            except IndexError:
-                logger.error(
-                    'IndexError: No valid XML returned from {url}.'.format(
-                        url=url))
+        try:
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
+            if response.status_code == 200:
+                soup = BeautifulSoup.BeautifulSoup(response.content)
+                try:
+                    self.codecs = []
+                    sinks = soup('sink')[0].text
+                    logger.debug('Got the following mime types: "{}"'.format(
+                        sinks))
+                    for sink in sinks.split(','):
+                        attributes = sink.strip().split(':')
+                        if len(attributes) >= 4:
+                            mime_type = attributes[2]
+                            for codec in pulseaudio_dlna.common.supported_codecs:
+                                if codec.accepts(mime_type.lower()) and \
+                                   codec not in self.codecs:
+                                    self.codecs.append(type(codec)(mime_type))
+                    self.prioritize_codecs()
+                except IndexError:
+                    logger.error(
+                        'IndexError: No valid XML returned from {url}.'.format(
+                            url=url))
+        except requests.exceptions.Timeout:
+            logger.error(
+                'PROTOCOL_INFO command - Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return 408
 
         self._debug('get_protocol_info', url, headers, data, response)
         return response.status_code
@@ -289,14 +298,14 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         try:
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=3)
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
                 self.state = self.PLAYING
             self._debug('play', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
-                'Could no connect to {url}. '
+                'PLAY command- Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
 
@@ -316,14 +325,14 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         try:
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=3)
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
                 self.state = self.IDLE
             self._debug('stop', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
-                'Could no connect to {url}. '
+                'STOP command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
 
@@ -343,14 +352,14 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         try:
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=3)
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
                 self.state = self.PAUSE
             self._debug('pause', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
-                'Could no connect to {url}. '
+                'PAUSE command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
 
