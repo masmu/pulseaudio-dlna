@@ -43,7 +43,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where the device UUID was not parsed correctly
     - Fixed a bug where just mime types beginning with `audio/` where accepted, but not e.g. `application/ogg`
     - The stream server will now respond with 206 when receiving requests with `range` header
-    - UPNP control commands have now a timeout of 3 seconds
+    - UPNP control commands have now a timeout of 10 seconds
     - Fixed a bug where the wrong stream was removed from the stream manager
     - Fixed several bugs caused by purely relying on stopping actions for the devices idle state
     - Added L16 Encoder
