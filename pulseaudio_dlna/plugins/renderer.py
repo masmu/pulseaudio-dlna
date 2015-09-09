@@ -193,11 +193,12 @@ class BaseRenderer(object):
             return self.short_name > other.device.short_name
 
     def __str__(self, detailed=False):
-        return '<{} name="{}" short="{}" state="{}">{}'.format(
+        return '<{} name="{}" short="{}" state="{}" udn="{}">{}'.format(
             self.__class__.__name__,
             self.name,
             self.short_name,
             self.state,
+            self.udn,
             '\n' + '\n'.join(
                 ['  ' + codec.__str__(
                     detailed) for codec in self.codecs]) if detailed else '',
