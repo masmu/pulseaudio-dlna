@@ -453,11 +453,6 @@ class PulseWatcher(PulseAudio):
     def _unblock_device_handling(self, object_path):
         self.blocked_devices.remove(object_path)
 
-    def set_devices(self, devices):
-        self.devices = devices
-        self.update_bridges()
-        self.share_bridges()
-
     def share_bridges(self):
         del self.bridges_shared[:]
         for bridge in copy.deepcopy(self.bridges):
