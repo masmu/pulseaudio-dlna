@@ -72,10 +72,11 @@ class BaseCodec(object):
         return type(self) is type(other)
 
     def __str__(self, detailed=False):
-        return '<{} enabled="{}" priority="{}">{}'.format(
+        return '<{} enabled="{}" priority="{}" mime_type="{}">{}'.format(
             self.__class__.__name__,
             self.enabled,
             self.priority,
+            self.specific_mime_type,
             '\n    ' + str(self.encoder) if detailed else '',
         )
 
