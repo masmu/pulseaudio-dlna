@@ -284,6 +284,9 @@ class Application(object):
                os.access(config_file, os.R_OK):
                 with open(config_file, 'r') as h:
                     json_text = h.read().decode(self.ENCODING)
+                    logger.debug(
+                        'Device configuration:\n{}'.format(
+                            json_text))
                     json_text = json_text.replace('\n', '')
                     try:
                         device_config = json.loads(json_text)
