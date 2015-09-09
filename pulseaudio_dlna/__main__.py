@@ -29,7 +29,7 @@ Options:
                                              - Codec order (The first one is used if the encoder binary is available on your system)
                                              - Various codec settings such as the mime type or
                                                the bit rate (depends on the codec)
-                                           A written config is loaded by default if the --encoder or --bit-rate options are not used.
+                                           A written config is loaded by default if the --encoder and --bit-rate options are not used.
        --host=<host>                       Set the server ip.
     -p --port=<port>                       Set the server port [default: 8080].
     -e --encoder=<encoders>                Set the audio encoder.
