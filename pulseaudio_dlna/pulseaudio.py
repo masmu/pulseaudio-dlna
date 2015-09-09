@@ -465,10 +465,6 @@ class PulseWatcher(PulseAudio):
                     device.short_name, device.label)
                 self.bridges.append(PulseBridge(sink, device))
 
-    def update(self):
-        PulseAudio.update(self)
-        self.share_bridges()
-
     def cleanup(self):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
@@ -617,6 +613,7 @@ class PulseWatcher(PulseAudio):
             device.short_name, device.label)
         self.bridges.append(PulseBridge(sink, device))
         self.update()
+        self.share_bridges()
         logger.info('Added the device "{name} ({flavour})".'.format(
             name=device.name, flavour=device.flavour))
 
@@ -632,5 +629,6 @@ class PulseWatcher(PulseAudio):
         if bridge_index_to_remove is not None:
             self.bridges.pop(bridge_index_to_remove)
             self.update()
+            self.share_bridges()
             logger.info('Removed the device "{name}".'.format(
                 name=device.name))
