@@ -454,9 +454,9 @@ class PulseWatcher(PulseAudio):
         self.blocked_devices.remove(object_path)
 
     def share_bridges(self):
+        bridges_copy = [bridge for bridge in copy.deepcopy(self.bridges)]
         del self.bridges_shared[:]
-        for bridge in copy.deepcopy(self.bridges):
-            self.bridges_shared.append(bridge)
+        self.bridges_shared.extend(bridges_copy)
 
     def update_bridges(self):
         for device in self.devices:
