@@ -201,9 +201,9 @@ class Application(object):
         except socket.error:
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '
-                'Perhaps this is already in use? Application terminates. '
-                'You can disable this feature with the '
-                '"--disable-ssdp-listener" flag.')
+                'Probably the port is in use by another application. '
+                'Terminate the application which is using the port or run this '
+                'application with the "--disable-ssdp-listener" flag.')
             sys.exit(1)
 
         self.run_process(target=stream_server.run)
