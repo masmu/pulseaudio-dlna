@@ -420,10 +420,10 @@ class UpnpMediaRendererFactory(object):
                     }
                     services.append(service)
                 upnp_device = type_(
-                    soup.root.device.friendlyname.text,
+                    device.friendlyname.text,
                     ip,
                     port,
-                    soup.root.device.udn.text,
+                    device.udn.text,
                     services)
                 return upnp_device
         except AttributeError:
