@@ -30,6 +30,7 @@ import gobject
 import functools
 import copy
 import signal
+import concurrent.futures
 
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.notification
@@ -390,6 +391,9 @@ class PulseBridge(object):
 
 
 class PulseWatcher(PulseAudio):
+
+    ASYNC_EXECUTION = True
+
     def __init__(self, bridges_shared, message_queue, disable_switchback=False):
         PulseAudio.__init__(self)
 
@@ -426,6 +430,8 @@ class PulseWatcher(PulseAudio):
         self._connect(signals)
         self.update()
         self.default_sink = self.fallback_sink
+
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
         mainloop = gobject.MainLoop()
         gobject.timeout_add(500, self._check_message_queue)
@@ -561,7 +567,21 @@ class PulseWatcher(PulseAudio):
             1000, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):
-        logger.info('_handle_sink_update {}'.format(sink_path))
+        if not self.ASYNC_EXECUTION:
+            logger.info('_sync_handle_sink_update {}'.format(sink_path))
+            result = self.__handle_sink_update(sink_path)
+            logger.info(
+                '_sync_handle_sink_update {} finished!'.format(sink_path))
+        else:
+            logger.info('_async_handle_sink_update {}'.format(sink_path))
+            future = self.thread_pool.submit(
+                self.__handle_sink_update, sink_path)
+            result = future.result()
+            logger.info(
+                '_async_handle_sink_update {} finished!'.format(sink_path))
+        return result
+
+    def __handle_sink_update(self, sink_path):
         if sink_path in self.signal_timers:
             del self.signal_timers[sink_path]
 
