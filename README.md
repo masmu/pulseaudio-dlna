@@ -539,8 +539,8 @@ Yamaha RX-475 (AV Receiver)                                                     
 Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
-Sonos PLAY:1                                                                    | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
-Sonos PLAY:3                                                                    | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :white_check_mark:<sup>1</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
+Sonos PLAY:1                                                                    | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
+Sonos PLAY:3                                                                    | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
 Hame Soundrouter                                                                | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 [Raumfeld Speaker M](http://raumfeld.com)                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Pioneer VSX-824 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
@@ -553,6 +553,8 @@ Logitech Media Server                                                           
 <sup>1</sup>) Works when specifing the `--fake-http-content-length` flag
 
 <sup>2</sup>) Is capable of playing the codec, but does not specifiy the correct mime type
+
+<sup>3</sup>) Works since _0.4.5_ (`--fake-http-content-length` is added automatic)
 
 ## Supported encoders ##
 

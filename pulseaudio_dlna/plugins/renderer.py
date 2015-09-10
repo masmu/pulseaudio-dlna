@@ -194,7 +194,13 @@ class BaseRenderer(object):
         self.codecs.sort(key=sorting_algorithm, reverse=True)
 
     def check_for_device_rules(self):
-        pass
+        if self.manufacturer == 'Sonos, Inc.':
+            for codec in self.codecs:
+                if type(codec) in [
+                        pulseaudio_dlna.codecs.Mp3Codec,
+                        pulseaudio_dlna.codecs.OggCodec]:
+                    codec.rules.append(
+                        pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH())
 
     def set_codecs_from_config(self, config):
         self.name = config['name']
