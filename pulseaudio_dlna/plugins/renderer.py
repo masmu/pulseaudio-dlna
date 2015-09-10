@@ -201,6 +201,10 @@ class BaseRenderer(object):
                         pulseaudio_dlna.codecs.OggCodec]:
                     codec.rules.append(
                         pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH())
+        if self.model_name == 'Kodi':
+            for codec in self.codecs:
+                if type(codec) is pulseaudio_dlna.codecs.WavCodec:
+                    codec.mime_type = 'audio/mpeg'
 
     def set_codecs_from_config(self, config):
         self.name = config['name']
