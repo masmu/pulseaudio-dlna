@@ -41,8 +41,13 @@ class BaseRenderer(object):
     PAUSE = 'paused'
     STOP = 'stopped'
 
-    def __init__(self, udn):
+    def __init__(self, udn, model_name=None, model_number=None,
+                 manufacturer=None):
         self._udn = udn
+        self._model_name = model_name
+        self._model_number = model_number
+        self._manufacturer = manufacturer
+
         self._name = None
         self._short_name = None
         self._label = None
@@ -60,6 +65,30 @@ class BaseRenderer(object):
     @udn.setter
     def udn(self, value):
         self._udn = value
+
+    @property
+    def model_name(self):
+        return self._model_name
+
+    @model_name.setter
+    def model_name(self, value):
+        self._model_name = value
+
+    @property
+    def model_number(self):
+        return self._model_number
+
+    @model_number.setter
+    def model_number(self, value):
+        self._model_number = value
+
+    @property
+    def manufacturer(self):
+        return self._manufacturer
+
+    @manufacturer.setter
+    def manufacturer(self, value):
+        self._manufacturer = value
 
     @property
     def name(self):
@@ -164,6 +193,9 @@ class BaseRenderer(object):
 
         self.codecs.sort(key=sorting_algorithm, reverse=True)
 
+    def check_for_device_rules(self):
+        pass
+
     def set_codecs_from_config(self, config):
         self.name = config['name']
         for codec_properties in config.get('codecs', []):
@@ -195,15 +227,20 @@ class BaseRenderer(object):
             return self.short_name > other.device.short_name
 
     def __str__(self, detailed=False):
-        return '<{} name="{}" short="{}" state="{}" udn="{}">{}'.format(
-            self.__class__.__name__,
-            self.name,
-            self.short_name,
-            self.state,
-            self.udn,
-            '\n' + '\n'.join(
-                ['  ' + codec.__str__(
-                    detailed) for codec in self.codecs]) if detailed else '',
+        return (
+            '<{} name="{}" short="{}" state="{}" udn="{}" model_name="{}" '
+            'model_number="{}" manufacturer="{}">{}').format(
+                self.__class__.__name__,
+                self.name,
+                self.short_name,
+                self.state,
+                self.udn,
+                self.model_name,
+                self.model_number,
+                self.manufacturer,
+                '\n' + '\n'.join([
+                    '  ' + codec.__str__(detailed) for codec in self.codecs
+                ]) if detailed else '',
         )
 
     def to_json(self):

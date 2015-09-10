@@ -33,8 +33,9 @@ logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
-    def __init__(self, name, ip, udn):
-        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self, udn)
+    def __init__(self, name, ip, udn, model_name, model_number, manufacturer):
+        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
+            self, udn, model_name, model_number, manufacturer)
         self.flavour = 'Chromecast'
         self.name = name
         self.ip = ip
@@ -130,7 +131,10 @@ class ChromecastRendererFactory(object):
             cast_device = type_(
                 soup.root.device.friendlyname.text,
                 ip,
-                soup.root.device.udn.text)
+                soup.root.device.udn.text,
+                soup.root.device.modelname.text,
+                None,
+                soup.root.device.manufacturer.text)
             return cast_device
         except AttributeError:
             logger.error(

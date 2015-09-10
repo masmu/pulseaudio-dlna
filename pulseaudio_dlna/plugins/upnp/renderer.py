@@ -128,14 +128,16 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     ENCODING = 'utf-8'
     REQUEST_TIMEOUT = 10
 
-    def __init__(self, name, ip, port, udn, services, encoder=None):
-        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self, udn)
+    def __init__(
+            self, name, ip, port, udn, model_name, model_number, manufacturer,
+            services):
+        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
+            self, udn, model_name, model_number, manufacturer)
         self.flavour = 'DLNA'
         self.name = name
         self.ip = ip
         self.port = port
         self.state = self.IDLE
-        self.encoder = encoder
         self.codecs = []
 
         self.xml = self._load_xml_files()
@@ -268,6 +270,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                                 if codec.accepts(mime_type.lower()) and \
                                    codec not in self.codecs:
                                     self.codecs.append(type(codec)(mime_type))
+                    self.check_for_device_rules()
                     self.prioritize_codecs()
                 except IndexError:
                     logger.error(
@@ -424,11 +427,15 @@ class UpnpMediaRendererFactory(object):
                     ip,
                     port,
                     device.udn.text,
+                    device.modelname.text if device.modelname else None,
+                    device.modelnumber.text if device.modelnumber else None,
+                    device.manufacturer.text if device.manufacturer else None,
                     services)
                 return upnp_device
         except AttributeError:
             logger.error(
                 'No valid XML returned from {url}.'.format(url=url))
+            logger.info(response.content)
             return None
 
     @classmethod
