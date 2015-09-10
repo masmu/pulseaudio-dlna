@@ -27,7 +27,7 @@ Options:
                                            You can set:
                                              - Device name
                                              - Codec order (The first one is used if the encoder binary is available on your system)
-                                             - Various codec settings such as the mime type or
+                                             - Various codec settings such as the mime type, specific rules or
                                                the bit rate (depends on the codec)
                                            A written config is loaded by default if the --encoder and --bit-rate options are not used.
        --host=<host>                       Set the server ip.

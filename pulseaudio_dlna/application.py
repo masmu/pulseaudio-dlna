@@ -35,6 +35,7 @@ import pulseaudio_dlna.encoders
 import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.utils.network
+import pulseaudio_dlna.rules
 
 logger = logging.getLogger('pulseaudio_dlna.application')
 
@@ -225,28 +226,15 @@ class Application(object):
         discover.search()
 
         def device_filter(obj):
-            if isinstance(
-                    obj, pulseaudio_dlna.plugins.renderer.BaseRenderer):
-                return {
-                    'name': obj.name,
-                    'flavour': obj.flavour,
-                    'codecs': obj.codecs,
-                }
-            elif isinstance(obj, pulseaudio_dlna.codecs.BaseCodec):
-                attributes = ['priority', 'suffix', 'mime_type']
-                d = {
-                    k: v for k, v in obj.__dict__.iteritems()
-                    if k not in attributes
-                }
-                d['mime_type'] = obj.specific_mime_type
-                return d
+            if hasattr(obj, 'to_json'):
+                return obj.to_json()
             else:
                 return obj.__dict__
 
         json_text = json.dumps(
             holder.renderers, default=device_filter, indent=4)
 
-        for config_path in self.DEVICE_CONFIG_PATHS:
+        for config_path in reversed(self.DEVICE_CONFIG_PATHS):
             config_file = os.path.join(config_path, self.DEVICE_CONFIG)
             if not os.path.exists(config_path):
                 try:

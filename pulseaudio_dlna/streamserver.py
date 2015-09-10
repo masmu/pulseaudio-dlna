@@ -39,6 +39,7 @@ import pulseaudio_dlna.encoders
 import pulseaudio_dlna.codecs
 import pulseaudio_dlna.recorders
 import pulseaudio_dlna.common
+import pulseaudio_dlna.rules
 
 from pulseaudio_dlna.plugins.upnp.renderer import (
     UpnpContentFeatures, UpnpContentFlags)
@@ -443,7 +444,8 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 'Content-Type': bridge.device.codec.specific_mime_type,
             }
 
-            if self.server.fake_http_content_length:
+            if self.server.fake_http_content_length or \
+               pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH in bridge.device.codec.rules:
                 gb_in_bytes = pow(1024, 3)
                 headers['Content-Length'] = gb_in_bytes * 100
             else:

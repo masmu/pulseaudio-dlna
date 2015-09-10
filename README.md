@@ -297,7 +297,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                You can set:
                                                  - Device name
                                                  - Codec order (The first one is used if the encoder binary is available on your system)
-                                                 - Various codec settings such as the mime type or
+                                                 - Various codec settings such as the mime type, specific rules or
                                                    the bit rate (depends on the codec)
                                                A written config is loaded by default if the --encoder and --bit-rate options are not used.
            --host=<host>                       Set the server ip.
@@ -341,6 +341,142 @@ at the specified locations. You can specify multiple locations via urls
 seperated by comma (_,_). Most users won't ever need this option, but since
 UDP multicast packages won't work (most times) over VPN connections this is
 very useful if you ever plan to stream to a UPNP device over VPN.
+
+### Device configuration rules
+
+Most times the automatic discovery of supported device codecs and their 
+prioritization works pretty good. But in the case of a device which does work
+out of the box or if you don't like the used codec you can adjust the settings
+with a _device configuration_.
+
+If you want to create a specific configuration for your devices you can do
+that via the `--create-device-config` flag. It will search for devices on
+your network and write a config for them. It will look for / write them at:
+
+- `~/.local/share/pulseaudio-dlna/devices.json` (prioritized)
+- `/etc/pulseaudio-dlna/devices.json`
+
+The purpose of this is that the application should do the most work for the
+user. You just have to edit the file instead of writing it completely on
+your own.
+
+Let's make an example:
+I started the application via `pulseaudio-dlna --create-device-config` and
+that is what was discovered:
+
+```json
+    "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
+        "flavour": "DLNA", 
+        "name": "Device name", 
+        "codecs": [
+            {
+                "rules": [], 
+                "bit_rate": null, 
+                "identifier": "mp3", 
+                "mime_type": "audio/mpeg"
+            }, 
+            {
+                "rules": [], 
+                "identifier": "flac", 
+                "mime_type": "audio/flac"
+            }, 
+            {
+                "channels": 2, 
+                "rules": [], 
+                "identifier": "l16", 
+                "sample_rate": 48000, 
+                "mime_type": "audio/L16;rate=48000;channels=2"
+            }, 
+            {
+                "channels": 2, 
+                "rules": [], 
+                "identifier": "l16", 
+                "sample_rate": 44100, 
+                "mime_type": "audio/L16;rate=44100;channels=2"
+            }, 
+            {
+                "channels": 1, 
+                "rules": [], 
+                "identifier": "l16", 
+                "sample_rate": 44100, 
+                "mime_type": "audio/L16;rate=44100;channels=1"
+            }
+        ]
+    }
+```
+
+It was detected that the device supports the following codecs:
+
+- `audio/mp3`
+- `audio/flac`
+- `audio/L16;rate=48000;channels=2`
+- `audio/L16;rate=44100;channels=2`
+- `audio/L16;rate=44100;channels=1`
+
+If you don't change the configuration at all, it means that the next time
+you start _pulseaudio-dlna_ it will automatically use those codecs for that
+device. The order of the list also defines the priority. It will take the
+first codec and use it if the appropriate encoder binary is installed on your
+system. If the binary is missing it will take the next one. So here the 
+_mp3_ codec would be used, if the _lame_ binary is installed.
+
+You can also change the name of the device, adjust the mime type or set the
+bit rate.  A `null` value means _default_, for bit rates this
+is set to 192 Kbit/s.
+
+In that case I want to rename my device to "Living Room". Besides that
+I don't want the L16 codecs, so i simply remove them and i want my _mp3_ to
+be encoded in 256 Kbit/s.
+
+```json
+    "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
+        "flavour": "DLNA", 
+        "name": "Living Room", 
+        "codecs": [
+            {
+                "rules": [], 
+                "bit_rate": 256, 
+                "identifier": "mp3", 
+                "mime_type": "audio/mpeg"
+            }, 
+            {
+                "rules": [], 
+                "identifier": "flac", 
+                "mime_type": "audio/flac"
+            }
+        ]
+    }
+```
+But as it turns out this device has a problem with playing the _mp3_ stream
+when you don't specify the `--fake-http-content-length` flag. Let's say _flac_
+works without the flag. So, you can add a rule for that to that device.
+
+```json
+    "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
+        "flavour": "DLNA", 
+        "name": "Living Room", 
+        "codecs": [
+            {
+                "rules": [
+                    {
+                        "name": "FAKE_HTTP_CONTENT_LENGTH"
+                    }
+                ], 
+                "bit_rate": 256, 
+                "identifier": "mp3", 
+                "mime_type": "audio/mpeg"
+            }, 
+            {
+                "rules": [], 
+                "identifier": "flac", 
+                "mime_type": "audio/flac"
+            }
+        ]
+    }
+```
+
+That's it. _pulseaudio-dlna_ will automatically use that config if you don't
+use the `--encoder` or `--bit-rate` options.
 
 ## Known Issues ##
 

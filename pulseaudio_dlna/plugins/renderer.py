@@ -166,14 +166,16 @@ class BaseRenderer(object):
 
     def set_codecs_from_config(self, config):
         self.name = config['name']
-        for codec_properties in config['codecs']:
+        for codec_properties in config.get('codecs', []):
             codec_type = pulseaudio_dlna.codecs.get_codec_by_identifier(
                 codec_properties['identifier'])
             codec = codec_type(codec_properties['mime_type'])
             for k, v in codec_properties.iteritems():
-                forbidden_attributes = ['mime_type', 'identifier']
+                forbidden_attributes = ['mime_type', 'identifier', 'rules']
                 if hasattr(codec, k) and k not in forbidden_attributes:
                     setattr(codec, k, v)
+            for rule in codec_properties.get('rules', []):
+                codec.rules.append(rule)
             self.codecs.append(codec)
         logger.debug(
             'Loaded the following device configuration:\n{}'.format(
@@ -203,6 +205,13 @@ class BaseRenderer(object):
                 ['  ' + codec.__str__(
                     detailed) for codec in self.codecs]) if detailed else '',
         )
+
+    def to_json(self):
+        return {
+            'name': self.name,
+            'flavour': self.flavour,
+            'codecs': self.codecs,
+        }
 
 
 class CoinedBaseRendererMixin():

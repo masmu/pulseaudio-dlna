@@ -24,6 +24,7 @@ import inspect
 import sys
 
 import pulseaudio_dlna.encoders
+import pulseaudio_dlna.rules
 
 logger = logging.getLogger('pulseaudio_dlna.codecs')
 
@@ -46,6 +47,7 @@ class BaseCodec(object):
         self.suffix = None
         self.identifier = None
         self.priority = None
+        self.rules = pulseaudio_dlna.rules.Rules()
 
     @property
     def enabled(self):
@@ -72,13 +74,25 @@ class BaseCodec(object):
         return type(self) is type(other)
 
     def __str__(self, detailed=False):
-        return '<{} enabled="{}" priority="{}" mime_type="{}">{}'.format(
+        return '<{} enabled="{}" priority="{}" mime_type="{}">{}{}'.format(
             self.__class__.__name__,
             self.enabled,
             self.priority,
             self.specific_mime_type,
+            ('\n' if len(self.rules) > 0 else '') + '\n'.join(
+                ['    - ' + str(rule) for rule in self.rules]
+            ) if detailed else '',
             '\n    ' + str(self.encoder) if detailed else '',
         )
+
+    def to_json(self):
+        attributes = ['priority', 'suffix', 'mime_type']
+        d = {
+            k: v for k, v in self.__dict__.iteritems()
+            if k not in attributes
+        }
+        d['mime_type'] = self.specific_mime_type
+        return d
 
 
 class BitRateMixin(object):
