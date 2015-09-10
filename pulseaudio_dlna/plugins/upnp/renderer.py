@@ -231,7 +231,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
-                'Could no connect to {url}. '
+                'REGISTER command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
 
@@ -305,7 +305,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
-                'PLAY command- Could no connect to {url}. '
+                'PLAY command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
 
