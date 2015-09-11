@@ -47,6 +47,10 @@ class Application(object):
         '/etc/pulseaudio-dlna',
     ]
     DEVICE_CONFIG = 'devices.json'
+    PLUGINS = [
+        pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
+        pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
+    ]
 
     def __init__(self):
         self.processes = []
@@ -82,13 +86,8 @@ class Application(object):
         logger.info('Using localhost: {host}:{port}'.format(
             host=host, port=port))
 
-        plugins = [
-            pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
-            pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
-        ]
-
         if options['--create-device-config']:
-            self.create_device_config(plugins)
+            self.create_device_config()
             sys.exit(0)
 
         device_config = None
@@ -191,7 +190,7 @@ class Application(object):
         try:
             stream_server_address = stream_server.ip, stream_server.port
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
-                stream_server_address, message_queue, plugins,
+                stream_server_address, message_queue, self.PLUGINS,
                 device_filter, device_config, locations, disable_ssdp_listener)
         except socket.error:
             logger.error(
@@ -213,9 +212,9 @@ class Application(object):
         for process in self.processes:
             process.join()
 
-    def create_device_config(self, plugins):
+    def create_device_config(self):
         holder = pulseaudio_dlna.renderers.RendererHolder(
-            ('', 0), multiprocessing.Queue(), plugins)
+            ('', 0), multiprocessing.Queue(), self.PLUGINS)
         discover = pulseaudio_dlna.discover.RendererDiscover(holder)
         discover.search()
 
@@ -225,8 +224,17 @@ class Application(object):
             else:
                 return obj.__dict__
 
-        json_text = json.dumps(
-            holder.renderers, default=device_filter, indent=4)
+        def obj_to_dict(obj):
+            json_text = json.dumps(obj, default=device_filter)
+            return json.loads(json_text)
+
+        existing_config = self.read_device_config()
+        if existing_config:
+            new_config = obj_to_dict(holder.renderers)
+            new_config.update(existing_config)
+        else:
+            new_config = obj_to_dict(holder.renderers)
+        json_text = json.dumps(new_config, indent=4)
 
         for config_path in reversed(self.DEVICE_CONFIG_PATHS):
             config_file = os.path.join(config_path, self.DEVICE_CONFIG)
@@ -273,9 +281,9 @@ class Application(object):
                             'Loaded device config "{}"'.format(
                                 config_file))
                         return device_config
-                        break
                     except ValueError:
                         logger.error(
                             'Unable to parse "{}"! '
                             'Check the file for syntax errors ...'.format(
                                 config_file))
+        return None
