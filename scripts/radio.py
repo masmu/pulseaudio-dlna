@@ -116,7 +116,7 @@ class RadioLauncher():
 
 # Local pulseaudio-dlna installations running in a virutalenv should run this
 #   script as module:
-#     python -m pulseaudio_dlna/scripts/radio [--list | --stop]
+#     python -m scripts/radio [--list | --stop]
 
 args = sys.argv[1:]
 rl = RadioLauncher()
