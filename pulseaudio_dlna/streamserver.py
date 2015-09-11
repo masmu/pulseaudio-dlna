@@ -38,7 +38,6 @@ import SocketServer
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.codecs
 import pulseaudio_dlna.recorders
-import pulseaudio_dlna.common
 import pulseaudio_dlna.rules
 
 from pulseaudio_dlna.plugins.upnp.renderer import (

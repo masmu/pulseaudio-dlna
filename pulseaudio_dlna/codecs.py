@@ -28,24 +28,18 @@ import pulseaudio_dlna.rules
 
 logger = logging.getLogger('pulseaudio_dlna.codecs')
 
-
-def get_codec_by_identifier(identifier):
-    for name, _type in inspect.getmembers(sys.modules[__name__]):
-        if inspect.isclass(_type) and issubclass(_type, BaseCodec):
-            if _type is not BaseCodec and _type().identifier == identifier:
-                return _type
-    return None
+CODECS = {}
 
 
 @functools.total_ordering
 class BaseCodec(object):
 
-    ENABLED = False
+    ENABLED = True
+    IDENTIFIER = None
 
     def __init__(self):
         self.mime_type = None
         self.suffix = None
-        self.identifier = None
         self.priority = None
         self.rules = pulseaudio_dlna.rules.Rules()
 
@@ -61,8 +55,9 @@ class BaseCodec(object):
     def specific_mime_type(self):
         return self.mime_type
 
-    def accepts(self, mime_type):
-        for accepted_mime_type in self.SUPPORTED_MIME_TYPES:
+    @classmethod
+    def accepts(cls, mime_type):
+        for accepted_mime_type in cls.SUPPORTED_MIME_TYPES:
             if mime_type.lower().startswith(accepted_mime_type.lower()):
                 return True
         return False
@@ -92,6 +87,7 @@ class BaseCodec(object):
             if k not in attributes
         }
         d['mime_type'] = self.specific_mime_type
+        d['identifier'] = self.IDENTIFIER
         return d
 
 
@@ -107,12 +103,12 @@ class BitRateMixin(object):
 class Mp3Codec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/mpeg', 'audio/mp3']
+    IDENTIFIER = 'mp3'
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
         self.priority = 18
         self.suffix = 'mp3'
-        self.identifier = 'mp3'
         self.mime_type = mime_string or 'audio/mp3'
 
         self.bit_rate = None
@@ -125,12 +121,12 @@ class Mp3Codec(BitRateMixin, BaseCodec):
 class WavCodec(BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/wav', 'audio/x-wav']
+    IDENTIFIER = 'wav'
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
         self.priority = 15
         self.suffix = 'wav'
-        self.identifier = 'wav'
         self.mime_type = mime_string or 'audio/wav'
 
     @property
@@ -141,12 +137,12 @@ class WavCodec(BaseCodec):
 class L16Codec(BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/l16']
+    IDENTIFIER = 'l16'
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
         self.priority = 0
         self.suffix = 'pcm16'
-        self.identifier = 'l16'
         self.mime_type = 'audio/L16'
 
         self.sample_rate = None
@@ -190,12 +186,12 @@ class L16Codec(BaseCodec):
 class AacCodec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/aac', 'audio/x-aac']
+    IDENTIFIER = 'aac'
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
         self.priority = 12
         self.suffix = 'aac'
-        self.identifier = 'aac'
         self.mime_type = mime_string or 'audio/aac'
 
         self.bit_rate = None
@@ -209,12 +205,12 @@ class AacCodec(BitRateMixin, BaseCodec):
 class OggCodec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = 'audio/ogg', 'audio/x-ogg', 'application/ogg'
+    IDENTIFIER = 'ogg'
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
         self.priority = 6
         self.suffix = 'ogg'
-        self.identifier = 'ogg'
         self.mime_type = mime_string or 'audio/ogg'
 
         self.bit_rate = None
@@ -227,12 +223,12 @@ class OggCodec(BitRateMixin, BaseCodec):
 class FlacCodec(BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/flac', 'audio/x-flac']
+    IDENTIFIER = 'flac'
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
         self.priority = 9
         self.suffix = 'flac'
-        self.identifier = 'flac'
         self.mime_type = mime_string or 'audio/flac'
 
     @property
@@ -244,12 +240,12 @@ class FlacCodec(BaseCodec):
 class OpusCodec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = 'audio/opus', 'audio/x-opus'
+    IDENTIFIER = 'opus'
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
         self.priority = 3
         self.suffix = 'opus'
-        self.identifier = 'opus'
         self.mime_type = mime_string or 'audio/opus'
 
         self.bit_rate = None
@@ -257,3 +253,16 @@ class OpusCodec(BitRateMixin, BaseCodec):
     @property
     def encoder(self):
         return pulseaudio_dlna.encoders.OpusEncoder(self.bit_rate)
+
+
+def load_codecs():
+    if len(CODECS) == 0:
+        logger.debug('Loaded codecs:')
+        for name, _type in inspect.getmembers(sys.modules[__name__]):
+            if inspect.isclass(_type) and issubclass(_type, BaseCodec):
+                if _type is not BaseCodec:
+                    logger.debug('  {} = {}'.format(_type.IDENTIFIER, _type))
+                    CODECS[_type.IDENTIFIER] = _type
+    return None
+
+load_codecs()

@@ -125,10 +125,13 @@ class Rules(list):
 
 
 def load_rules():
-    for name, _type in inspect.getmembers(sys.modules[__name__]):
-        if inspect.isclass(_type) and issubclass(_type, BaseRule):
-            if _type is not BaseRule:
-                RULES[name] = _type
+    if len(RULES) == 0:
+        logger.debug('Loaded rules:')
+        for name, _type in inspect.getmembers(sys.modules[__name__]):
+            if inspect.isclass(_type) and issubclass(_type, BaseRule):
+                if _type is not BaseRule:
+                    logger.debug('  {} = {}'.format(name, _type))
+                    RULES[name] = _type
     return None
 
 load_rules()

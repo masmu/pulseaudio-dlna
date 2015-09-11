@@ -26,7 +26,6 @@ import pkg_resources
 import BeautifulSoup
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
-import pulseaudio_dlna.common
 import pulseaudio_dlna.plugins.renderer
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.renderer')
@@ -190,8 +189,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 status_code=response.status_code,
                 result=response.text))
 
-    def register(self, stream_url):
+    def register(self, stream_url, codec=None):
         url = self.service_transport.control_url
+        codec = codec or self.codec
         headers = {
             'Content-Type':
                 'text/xml; charset="{encoding}"'.format(
@@ -214,7 +214,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             creator='PulseAudio',
             album='Stream',
             encoding=self.ENCODING,
-            mime_type=self.codec.mime_type,
+            mime_type=codec.mime_type,
             content_features=str(content_features),
         )
         data = self.xml['register'].format(
@@ -262,11 +262,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                     for sink in sinks.split(','):
                         attributes = sink.strip().split(':')
                         if len(attributes) >= 4:
-                            mime_type = attributes[2]
-                            for codec in pulseaudio_dlna.common.supported_codecs:
-                                if codec.accepts(mime_type.lower()) and \
-                                   codec not in self.codecs:
-                                    self.codecs.append(type(codec)(mime_type))
+                            self.add_mime_type(attributes[2])
                     self.check_for_device_rules()
                     self.prioritize_codecs()
                 except IndexError:
@@ -367,10 +363,10 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 class CoinedUpnpMediaRenderer(
         pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, UpnpMediaRenderer):
 
-    def play(self):
+    def play(self, url=None, codec=None):
         try:
-            stream_url = self.get_stream_url()
-            if UpnpMediaRenderer.register(self, stream_url) == 200:
+            stream_url = url or self.get_stream_url()
+            if UpnpMediaRenderer.register(self, stream_url, codec) == 200:
                 return UpnpMediaRenderer.play(self)
             else:
                 logger.error('"{}" registering failed!'.format(self.name))

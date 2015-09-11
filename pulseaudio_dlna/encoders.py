@@ -18,6 +18,13 @@
 from __future__ import unicode_literals
 
 import distutils.spawn
+import inspect
+import sys
+import logging
+
+logger = logging.getLogger('pulseaudio_dlna.encoder')
+
+ENCODERS = []
 
 
 class InvalidBitrateException():
@@ -34,7 +41,7 @@ class UnsupportedMimeTypeException():
 
 class BaseEncoder(object):
 
-    _state = False
+    AVAILABLE = False
 
     def __init__(self):
         self._binary = None
@@ -50,56 +57,30 @@ class BaseEncoder(object):
         return [self.binary] + self._command
 
     @property
-    def state(self):
-        return type(self)._state
+    def available(self):
+        return type(self).AVAILABLE
 
     def validate(self):
-        result = distutils.spawn.find_executable(self.binary)
-        if result is not None and result.endswith(self.binary):
-            type(self)._state = True
-        return type(self)._state
-
-    @property
-    def default_bit_rate(self):
-        raise UnsupportedBitrateException()
-
-    @default_bit_rate.setter
-    def default_bit_rate(self, value):
-        raise UnsupportedBitrateException()
-
-    @property
-    def bit_rate(self):
-        raise UnsupportedBitrateException()
-
-    @bit_rate.setter
-    def bit_rate(self, value):
-        raise UnsupportedBitrateException()
+        if not type(self).AVAILABLE:
+            result = distutils.spawn.find_executable(self.binary)
+            if result is not None and result.endswith(self.binary):
+                type(self).AVAILABLE = True
+        return type(self).AVAILABLE
 
     @property
     def supported_bit_rates(self):
         raise UnsupportedBitrateException()
 
     def __str__(self):
-        return '<{} state="{}">'.format(
+        return '<{} available="{}">'.format(
             self.__class__.__name__,
-            unicode(self.state),
+            unicode(self.available),
         )
 
 
 class BitRateMixin(object):
 
     DEFAULT_BIT_RATE = 192
-
-    @property
-    def default_bit_rate(self):
-        return type(self).DEFAULT_BIT_RATE
-
-    @default_bit_rate.setter
-    def default_bit_rate(self, value):
-        if int(value) in self.supported_bit_rates:
-            type(self).DEFAULT_BIT_RATE = value
-        else:
-            raise InvalidBitrateException()
 
     @property
     def bit_rate(self):
@@ -117,9 +98,9 @@ class BitRateMixin(object):
         return self.SUPPORTED_BIT_RATES
 
     def __str__(self):
-        return '<{} state="{}" bit-rate="{}">'.format(
+        return '<{} available="{}" bit-rate="{}">'.format(
             self.__class__.__name__,
-            unicode(self.state),
+            unicode(self.available),
             unicode(self.bit_rate),
         )
 
@@ -189,9 +170,9 @@ class L16Encoder(BaseEncoder):
         self._channels = int(value)
 
     def __str__(self):
-        return '<{} state="{}" sample-rate="{}" channels="{}">'.format(
+        return '<{} available="{}" sample-rate="{}" channels="{}">'.format(
             self.__class__.__name__,
-            unicode(self.state),
+            unicode(self.available),
             unicode(self.sample_rate),
             unicode(self.channels),
         )
@@ -268,3 +249,16 @@ class OpusEncoder(BitRateMixin, BaseEncoder):
         else:
             return [self.binary] + \
                 ['--bitrate', str(self.bit_rate)] + self._command
+
+
+def load_encoders():
+    if len(ENCODERS) == 0:
+        logger.debug('Loaded encoders:')
+        for name, _type in inspect.getmembers(sys.modules[__name__]):
+            if inspect.isclass(_type) and issubclass(_type, BaseEncoder):
+                if _type is not BaseEncoder:
+                    logger.debug('  {}'.format(_type))
+                    ENCODERS.append(_type)
+    return None
+
+load_encoders()

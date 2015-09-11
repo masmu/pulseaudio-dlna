@@ -23,7 +23,6 @@ import urlparse
 import functools
 import logging
 
-import pulseaudio_dlna.common
 import pulseaudio_dlna.pulseaudio
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
@@ -141,9 +140,9 @@ class BaseRenderer(object):
     @property
     def codec(self):
         for codec in self.codecs:
-            if codec.enabled and codec.encoder.state:
+            if codec.enabled and codec.encoder.available:
                 return codec
-        logger.info('There was no suitable encoder found for "{name}". '
+        logger.info('There was no suitable codec found for "{name}". '
                     'The device can play "{codecs}"'.format(
                         name=self.label,
                         codecs=','.join(
@@ -178,6 +177,13 @@ class BaseRenderer(object):
     def stop(self):
         raise NotImplementedError()
 
+    def add_mime_type(self, mime_type):
+        for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
+            if _type.accepts(mime_type):
+                codec = _type(mime_type)
+                if codec not in self.codecs:
+                    self.codecs.append(codec)
+
     def prioritize_codecs(self):
 
         def sorting_algorithm(codec):
@@ -209,8 +215,8 @@ class BaseRenderer(object):
     def set_codecs_from_config(self, config):
         self.name = config['name']
         for codec_properties in config.get('codecs', []):
-            codec_type = pulseaudio_dlna.codecs.get_codec_by_identifier(
-                codec_properties['identifier'])
+            codec_type = pulseaudio_dlna.codecs.CODECS[
+                codec_properties['identifier']]
             codec = codec_type(codec_properties['mime_type'])
             for k, v in codec_properties.iteritems():
                 forbidden_attributes = ['mime_type', 'identifier', 'rules']

@@ -27,7 +27,6 @@ import json
 import os
 
 import pulseaudio_dlna
-import pulseaudio_dlna.common
 import pulseaudio_dlna.listener
 import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.plugins.chromecast
@@ -97,56 +96,51 @@ class Application(object):
             device_config = self.read_device_config()
 
         if options['--encoder']:
+            for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
+                _type.ENABLED = False
             for identifier in options['--encoder'].split(','):
-                found = False
-                for codec in pulseaudio_dlna.common.supported_codecs:
-                    if codec.identifier == identifier:
-                        codec.enabled = True
-                        found = True
-                        continue
-                if not found:
+                try:
+                    pulseaudio_dlna.codecs.CODECS[identifier].ENABLED = True
+                    continue
+                except KeyError:
                     logger.error('You specified an unknown codec! '
                                  'Application terminates.')
                     sys.exit(1)
-        else:
-            for codec in pulseaudio_dlna.common.supported_codecs:
-                codec.enabled = True
 
         if options['--bit-rate']:
-            for codec in pulseaudio_dlna.common.supported_codecs:
-                if not codec.enabled:
-                    continue
-                encoder = codec.encoder
-                try:
-                    encoder.default_bit_rate = options['--bit-rate']
-                except pulseaudio_dlna.encoders.UnsupportedBitrateException:
-                    continue
-                except pulseaudio_dlna.encoders.InvalidBitrateException:
-                    if len(encoder.supported_bit_rates) > 0:
+            try:
+                bit_rate = int(options['--bit-rate'])
+            except ValueError:
+                logger.error('Bit rates must be specified as integers!')
+                sys.exit(0)
+            for _type in pulseaudio_dlna.encoders.ENCODERS:
+                if hasattr(_type, 'DEFAULT_BIT_RATE') and \
+                   hasattr(_type, 'SUPPORTED_BIT_RATES'):
+                    if bit_rate in _type.SUPPORTED_BIT_RATES:
+                        _type.DEFAULT_BIT_RATE = bit_rate
+                    else:
                         logger.error(
                             'You specified an invalid bit rate '
                             'for the {encoder}!'
                             ' Supported bit rates '
                             'are "{bit_rates}"! '
                             'Application terminates.'.format(
-                                encoder=encoder.__class__.__name__,
+                                encoder=_type().__class__.__name__,
                                 bit_rates=','.join(
-                                    str(e) for e in encoder.supported_bit_rates
+                                    str(e) for e in _type.SUPPORTED_BIT_RATES
                                 )))
-                    else:
-                        logger.error('Your selected encoder does not support '
-                                     'setting a specific bit rate! '
-                                     'Application terminates.')
-                    sys.exit(1)
+                        sys.exit(0)
 
-        logger.info('Loaded encoders:')
-        for encoder in pulseaudio_dlna.common.supported_encoders:
+        logger.info('Encoder settings:')
+        for _type in pulseaudio_dlna.encoders.ENCODERS:
+            encoder = _type()
             encoder.validate()
-            logger.info(encoder)
+            logger.info('  {}'.format(encoder))
 
-        logger.info('Loaded codecs:')
-        for codec in pulseaudio_dlna.common.supported_codecs:
-            logger.info(codec)
+        logger.info('Codec settings:')
+        for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
+            codec = _type()
+            logger.info('  {}'.format(codec))
 
         manager = multiprocessing.Manager()
         message_queue = multiprocessing.Queue()
