@@ -371,7 +371,7 @@ _pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
 ## Tested devices ##
 
 A listed entry means that it was successfully tested, even if there is no specific
-codec information availible.
+codec information available.
 
 Device                                                                          | mp3                               | wav                               | ogg                               | flac                              | aac                               | opus
 ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
