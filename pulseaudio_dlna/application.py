@@ -129,6 +129,10 @@ class Application(object):
         disable_switchback = False
         if options['--disable-switchback']:
             disable_switchback = True
+            
+        persist_stream = False
+        if options['--persist-stream']:
+            persist_stream = True
 
         disable_ssdp_listener = False
         if options['--disable-ssdp-listener']:
@@ -150,6 +154,7 @@ class Application(object):
         pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
             bridges, message_queue,
             disable_switchback=disable_switchback,
+            persist_stream=persist_stream
         )
 
         device_filter = None
