@@ -29,6 +29,8 @@ import sys
 import gobject
 import functools
 import atexit
+import base64
+import urllib
 import json
 import os
 import signal
@@ -490,14 +492,19 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             return None
 
     def chop_request_path(self, path):
-        logger.info(
-            'Requested streaming URL was: {path} ({version})'.format(
-                path=path,
-                version=self.request_version))
         try:
-            short_name, suffix = re.findall(r"/(.*?)\.(.*)", path)[0]
+            data_quoted, suffix = re.findall(r'/(.*?)/stream\.(.*)', path)[0]
+            data_string = base64.b64decode(urllib.unquote(data_quoted))
+            settings = {
+                k: v for k, v in
+                [pair.split('=') for pair in data_string.split(',')]
+            }
+            logger.info(
+                'Settings for URL were: {path} ({data_string})'.format(
+                    path=path,
+                    data_string=data_string))
             for bridge in self.server.bridges:
-                if short_name == bridge.device.short_name:
+                if settings.get('udn') == bridge.device.udn:
                     return bridge
         except (TypeError, ValueError, IndexError):
             pass

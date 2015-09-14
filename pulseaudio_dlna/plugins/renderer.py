@@ -20,8 +20,10 @@ from __future__ import unicode_literals
 import re
 import random
 import urlparse
+import urllib
 import functools
 import logging
+import base64
 
 import pulseaudio_dlna.pulseaudio
 
@@ -281,8 +283,13 @@ class CoinedBaseRendererMixin():
             ip=self.server_ip,
             port=self.server_port,
         )
-        stream_name = '/{stream_name}.{suffix}'.format(
-            stream_name=self.short_name,
+        settings = {
+            'udn': self.udn,
+        }
+        data_string = ','.join(
+            ['{}={}'.format(k, v) for k, v in settings.iteritems()])
+        stream_name = '/{base_string}/stream.{suffix}'.format(
+            base_string=urllib.quote(base64.b64encode(data_string)),
             suffix=self.codec.suffix,
         )
         return urlparse.urljoin(server_url, stream_name)
