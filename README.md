@@ -36,8 +36,8 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-09-20_)
-    - Added a missing dependency `python-concurrent.futures`
+ * __0.4.5.1__ - (_2015-09-20_)
+    - Added a missing dependency `python-concurrent.futures` (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
 
  * __0.4.5__ - (_2015-09-20_)
     - Exceptions while updating sink and device information from pulseaudio are now handled better

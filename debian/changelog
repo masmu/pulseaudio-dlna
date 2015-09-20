@@ -1,3 +1,10 @@
+pulseaudio-dlna (0.4.5.1) trusty; urgency=low
+
+    * Added a missing dependency python-concurrent.futures
+
+ -- Massimo Mund <mo@lancode.de>  Sun, 20 Sep 2015 20:50:14 +0100
+
+
 pulseaudio-dlna (0.4.5) trusty; urgency=low
 
     * Exceptions while updating sink and device information from pulseaudio
