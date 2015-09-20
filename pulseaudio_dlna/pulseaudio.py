@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import sys
 import locale
 import dbus
+import dbus.mainloop.glib
 import os
 import struct
 import subprocess
@@ -29,6 +30,7 @@ import gobject
 import functools
 import copy
 import signal
+import concurrent.futures
 
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.notification
@@ -389,6 +391,9 @@ class PulseBridge(object):
 
 
 class PulseWatcher(PulseAudio):
+
+    ASYNC_EXECUTION = True
+
     def __init__(self, bridges_shared, message_queue, disable_switchback=False):
         PulseAudio.__init__(self)
 
@@ -402,6 +407,16 @@ class PulseWatcher(PulseAudio):
 
         self.disable_switchback = disable_switchback
 
+    def terminate(self, signal_number=None, frame=None):
+        self.cleanup()
+        sys.exit(0)
+
+    def run(self):
+        signal.signal(signal.SIGINT, self.terminate)
+        signal.signal(signal.SIGTERM, self.terminate)
+        setproctitle.setproctitle('pulse_watcher')
+
+        dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         signals = (
             ('NewPlaybackStream', 'org.PulseAudio.Core1.{}',
                 self.on_new_playback_stream),
@@ -416,14 +431,8 @@ class PulseWatcher(PulseAudio):
         self.update()
         self.default_sink = self.fallback_sink
 
-    def terminate(self, signal_number=None, frame=None):
-        self.cleanup()
-        sys.exit(0)
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
-    def run(self):
-        signal.signal(signal.SIGINT, self.terminate)
-        signal.signal(signal.SIGTERM, self.terminate)
-        setproctitle.setproctitle('pulse_watcher')
         mainloop = gobject.MainLoop()
         gobject.timeout_add(500, self._check_message_queue)
         try:
@@ -450,15 +459,10 @@ class PulseWatcher(PulseAudio):
     def _unblock_device_handling(self, object_path):
         self.blocked_devices.remove(object_path)
 
-    def set_devices(self, devices):
-        self.devices = devices
-        self.update_bridges()
-        self.share_bridges()
-
     def share_bridges(self):
+        bridges_copy = [bridge for bridge in copy.deepcopy(self.bridges)]
         del self.bridges_shared[:]
-        for bridge in copy.deepcopy(self.bridges):
-            self.bridges_shared.append(bridge)
+        self.bridges_shared.extend(bridges_copy)
 
     def update_bridges(self):
         for device in self.devices:
@@ -467,14 +471,11 @@ class PulseWatcher(PulseAudio):
                     device.short_name, device.label)
                 self.bridges.append(PulseBridge(sink, device))
 
-    def update(self):
-        PulseAudio.update(self)
-        self.share_bridges()
-
     def cleanup(self):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
             self.delete_null_sink(bridge.sink.module.index)
+        self.bridges = []
 
     def _was_stream_moved(self, moved_stream, ignore_sink):
         for sink in self.system_sinks:
@@ -567,7 +568,21 @@ class PulseWatcher(PulseAudio):
             1000, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):
-        logger.info('_handle_sink_update {}'.format(sink_path))
+        if not self.ASYNC_EXECUTION:
+            logger.info('_sync_handle_sink_update {}'.format(sink_path))
+            result = self.__handle_sink_update(sink_path)
+            logger.info(
+                '_sync_handle_sink_update {} finished!'.format(sink_path))
+        else:
+            logger.info('_async_handle_sink_update {}'.format(sink_path))
+            future = self.thread_pool.submit(
+                self.__handle_sink_update, sink_path)
+            result = future.result()
+            logger.info(
+                '_async_handle_sink_update {} finished!'.format(sink_path))
+        return result
+
+    def __handle_sink_update(self, sink_path):
         if sink_path in self.signal_timers:
             del self.signal_timers[sink_path]
 
@@ -576,7 +591,7 @@ class PulseWatcher(PulseAudio):
             return
 
         for bridge in self.bridges:
-            logger.debug('\n{}'.format(str(bridge)))
+            logger.debug('\n{}'.format(bridge))
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0:
                     logger.info(
@@ -619,6 +634,7 @@ class PulseWatcher(PulseAudio):
             device.short_name, device.label)
         self.bridges.append(PulseBridge(sink, device))
         self.update()
+        self.share_bridges()
         logger.info('Added the device "{name} ({flavour})".'.format(
             name=device.name, flavour=device.flavour))
 
@@ -634,5 +650,6 @@ class PulseWatcher(PulseAudio):
         if bridge_index_to_remove is not None:
             self.bridges.pop(bridge_index_to_remove)
             self.update()
+            self.share_bridges()
             logger.info('Removed the device "{name}".'.format(
                 name=device.name))

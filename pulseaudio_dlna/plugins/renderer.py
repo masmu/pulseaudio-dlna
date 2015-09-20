@@ -20,10 +20,11 @@ from __future__ import unicode_literals
 import re
 import random
 import urlparse
+import urllib
 import functools
 import logging
+import base64
 
-import pulseaudio_dlna.common
 import pulseaudio_dlna.pulseaudio
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
@@ -41,7 +42,13 @@ class BaseRenderer(object):
     PAUSE = 'paused'
     STOP = 'stopped'
 
-    def __init__(self):
+    def __init__(self, udn, model_name=None, model_number=None,
+                 manufacturer=None):
+        self._udn = udn
+        self._model_name = model_name
+        self._model_number = model_number
+        self._manufacturer = manufacturer
+
         self._name = None
         self._short_name = None
         self._label = None
@@ -50,7 +57,39 @@ class BaseRenderer(object):
         self._state = None
         self._encoder = None
         self._flavour = None
-        self._protocols = []
+        self._codecs = []
+
+    @property
+    def udn(self):
+        return self._udn
+
+    @udn.setter
+    def udn(self, value):
+        self._udn = value
+
+    @property
+    def model_name(self):
+        return self._model_name
+
+    @model_name.setter
+    def model_name(self, value):
+        self._model_name = value
+
+    @property
+    def model_number(self):
+        return self._model_number
+
+    @model_number.setter
+    def model_number(self, value):
+        self._model_number = value
+
+    @property
+    def manufacturer(self):
+        return self._manufacturer
+
+    @manufacturer.setter
+    def manufacturer(self, value):
+        self._manufacturer = value
 
     @property
     def name(self):
@@ -101,25 +140,16 @@ class BaseRenderer(object):
         self._state = value
 
     @property
-    def encoder(self):
-        if self._encoder is None:
-            for encoder in pulseaudio_dlna.common.supported_encoders:
-                if encoder.state is False:
-                    continue
-                for mime_type in encoder.mime_types:
-                    if mime_type in self.protocols:
-                        return encoder
-            logger.info('There was no suitable encoder found for "{name}". '
-                        'The device can play "{protocols}"'.format(
-                            name=self.label,
-                            protocols=','.join(self.protocols)))
-            raise NoSuitableEncoderFoundException()
-        else:
-            return self._encoder
-
-    @encoder.setter
-    def encoder(self, value):
-        self._encoder = value
+    def codec(self):
+        for codec in self.codecs:
+            if codec.enabled and codec.encoder.available:
+                return codec
+        logger.info('There was no suitable codec found for "{name}". '
+                    'The device can play "{codecs}"'.format(
+                        name=self.label,
+                        codecs=','.join(
+                            [codec.mime_type for codec in self.codecs])))
+        raise NoSuitableEncoderFoundException()
 
     @property
     def flavour(self):
@@ -130,12 +160,12 @@ class BaseRenderer(object):
         self._flavour = value
 
     @property
-    def protocols(self):
-        return self._protocols
+    def codecs(self):
+        return self._codecs
 
-    @protocols.setter
-    def protocols(self, value):
-        self._protocols = value
+    @codecs.setter
+    def codecs(self, value):
+        self._codecs = value
 
     def activate(self):
         pass
@@ -149,6 +179,59 @@ class BaseRenderer(object):
     def stop(self):
         raise NotImplementedError()
 
+    def add_mime_type(self, mime_type):
+        for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
+            if _type.accepts(mime_type):
+                codec = _type(mime_type)
+                if codec not in self.codecs:
+                    self.codecs.append(codec)
+
+    def prioritize_codecs(self):
+
+        def sorting_algorithm(codec):
+            if isinstance(codec, pulseaudio_dlna.codecs.L16Codec):
+                value = codec.priority * 100000
+                if codec.sample_rate:
+                    value += codec.sample_rate / 1000
+                if codec.channels:
+                    value *= codec.channels
+                return value
+            else:
+                return codec.priority * 100000
+
+        self.codecs.sort(key=sorting_algorithm, reverse=True)
+
+    def check_for_device_rules(self):
+        if self.manufacturer == 'Sonos, Inc.':
+            for codec in self.codecs:
+                if type(codec) in [
+                        pulseaudio_dlna.codecs.Mp3Codec,
+                        pulseaudio_dlna.codecs.OggCodec]:
+                    codec.rules.append(
+                        pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH())
+        if self.model_name == 'Kodi':
+            for codec in self.codecs:
+                if type(codec) is pulseaudio_dlna.codecs.WavCodec:
+                    codec.mime_type = 'audio/mpeg'
+
+    def set_codecs_from_config(self, config):
+        self.name = config['name']
+        for codec_properties in config.get('codecs', []):
+            codec_type = pulseaudio_dlna.codecs.CODECS[
+                codec_properties['identifier']]
+            codec = codec_type(codec_properties['mime_type'])
+            for k, v in codec_properties.iteritems():
+                forbidden_attributes = ['mime_type', 'identifier', 'rules']
+                if hasattr(codec, k) and k not in forbidden_attributes:
+                    setattr(codec, k, v)
+            for rule in codec_properties.get('rules', []):
+                codec.rules.append(rule)
+            self.codecs.append(codec)
+        logger.debug(
+            'Loaded the following device configuration:\n{}'.format(
+                self.__str__(True)))
+        return True
+
     def __eq__(self, other):
         if isinstance(other, BaseRenderer):
             return self.short_name == other.short_name
@@ -161,14 +244,29 @@ class BaseRenderer(object):
         if isinstance(other, pulseaudio_dlna.pulseaudio.PulseBridge):
             return self.short_name > other.device.short_name
 
-    def __str__(self):
-        return '<{} name="{}" short="{}" state="{}" protocols="{}">'.format(
-            self.__class__.__name__,
-            self.name,
-            self.short_name,
-            self.state,
-            ','.join(self.protocols),
+    def __str__(self, detailed=False):
+        return (
+            '<{} name="{}" short="{}" state="{}" udn="{}" model_name="{}" '
+            'model_number="{}" manufacturer="{}">{}').format(
+                self.__class__.__name__,
+                self.name,
+                self.short_name,
+                self.state,
+                self.udn,
+                self.model_name,
+                self.model_number,
+                self.manufacturer,
+                '\n' + '\n'.join([
+                    '  ' + codec.__str__(detailed) for codec in self.codecs
+                ]) if detailed else '',
         )
+
+    def to_json(self):
+        return {
+            'name': self.name,
+            'flavour': self.flavour,
+            'codecs': self.codecs,
+        }
 
 
 class CoinedBaseRendererMixin():
@@ -185,9 +283,14 @@ class CoinedBaseRendererMixin():
             ip=self.server_ip,
             port=self.server_port,
         )
-        stream_name = '/{stream_name}.{suffix}'.format(
-            stream_name=self.short_name,
-            suffix=self.encoder.suffix,
+        settings = {
+            'udn': self.udn,
+        }
+        data_string = ','.join(
+            ['{}={}'.format(k, v) for k, v in settings.iteritems()])
+        stream_name = '/{base_string}/stream.{suffix}'.format(
+            base_string=urllib.quote(base64.b64encode(data_string)),
+            suffix=self.codec.suffix,
         )
         return urlparse.urljoin(server_url, stream_name)
 

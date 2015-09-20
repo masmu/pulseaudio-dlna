@@ -26,25 +26,33 @@ import BeautifulSoup
 
 import pycastv2
 import pulseaudio_dlna.plugins.renderer
+import pulseaudio_dlna.codecs
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
-    def __init__(self, name, ip):
-        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(self)
+    def __init__(self, name, ip, udn, model_name, model_number, manufacturer):
+        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
+            self, udn, model_name, model_number, manufacturer)
         self.flavour = 'Chromecast'
         self.name = name
         self.ip = ip
         self.port = 8009
         self.state = self.IDLE
-        self.protocols = [
-            'audio/mp3',
-            'audio/mp4',
-            'audio/ogg',
-            'audio/wav',
-        ]
+        self.codecs = []
+
+    def activate(self, config):
+        if config:
+            self.set_codecs_from_config(config)
+        else:
+            self.codecs = [
+                pulseaudio_dlna.codecs.Mp3Codec(),
+                pulseaudio_dlna.codecs.AacCodec(),
+                pulseaudio_dlna.codecs.OggCodec(),
+                pulseaudio_dlna.codecs.WavCodec(),
+            ]
 
     def _get_media_player(self):
         try:
@@ -63,7 +71,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         if cast is None:
             return 500
         try:
-            if cast.load(url, self.encoder.mime_type) is True:
+            if cast.load(url, self.codec.mime_type) is True:
                 self.state = self.PLAYING
                 return 200
             return 500
@@ -89,9 +97,10 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 class CoinedChromecastRenderer(
         pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, ChromecastRenderer):
 
-    def play(self):
+    def play(self, url=None, codec=None):
         try:
-            return ChromecastRenderer.play(self, self.get_stream_url())
+            stream_url = url or self.get_stream_url()
+            return ChromecastRenderer.play(self, stream_url)
         except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
             return 500
 
@@ -122,7 +131,11 @@ class ChromecastRendererFactory(object):
                 return None
             cast_device = type_(
                 soup.root.device.friendlyname.text,
-                ip)
+                ip,
+                soup.root.device.udn.text,
+                soup.root.device.modelname.text,
+                None,
+                soup.root.device.manufacturer.text)
             return cast_device
         except AttributeError:
             logger.error(

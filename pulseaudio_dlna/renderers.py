@@ -31,11 +31,12 @@ class RendererHolder(object):
 
     def __init__(
             self, stream_server_address, message_queue, plugins,
-            device_filter=None):
+            device_filter=None, device_config=None):
         self.renderers = {}
         self.registered = {}
         self.stream_server_address = stream_server_address
         self.device_filter = device_filter
+        self.device_config = device_config or {}
         self.message_queue = message_queue
         self.lock = threading.Lock()
         for plugin in plugins:
@@ -70,7 +71,15 @@ class RendererHolder(object):
                 name=device.name))
 
     def _add_renderer(self, device_id, device):
-        device.activate()
+        config = self.device_config.get(device.udn, None)
+        device.activate(config)
+        if config:
+            logger.info(
+                'Using device configuration:\n' + device.__str__(True))
+        else:
+            logger.info(
+                'No specific device configuration used for "{}"'.format(
+                    device.label))
         ip, port = self.stream_server_address
         device.set_server_location(ip, port)
         self.renderers[device_id] = device

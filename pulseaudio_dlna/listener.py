@@ -46,12 +46,13 @@ class SSDPRequestHandler(SocketServer.BaseRequestHandler):
 class SSDPListener(SocketServer.UDPServer):
     def __init__(
             self, stream_server_address, message_queue, plugins,
-            device_filter=None, renderer_urls=None,
+            device_filter=None, device_config=None, renderer_urls=None,
             disable_ssdp_listener=False):
         self.disable_ssdp_listener = disable_ssdp_listener
         self.renderer_urls = renderer_urls
         self.renderers_holder = RendererHolder(
-            stream_server_address, message_queue, plugins, device_filter)
+            stream_server_address, message_queue, plugins, device_filter,
+            device_config)
         if not self.disable_ssdp_listener:
             SocketServer.UDPServer.__init__(
                 self, ('', 1900), SSDPRequestHandler)
