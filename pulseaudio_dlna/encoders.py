@@ -105,6 +105,14 @@ class BitRateMixin(object):
         )
 
 
+class NullEncoder(BaseEncoder):
+
+    def __init__(self):
+        BaseEncoder.__init__(self)
+        self._binary = 'cat'
+        self._command = []
+
+
 class LameEncoder(BitRateMixin, BaseEncoder):
 
     SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,

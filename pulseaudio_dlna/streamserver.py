@@ -372,11 +372,12 @@ class StreamManager(object):
                 _send_bridge_disconnected(remote_device.bridge)
 
     def _create_stream(self, path, bridge):
-        recorder = pulseaudio_dlna.recorders.PulseaudioRecorder(
-            bridge.sink.monitor)
-        stream = ProcessStream(
-            path, recorder, bridge.device.codec.encoder, self)
-        return stream
+        return ProcessStream(
+            path,
+            bridge.device.codec.get_recorder(bridge.sink.monitor),
+            bridge.device.codec.encoder,
+            self,
+        )
 
     def get_stream(self, path, bridge):
         if isinstance(bridge.device.codec, pulseaudio_dlna.codecs.WavCodec):

@@ -28,11 +28,24 @@ class BaseRecorder(object):
 
 
 class PulseaudioRecorder(BaseRecorder):
-    def __init__(self, sink_path):
+    def __init__(self, monitor, _format=None):
         BaseRecorder.__init__(self)
-        self._sink_path = sink_path
+        self._monitor = monitor
+        self._format = _format
         self._command = ['parec', '--format=s16le']
 
     @property
+    def monitor(self):
+        return self._monitor
+
+    @property
+    def format(self):
+        return self._format
+
+    @property
     def command(self):
-        return self._command + ['-d', self._sink_path]
+        if not self.format:
+            return super(PulseaudioRecorder, self).command + ['-d', self.monitor]
+        else:
+            return super(PulseaudioRecorder, self).command + [
+                '-d', self.monitor, '--file-format=' + self.format]

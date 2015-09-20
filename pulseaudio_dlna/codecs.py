@@ -62,6 +62,9 @@ class BaseCodec(object):
                 return True
         return False
 
+    def get_recorder(self, monitor):
+        return pulseaudio_dlna.recorders.PulseaudioRecorder(monitor)
+
     def __eq__(self, other):
         return type(self) is type(other)
 
