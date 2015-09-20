@@ -36,7 +36,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-09-06_)
+ * __master__ - (_2015-09-20_)
     - Exceptions while updating sink and device informations from pulseaudio are now handled better
     - Changed `--fake-http10-content-length` flag to `--fake-http-content-length` to also support HTTP 1.1 requests
     - Fixed a bug where the supported device mime types could not get parsed correctly
