@@ -37,7 +37,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 ## Changelog ##
 
  * __master__ - (_2015-09-20_)
-    - Exceptions while updating sink and device informations from pulseaudio are now handled better
+    - Exceptions while updating sink and device information from pulseaudio are now handled better
     - Changed `--fake-http10-content-length` flag to `--fake-http-content-length` to also support HTTP 1.1 requests
     - Fixed a bug where the supported device mime types could not get parsed correctly
     - Fixed a bug where the device UUID was not parsed correctly
@@ -47,7 +47,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where the wrong stream was removed from the stream manager
     - Fixed several bugs caused by purely relying on stopping actions for the devices idle state
     - Added L16 Encoder
-    - The encoder option can now handle multiple options seperated by comma
+    - The encoder option can now handle multiple options separated by comma
     - Added the `--create-device-config` flag
     - Fixed a bug where the dbus session was bound from the wrong process
     - Fix a bug where the wrong device UDN was retrieved from XML documents containing multiple devices
