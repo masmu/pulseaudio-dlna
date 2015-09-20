@@ -475,6 +475,7 @@ class PulseWatcher(PulseAudio):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
             self.delete_null_sink(bridge.sink.module.index)
+        self.bridges = []
 
     def _was_stream_moved(self, moved_stream, ignore_sink):
         for sink in self.system_sinks:
