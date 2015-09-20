@@ -76,10 +76,6 @@ class RendererHolder(object):
         if config:
             logger.info(
                 'Using device configuration:\n' + device.__str__(True))
-        else:
-            logger.info(
-                'No specific device configuration used for "{}"'.format(
-                    device.label))
         ip, port = self.stream_server_address
         device.set_server_location(ip, port)
         self.renderers[device_id] = device
