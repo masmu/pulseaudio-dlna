@@ -23,7 +23,7 @@ import setuptools
 def get_version():
     path = os.path.abspath(os.path.dirname(__file__))
     path = os.path.join(path, "debian", "changelog")
-    ex = r"pulseaudio-dlna \((\d+\.\d+\.\d+)\) .*$"
+    ex = r"pulseaudio-dlna \((\d+\.\d+\.\d+(\.\d+)?)\) .*$"
     with open(path) as f:
         releases = f.readlines()
         releases = [re.match(ex, i) for i in releases]
