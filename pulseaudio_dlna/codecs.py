@@ -204,7 +204,7 @@ class AacCodec(BitRateMixin, BaseCodec):
 @functools.total_ordering
 class OggCodec(BitRateMixin, BaseCodec):
 
-    SUPPORTED_MIME_TYPES = 'audio/ogg', 'audio/x-ogg', 'application/ogg'
+    SUPPORTED_MIME_TYPES = ['audio/ogg', 'audio/x-ogg', 'application/ogg']
     IDENTIFIER = 'ogg'
 
     def __init__(self, mime_string=None):
@@ -239,7 +239,7 @@ class FlacCodec(BaseCodec):
 @functools.total_ordering
 class OpusCodec(BitRateMixin, BaseCodec):
 
-    SUPPORTED_MIME_TYPES = 'audio/opus', 'audio/x-opus'
+    SUPPORTED_MIME_TYPES = ['audio/opus', 'audio/x-opus']
     IDENTIFIER = 'opus'
 
     def __init__(self, mime_string=None):
