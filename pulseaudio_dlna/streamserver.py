@@ -501,7 +501,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 [pair.split('=') for pair in data_string.split(',')]
             }
             logger.info(
-                'Settings for URL were: {path} ({data_string})'.format(
+                'URL settings: {path} ({data_string})'.format(
                     path=path,
                     data_string=data_string))
             for bridge in self.server.bridges:
