@@ -1,3 +1,10 @@
+pulseaudio-dlna (0.4.5.2) trusty; urgency=low
+
+    * Fixed a bug where the encoding of SSDP headers was not detected correctly
+
+ -- Massimo Mund <mo@lancode.de>  Mon, 21 Sep 2015 17:33:28 +0100
+
+
 pulseaudio-dlna (0.4.5.1) trusty; urgency=low
 
     * Added a missing dependency python-concurrent.futures
