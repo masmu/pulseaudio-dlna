@@ -190,6 +190,7 @@ will get installed if you install it via the PPA.
 - python-protobuf
 - python-notify2
 - python-psutil
+- python-concurrent.futures
 - vorbis-tools
 - sox
 - lame
@@ -199,7 +200,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
