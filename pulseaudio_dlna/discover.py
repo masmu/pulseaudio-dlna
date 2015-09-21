@@ -50,6 +50,9 @@ class BaseUpnpMediaRendererDiscover(object):
         while True:
             try:
                 header, address = sock.recvfrom(buffer_size)
+                logger.info(
+                    'header "{}"'.format(
+                        ' '.join('{:02x}'.format(ord(c)) for c in header)))
                 self._header_received(header.decode(self.ENCODING), address)
             except s.timeout:
                 break
