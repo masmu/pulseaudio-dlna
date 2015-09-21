@@ -50,7 +50,6 @@ class BaseUpnpMediaRendererDiscover(object):
             try:
                 header, address = sock.recvfrom(buffer_size)
                 guess = chardet.detect(header)
-                logger.info(guess)
                 self._header_received(header.decode(guess['encoding']), address)
             except s.timeout:
                 break
