@@ -20,7 +20,6 @@ from __future__ import unicode_literals
 import socket as s
 import logging
 import time
-import locale
 
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
@@ -36,7 +35,7 @@ class BaseUpnpMediaRendererDiscover(object):
               'MX: 2\r\n' + \
               'ST: ssdp:all\r\n\r\n'
 
-    LC_ENCODING = locale.getpreferredencoding()
+    ENCODING = 'utf-8'
 
     def search(self, ttl=10, timeout=5, times=4):
         s.setdefaulttimeout(timeout)
@@ -51,7 +50,7 @@ class BaseUpnpMediaRendererDiscover(object):
         while True:
             try:
                 header, address = sock.recvfrom(buffer_size)
-                self._header_received(header.decode(self.LC_ENCODING), address)
+                self._header_received(header.decode(self.ENCODING), address)
             except s.timeout:
                 break
         sock.close()
