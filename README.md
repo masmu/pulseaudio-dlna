@@ -36,6 +36,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __master__ - (_2015-09-21_)
+    - Fixed a bug where the encoding of SSDP headers was not detected correctly (new dependency: `python-chardet`)
+
  * __0.4.5.1__ - (_2015-09-20_)
     - Added a missing dependency `python-concurrent.futures` (thanks to [Takkat-Nebuk](https://github.com/Takkat-Nebuk))
 
@@ -191,6 +194,7 @@ will get installed if you install it via the PPA.
 - python-notify2
 - python-psutil
 - python-concurrent.futures
+- python-chardet
 - vorbis-tools
 - sox
 - lame
@@ -200,7 +204,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
