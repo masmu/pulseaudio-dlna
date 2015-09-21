@@ -22,6 +22,8 @@ import logging
 import socket
 import struct
 import setproctitle
+import chardet
+
 from pulseaudio_dlna.discover import RendererDiscover
 from pulseaudio_dlna.renderers import RendererHolder
 
@@ -29,8 +31,10 @@ logger = logging.getLogger('pulseaudio_dlna.listener')
 
 
 class SSDPRequestHandler(SocketServer.BaseRequestHandler):
+
     def handle(self):
-        packet = self.request[0]
+        guess = chardet.detect(self.request[0])
+        packet = self.request[0].decode(guess['encoding'])
         lines = packet.splitlines()
         if len(lines) > 0 and self._is_notify_method(lines[0]):
             self.server.renderers_holder.process_notify_request(packet)

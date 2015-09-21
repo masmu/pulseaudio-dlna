@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import socket as s
 import logging
 import time
+import chardet
 
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
@@ -48,7 +49,8 @@ class BaseUpnpMediaRendererDiscover(object):
         while True:
             try:
                 header, address = sock.recvfrom(buffer_size)
-                self._header_received(header, address)
+                guess = chardet.detect(header)
+                self._header_received(header.decode(guess['encoding']), address)
             except s.timeout:
                 break
         sock.close()

@@ -58,6 +58,7 @@ setuptools.setup(
         "notify2 >= 0.3",
         "psutil >= 1.2.1",
         "futures >= 2.1.6",
+        "chardet >= 2.0.1",
     ],
     entry_points={
         "console_scripts": [
