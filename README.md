@@ -36,6 +36,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __bug/no-control-url__ - (_2015-09-25_)
+    - Fixed a bug where devices which does not specifiy control urls made the application crash
+
  * __0.4.5.2__ - (_2015-09-21_)
     - Fixed a bug where the encoding of SSDP headers was not detected correctly (new dependency: `python-chardet`)
 

@@ -65,7 +65,7 @@ class SSDPListener(SocketServer.UDPServer):
             self.socket.setsockopt(
                 socket.IPPROTO_IP, socket.IP_ADD_MEMBERSHIP, multicast)
         if self.renderer_urls is not None:
-            self.renderers_holder.add_renderers_by_url(self.renderer_urls)
+            self.renderers_holder.process_locations(self.renderer_urls)
         else:
             discover = RendererDiscover(self.renderers_holder)
             discover.search()

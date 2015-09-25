@@ -40,15 +40,7 @@ class RendererHolder(object):
         self.message_queue = message_queue
         self.lock = threading.Lock()
         for plugin in plugins:
-            self._register(plugin.st_header, plugin)
-
-    def add_renderers_by_url(self, locations):
-        for plugin in self.registered.values():
-            for device in plugin.lookup(locations):
-                self._add_renderer(device.udn, device)
-
-    def _register(self, identifier, _type):
-        self.registered[identifier] = _type
+            self.registered[plugin.st_header] = plugin
 
     def _retrieve_header_map(self, header):
         header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\n", header)
@@ -63,36 +55,12 @@ class RendererHolder(object):
                 return match.group(1)
         return None
 
-    def _add_renderer_with_filter_check(self, device_id, device):
-        if self.device_filter is None or device.name in self.device_filter:
-            self._add_renderer(device_id, device)
-        else:
-            logger.info('Skipped the device "{name}."'.format(
-                name=device.name))
+    def process_locations(self, locations):
+        for plugin in self.registered.values():
+            for device in plugin.lookup(locations):
+                self._add_renderer(device.udn, device)
 
-    def _add_renderer(self, device_id, device):
-        config = self.device_config.get(device.udn, None)
-        device.activate(config)
-        if config:
-            logger.info(
-                'Using device configuration:\n' + device.__str__(True))
-        ip, port = self.stream_server_address
-        device.set_server_location(ip, port)
-        self.renderers[device_id] = device
-        self.message_queue.put({
-            'type': 'add_device',
-            'device': device
-        })
-
-    def _remove_renderer_by_id(self, device_id):
-        device = self.renderers[device_id]
-        self.message_queue.put({
-            'type': 'remove_device',
-            'device': device
-        })
-        del self.renderers[device_id]
-
-    def add_from_search(self, header):
+    def process_msearch_request(self, header):
         header = self._retrieve_header_map(header)
         device_id = self._retrieve_device_id(header)
 
@@ -127,3 +95,33 @@ class RendererHolder(object):
                     self._remove_renderer_by_id(device_id)
         finally:
             self.lock.release()
+
+    def _add_renderer_with_filter_check(self, device_id, device):
+        if self.device_filter is None or device.name in self.device_filter:
+            self._add_renderer(device_id, device)
+        else:
+            logger.info('Skipped the device "{name}" ...'.format(
+                name=device.label))
+
+    def _add_renderer(self, device_id, device):
+        if device.validate():
+            config = self.device_config.get(device.udn, None)
+            device.activate(config)
+            if config:
+                logger.info(
+                    'Using device configuration:\n' + device.__str__(True))
+            ip, port = self.stream_server_address
+            device.set_server_location(ip, port)
+            self.renderers[device_id] = device
+            self.message_queue.put({
+                'type': 'add_device',
+                'device': device
+            })
+
+    def _remove_renderer_by_id(self, device_id):
+        device = self.renderers[device_id]
+        self.message_queue.put({
+            'type': 'remove_device',
+            'device': device
+        })
+        del self.renderers[device_id]
