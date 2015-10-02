@@ -31,6 +31,9 @@ import pulseaudio_dlna.codecs
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 
+CHROMECAST_MODEL_NAMES = ['Eureka Dongle', 'Chromecast Audio']
+
+
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def __init__(self, name, ip, udn, model_name, model_number, manufacturer):
@@ -123,7 +126,7 @@ class ChromecastRendererFactory(object):
         ip, port = url_object.netloc.split(':')
         try:
             model_name = soup.root.device.modelname.text
-            if model_name.strip() != 'Eureka Dongle':
+            if model_name.strip() not in CHROMECAST_MODEL_NAMES:
                 logger.info(
                     'The Chromecast seems not to be an original Chromecast! '
                     'Model name: "{model_name}" Skipping device ...'.format(
