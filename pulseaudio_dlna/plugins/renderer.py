@@ -26,6 +26,7 @@ import logging
 import base64
 
 import pulseaudio_dlna.pulseaudio
+import pulseaudio_dlna.rules
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 
@@ -58,6 +59,7 @@ class BaseRenderer(object):
         self._encoder = None
         self._flavour = None
         self._codecs = []
+        self._rules = pulseaudio_dlna.rules.Rules()
 
     @property
     def udn(self):
@@ -167,6 +169,14 @@ class BaseRenderer(object):
     def codecs(self, value):
         self._codecs = value
 
+    @property
+    def rules(self):
+        return self._rules
+
+    @rules.setter
+    def rules(self, value):
+        self._rules = value
+
     def activate(self):
         pass
 
@@ -216,6 +226,8 @@ class BaseRenderer(object):
 
     def set_codecs_from_config(self, config):
         self.name = config['name']
+        for rule in config.get('rules', []):
+            self.rules.append(rule)
         for codec_properties in config.get('codecs', []):
             codec_type = pulseaudio_dlna.codecs.CODECS[
                 codec_properties['identifier']]
@@ -247,7 +259,7 @@ class BaseRenderer(object):
     def __str__(self, detailed=False):
         return (
             '<{} name="{}" short="{}" state="{}" udn="{}" model_name="{}" '
-            'model_number="{}" manufacturer="{}">{}').format(
+            'model_number="{}" manufacturer="{}">{}{}').format(
                 self.__class__.__name__,
                 self.name,
                 self.short_name,
@@ -256,6 +268,9 @@ class BaseRenderer(object):
                 self.model_name,
                 self.model_number,
                 self.manufacturer,
+                ('\n' if len(self.rules) > 0 else '') + '\n'.join(
+                    ['  - ' + str(rule) for rule in self.rules]
+                ) if detailed else '',
                 '\n' + '\n'.join([
                     '  ' + codec.__str__(detailed) for codec in self.codecs
                 ]) if detailed else '',
@@ -266,6 +281,7 @@ class BaseRenderer(object):
             'name': self.name,
             'flavour': self.flavour,
             'codecs': self.codecs,
+            'rules': self.rules,
         }
 
 
