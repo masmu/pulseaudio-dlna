@@ -298,7 +298,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
         pulseaudio-dlna [--create-device-config]
         pulseaudio-dlna [-h | --help | --version]
 
@@ -331,6 +331,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
         --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
         --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.
         --disable-ssdp-listener                If set, the application won't bind to the port 1900 and therefore the automatic discovery of new devices won't work.
+        --disable-device-stop                  If set, the application won't send any stop commands to renderers at all
         -v --version                           Show the version.
         -h --help                              Show the help.
 
@@ -377,6 +378,7 @@ that is what was discovered:
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
+        "rules": [], 
         "flavour": "DLNA", 
         "name": "Device name", 
         "codecs": [
@@ -441,6 +443,7 @@ be encoded in 256 Kbit/s.
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
+        "rules": [], 
         "flavour": "DLNA", 
         "name": "Living Room", 
         "codecs": [
@@ -464,6 +467,7 @@ works without the flag. So, you can add a rule for that to that device.
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
+        "rules": [], 
         "flavour": "DLNA", 
         "name": "Living Room", 
         "codecs": [
