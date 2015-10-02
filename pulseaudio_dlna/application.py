@@ -162,6 +162,10 @@ class Application(object):
         if options['--disable-ssdp-listener']:
             disable_ssdp_listener = True
 
+        disable_device_stop = False
+        if options['--disable-device-stop']:
+            disable_device_stop = True
+
         try:
             stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
                 host, port, bridges, message_queue,
@@ -177,6 +181,7 @@ class Application(object):
         pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
             bridges, message_queue,
             disable_switchback=disable_switchback,
+            disable_device_stop=disable_device_stop,
         )
 
         device_filter = None

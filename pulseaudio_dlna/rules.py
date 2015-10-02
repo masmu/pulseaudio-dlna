@@ -74,6 +74,10 @@ class FAKE_HTTP_CONTENT_LENGTH(BaseRule):
     pass
 
 
+class DISABLE_DEVICE_STOP(BaseRule):
+    pass
+
+
 # class EXAMPLE_PROPERTIES_RULE(BaseRule):
 #     def __init__(self, prop1=None, prop2=None):
 #         self.prop1 = prop1 or 'abc'
