@@ -36,7 +36,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
-* __master__ - (_2015-10-02_)
+ * __master__ - (_2015-10-02_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
 
  * __0.4.5.2__ - (_2015-09-21_)
