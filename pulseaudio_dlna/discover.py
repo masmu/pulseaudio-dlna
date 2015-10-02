@@ -71,4 +71,4 @@ class RendererDiscover(BaseUpnpMediaRendererDiscover):
     def _header_received(self, header, address):
         logger.debug('Recieved the following SSDP header: \n{header}'.format(
             header=header))
-        self.renderer_holder.add_from_search(header)
+        self.renderer_holder.process_msearch_request(header)

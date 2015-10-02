@@ -159,6 +159,24 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         else:
             self.get_protocol_info()
 
+    def validate(self):
+        if self.service_transport is None:
+            logger.info(
+                'The device "{}" does not specify a service transport url. '
+                'Device skipped!'.format(self.label))
+            return False
+        if self.service_connection is None:
+            logger.info(
+                'The device "{}" does not specify a service connection url. '
+                'Device skipped!'.format(self.label))
+            return False
+        if self.service_rendering is None:
+            logger.info(
+                'The device "{}" does not specify a service rendering url. '
+                'Device skipped!'.format(self.label))
+            return False
+        return True
+
     def _load_xml_files(self):
         content = {}
         self.xml_files = {

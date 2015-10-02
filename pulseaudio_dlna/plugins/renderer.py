@@ -170,6 +170,9 @@ class BaseRenderer(object):
     def activate(self):
         pass
 
+    def validate(self):
+        return True
+
     def play(self):
         raise NotImplementedError()
 

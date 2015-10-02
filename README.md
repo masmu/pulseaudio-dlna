@@ -38,6 +38,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
  * __master__ - (_2015-10-02_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
+    - Fixed a bug where devices which does not specifiy control urls made the application crash
 
  * __0.4.5.2__ - (_2015-09-21_)
     - Fixed a bug where the encoding of SSDP headers was not detected correctly (new dependency: `python-chardet`)
