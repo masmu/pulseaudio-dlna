@@ -384,10 +384,12 @@ class CoinedUpnpMediaRenderer(
     def play(self, url=None, codec=None):
         try:
             stream_url = url or self.get_stream_url()
-            if UpnpMediaRenderer.register(self, stream_url, codec) == 200:
+            return_code = UpnpMediaRenderer.register(self, stream_url, codec)
+            if return_code == 200:
                 return UpnpMediaRenderer.play(self)
             else:
                 logger.error('"{}" registering failed!'.format(self.name))
+                return return_code
         except requests.exceptions.ConnectionError:
             logger.error('The device refused the connection!')
             return 404
