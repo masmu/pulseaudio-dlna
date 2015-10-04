@@ -496,17 +496,22 @@ class PulseWatcher(PulseAudio):
 
     def switch_back(self, bridge, reason):
         title = 'Device "{label}"'.format(label=bridge.device.label)
-        message = ('{reason}. Your streams were switched '
-                   'back to <b>{name}</b>'.format(
-                       reason=reason,
-                       name=(self.fallback_sink.label).encode(
-                           locale.getpreferredencoding())))
-        pulseaudio_dlna.notification.show(title, message)
+        if self.fallback_sink:
+            message = ('{reason}. Your streams were switched '
+                       'back to <b>{name}</b>'.format(
+                           reason=reason,
+                           name=(self.fallback_sink.label).encode(
+                               locale.getpreferredencoding())))
+            pulseaudio_dlna.notification.show(title, message)
 
-        self._block_device_handling(bridge.sink.object_path)
-        if bridge.sink == self.default_sink:
-            self.fallback_sink.set_as_default_sink()
-        bridge.sink.switch_streams_to_fallback_source()
+            self._block_device_handling(bridge.sink.object_path)
+            if bridge.sink == self.default_sink:
+                self.fallback_sink.set_as_default_sink()
+            bridge.sink.switch_streams_to_fallback_source()
+        else:
+            message = ('Your streams could not get switched back because you '
+                       'did not set a default sink in pulseaudio.')
+            pulseaudio_dlna.notification.show(title, message)
 
     def on_bridge_disconnected(self, stopped_bridge):
 
