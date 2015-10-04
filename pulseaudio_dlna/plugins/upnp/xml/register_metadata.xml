@@ -1,13 +1,11 @@
 <DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:sec="http://www.sec.co.kr/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
     <item id="0" parentID="0" restricted="1">
         <upnp:class>object.item.audioItem.musicTrack</upnp:class>
-        <dc:title>Surprise Surprise</dc:title>
-        <dc:creator>Billy Talent</dc:creator>
-        <upnp:artist>Billy Talent</upnp:artist>
-        <upnp:genre>(17)Rock</upnp:genre>
-        <dc:date>2012-01-01</dc:date>
-        <upnp:album>Dead Silence</upnp:album>
-        <upnp:originalTrackNumber>3</upnp:originalTrackNumber>
+        <dc:title>{title}</dc:title>
+        <dc:creator>{creator}</dc:creator>
+        <upnp:artist>{artist}</upnp:artist>
+        <upnp:albumArtURI></upnp:albumArtURI>
+        <upnp:album>{album}</upnp:album>
         <res bitrate="40000" duration="0:03:08.000" protocolInfo="http-get:*:audio/mpeg:DLNA.ORG_PN=MP3;DLNA.ORG_OP=01;DLNA.ORG_FLAGS=01700000000000000000000000000000" size="7853351">{stream_url}</res>
     </item>
 </DIDL-Lite>
