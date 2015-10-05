@@ -501,7 +501,7 @@ class PulseWatcher(PulseAudio):
                        'back to <b>{name}</b>'.format(
                            reason=reason,
                            name=(self.fallback_sink.label).encode(
-                               locale.getpreferredencoding())))
+                               sys.stdout.encoding)))
             pulseaudio_dlna.notification.show(title, message)
 
             self._block_device_handling(bridge.sink.object_path)
