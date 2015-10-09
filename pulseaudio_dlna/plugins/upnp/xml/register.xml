@@ -1,7 +1,7 @@
-<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
+<?xml version="1.0" encoding="utf-8"?>
 <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
     <s:Body>
-        <u:SetAVTransportURI xmlns:u="{service_type}">
+        <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
             <InstanceID>0</InstanceID>
             <CurrentURI>{stream_url}</CurrentURI>
             <CurrentURIMetaData>{current_url_metadata}</CurrentURIMetaData>
