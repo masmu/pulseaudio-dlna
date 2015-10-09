@@ -497,8 +497,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             data_quoted, suffix = re.findall(r'/(.*?)/stream\.(.*)', path)[0]
             data_string = base64.b64decode(urllib.unquote(data_quoted))
             settings = {
-                k: v for k, v in
-                [pair.split('=') for pair in data_string.split(',')]
+                k: v for k, v in re.findall('(.*?)="(.*?)",?', data_string)
             }
             logger.info(
                 'URL settings: {path} ({data_string})'.format(

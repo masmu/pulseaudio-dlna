@@ -306,7 +306,7 @@ class CoinedBaseRendererMixin():
             'udn': self.udn,
         }
         data_string = ','.join(
-            ['{}={}'.format(k, v) for k, v in settings.iteritems()])
+            ['{}="{}"'.format(k, v) for k, v in settings.iteritems()])
         stream_name = '/{base_string}/stream.{suffix}'.format(
             base_string=urllib.quote(base64.b64encode(data_string)),
             suffix=self.codec.suffix,
