@@ -207,13 +207,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 status_code=response.status_code,
                 result=response.text))
 
-    def _compress_xml(self, xml):
-        from lxml import etree
-        parser = etree.XMLParser(remove_blank_text=True)
-        element = etree.XML(str(xml), parser=parser)
-        return etree.tostring(
-            element, encoding=self.ENCODING, xml_declaration=True).replace('\n', '')
-
     def register(self, stream_url, codec=None):
         url = self.service_transport.control_url
         codec = codec or self.codec
