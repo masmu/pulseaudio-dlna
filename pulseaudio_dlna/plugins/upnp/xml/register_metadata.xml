@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="{encoding}"?>
 <DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:sec="http://www.sec.co.kr/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
-    <item>
+    <item id="0" parentID="0" restricted="1">
         <res protocolInfo="http-get:*:audio/mpeg:DLNA.ORG_PN=MP3;DLNA.ORG_OP=00;DLNA.ORG_FLAGS=01700000000000000000000000000000">{stream_url}</res>
         <dc:title>Iam beginning to see the light</dc:title>
         <upnp:artist>Ella Fitzgerald</upnp:artist>
