@@ -225,7 +225,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 '"{service_type}#SetAVTransportURI"'.format(
                     service_type=self.service_transport.service_type),
             'User-Agent': 'NP_CONTROLLER/4.40 (Android)',
-            'Connection': 'Keep-Alive',
         }
         content_features = UpnpContentFeatures(
             flags=[
@@ -314,7 +313,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             'SOAPAction': '"{service_type}#Play"'.format(
                 service_type=self.service_transport.service_type),
             'User-Agent': 'NP_CONTROLLER/4.40 (Android)',
-            'Connection': 'Keep-Alive',
         }
         data = self.xml['play'].format(
             encoding=self.ENCODING,
