@@ -218,10 +218,10 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         url = self.service_transport.control_url
         codec = codec or self.codec
         headers = {
-            'CONTENT-TYPE':
+            'Content-Type':
                 'text/xml; charset="{encoding}"'.format(
                     encoding=self.ENCODING),
-            'SOAPACTION':
+            'SOAPAction':
                 '"{service_type}#SetAVTransportURI"'.format(
                     service_type=self.service_transport.service_type),
             'User-Agent': 'NP_CONTROLLER/4.40 (Android)',
@@ -308,10 +308,10 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     def play(self):
         url = self.service_transport.control_url
         headers = {
-            'CONTENT-TYPE':
+            'Content-Type':
                 'text/xml; charset="{encoding}"'.format(
                     encoding=self.ENCODING),
-            'SOAPACTION': '"{service_type}#Play"'.format(
+            'SOAPAction': '"{service_type}#Play"'.format(
                 service_type=self.service_transport.service_type),
             'User-Agent': 'NP_CONTROLLER/4.40 (Android)',
             'Connection': 'Keep-Alive',
