@@ -207,16 +207,25 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 status_code=response.status_code,
                 result=response.text))
 
+    def _compress_xml(self, xml):
+        from lxml import etree
+        parser = etree.XMLParser(remove_blank_text=True)
+        element = etree.XML(str(xml), parser=parser)
+        return etree.tostring(
+            element, encoding=self.ENCODING, xml_declaration=True).replace('\n', '')
+
     def register(self, stream_url, codec=None):
         url = self.service_transport.control_url
         codec = codec or self.codec
         headers = {
-            'Content-Type':
+            'CONTENT-TYPE':
                 'text/xml; charset="{encoding}"'.format(
                     encoding=self.ENCODING),
-            'SOAPAction':
+            'SOAPACTION':
                 '"{service_type}#SetAVTransportURI"'.format(
                     service_type=self.service_transport.service_type),
+            'User-Agent': 'NP_CONTROLLER/4.40 (Android)',
+            'Connection': 'Keep-Alive',
         }
         content_features = UpnpContentFeatures(
             flags=[
@@ -225,7 +234,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
                 UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
             ])
-        metadata = self.xml['register_metadata'].format(
+        metadata = self._compress_xml(self.xml['register_metadata'].format(
             stream_url=stream_url,
             title='Live Audio',
             artist='PulseAudio on {}'.format(socket.gethostname()),
@@ -234,13 +243,13 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             encoding=self.ENCODING,
             mime_type=codec.mime_type,
             content_features=str(content_features),
-        )
-        data = self.xml['register'].format(
+        ))
+        data = self._compress_xml(self.xml['register'].format(
             stream_url=stream_url,
             current_url_metadata=cgi.escape(metadata),
             encoding=self.ENCODING,
             service_type=self.service_transport.service_type,
-        )
+        ))
         try:
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
@@ -299,16 +308,18 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     def play(self):
         url = self.service_transport.control_url
         headers = {
-            'Content-Type':
+            'CONTENT-TYPE':
                 'text/xml; charset="{encoding}"'.format(
                     encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#Play"'.format(
+            'SOAPACTION': '"{service_type}#Play"'.format(
                 service_type=self.service_transport.service_type),
+            'User-Agent': 'NP_CONTROLLER/4.40 (Android)',
+            'Connection': 'Keep-Alive',
         }
-        data = self.xml['play'].format(
+        data = self._compress_xml(self.xml['play'].format(
             encoding=self.ENCODING,
             service_type=self.service_transport.service_type,
-        )
+        ))
         try:
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
