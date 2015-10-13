@@ -76,6 +76,10 @@ class ChannelController(object):
                         applications.get('sessionId') or self.session_id)
                     self.app_id = (
                         applications.get('appId') or self.app_id)
+                else:
+                    self.transport_id = 'receiver-0'
+                    self.session_id = None
+                    self.app_id = None
             elif response_type == 'PING':
                 self.socket.send(commands.PongCommand())
             elif response_type == 'CLOSE':
@@ -114,8 +118,6 @@ class ChromecastController():
         self.channel_controller = ChannelController(self.socket)
 
     def is_app_running(self, app_id):
-        if self.channel_controller.app_id is None:
-            return False
         return self.channel_controller.app_id == app_id
 
     def launch_application(self, app_id):
@@ -153,7 +155,7 @@ class ChromecastController():
             self.socket.send(commands.CloseCommand(destination_id=False))
             try:
                 retries = 0
-                while not self.is_app_running(self.APP_BACKDROP):
+                while self.is_app_running(self.APP_BACKDROP):
                     if retries > self.max_retries:
                         return False
                     self.socket.send_and_wait(commands.StatusCommand())
