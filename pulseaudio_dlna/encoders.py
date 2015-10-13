@@ -41,7 +41,7 @@ class UnsupportedMimeTypeException():
 
 class BaseEncoder(object):
 
-    AVAILABLE = False
+    AVAILABLE = True
 
     def __init__(self):
         self._binary = None

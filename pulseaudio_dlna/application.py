@@ -132,6 +132,8 @@ class Application(object):
 
         logger.info('Encoder settings:')
         for _type in pulseaudio_dlna.encoders.ENCODERS:
+            _type.AVAILABLE = False
+        for _type in pulseaudio_dlna.encoders.ENCODERS:
             encoder = _type()
             encoder.validate()
             logger.info('  {}'.format(encoder))
