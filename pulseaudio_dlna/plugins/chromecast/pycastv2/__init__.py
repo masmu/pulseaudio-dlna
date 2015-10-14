@@ -30,6 +30,10 @@ class ChannelClosedException(Exception):
     pass
 
 
+class TimeoutException(Exception):
+    pass
+
+
 class ChannelController(object):
     def __init__(self, socket):
         self.request_id = 1
@@ -111,9 +115,10 @@ class ChannelController(object):
 class ChromecastController():
 
     APP_BACKDROP = 'E8C28D3C'
+    WAIT_INTERVAL = 0.1
 
-    def __init__(self, ip, max_retries=15):
-        self.max_retries = max_retries
+    def __init__(self, ip, timeout=10):
+        self.timeout = timeout
         self.socket = cast_socket.CastSocket(ip)
         self.channel_controller = ChannelController(self.socket)
 
@@ -123,52 +128,41 @@ class ChromecastController():
     def launch_application(self, app_id):
         if not self.is_app_running(app_id):
             self.socket.send(commands.LaunchCommand(app_id))
-            retries = 0
+            start_time = time.time()
             while not self.is_app_running(app_id):
-                if retries > self.max_retries:
-                    return False
                 self.socket.send_and_wait(commands.StatusCommand())
-                time.sleep(1)
-                retries += 1
-            return True
+                current_time = time.time()
+                if current_time - start_time > self.timeout:
+                    raise TimeoutException()
+                time.sleep(self.WAIT_INTERVAL)
         else:
             logger.debug('Starting not necessary. Application is running ...')
-            return True
 
     def stop_application(self):
         if not self.is_app_running(self.APP_BACKDROP):
             self.socket.send(commands.StopCommand())
-            retries = 0
+            start_time = time.time()
             while not self.is_app_running(self.APP_BACKDROP):
-                if retries > self.max_retries:
-                    return False
                 self.socket.send_and_wait(commands.StatusCommand())
-                time.sleep(1)
-                retries += 1
-            return True
+                current_time = time.time()
+                if current_time - start_time > self.timeout:
+                    raise TimeoutException()
+                time.sleep(self.WAIT_INTERVAL)
         else:
             logger.debug('Stop not necessary. Backdrop is running ...')
-            return True
 
     def disconnect_application(self):
         if not self.is_app_running(self.APP_BACKDROP):
             self.socket.send(commands.CloseCommand(destination_id=False))
-            try:
-                retries = 0
-                while self.is_app_running(self.APP_BACKDROP):
-                    if retries > self.max_retries:
-                        return False
-                    self.socket.send_and_wait(commands.StatusCommand())
-                    time.sleep(1)
-                    retries += 1
-                return True
-            except ChannelClosedException:
-                logger.info('Connection was closed. I guess another '
-                            'client has attached to it.')
-                return True
+            start_time = time.time()
+            while self.is_app_running(self.APP_BACKDROP):
+                self.socket.send_and_wait(commands.StatusCommand())
+                current_time = time.time()
+                if current_time - start_time > self.timeout:
+                    raise TimeoutException()
+                time.sleep(self.WAIT_INTERVAL)
         else:
             logger.debug('Closing not necessary. Backdrop is running ...')
-            return True
 
     def wait(self, timeout):
         self.socket.wait(timeout)
@@ -217,8 +211,8 @@ class MediaPlayerController(ChromecastController):
     PLAYER_STATE_PAUSED = 'PAUSED'
     PLAYER_STATE_IDLE = 'IDLE'
 
-    def __init__(self, ip):
-        ChromecastController.__init__(self, ip)
+    def __init__(self, ip, timeout=10):
+        ChromecastController.__init__(self, ip, timeout)
         self.media_session_id = None
         self.current_time = None
         self.media = None
