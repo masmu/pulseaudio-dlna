@@ -22,6 +22,7 @@ import multiprocessing
 import requests
 import logging
 import sys
+import concurrent.futures
 
 level = logging.INFO
 logging.getLogger('requests').setLevel(logging.WARNING)
@@ -48,10 +49,15 @@ class RadioLauncher():
         pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
     ]
 
-    def __init__(self):
+    def __init__(self, max_workers=10):
         self.devices = self._discover_devices()
+        self.thread_pool = concurrent.futures.ThreadPoolExecutor(
+            max_workers=max_workers)
 
     def stop(self, name, flavour=None):
+        self.thread_pool.submit(self._stop, name, flavour)
+
+    def _stop(self, name, flavour=None):
         device = self._get_device(name, flavour)
         if device:
             return_code = device.stop()
@@ -65,6 +71,9 @@ class RadioLauncher():
                         name=device.label, code=return_code))
 
     def play(self, url, name, flavour=None):
+        self.thread_pool.submit(self._play, url, name, flavour)
+
+    def _play(self, url, name, flavour=None):
         if url.lower().endswith('.m3u'):
             url = self._get_playlist_url(url)
         codec = self._get_codec(url)
