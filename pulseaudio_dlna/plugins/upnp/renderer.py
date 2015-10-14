@@ -125,7 +125,6 @@ class UpnpService(object):
 class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     ENCODING = 'utf-8'
-    REQUEST_TIMEOUT = 10
 
     def __init__(
             self, name, ip, port, udn, model_name, model_number, manufacturer,
@@ -155,7 +154,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def activate(self, config):
         if config:
-            self.set_codecs_from_config(config)
+            self.set_rules_from_config(config)
         else:
             self.get_protocol_info()
 
@@ -281,7 +280,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                         attributes = sink.strip().split(':')
                         if len(attributes) >= 4:
                             self.add_mime_type(attributes[2])
-                    self.check_for_device_rules()
+                    self.check_for_codec_rules()
                     self.prioritize_codecs()
                 except IndexError:
                     logger.error(

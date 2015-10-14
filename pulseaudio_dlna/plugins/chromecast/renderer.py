@@ -48,7 +48,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def activate(self, config):
         if config:
-            self.set_codecs_from_config(config)
+            self.set_rules_from_config(config)
         else:
             self.codecs = [
                 pulseaudio_dlna.codecs.Mp3Codec(),

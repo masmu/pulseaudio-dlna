@@ -36,11 +36,12 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-10-13_)
+ * __master__ - (_2015-10-14_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
     - Fixed a bug where devices which does not specifiy control urls made the application crash
     - Added the `--disable-device-stop` flag
-    - You can now also add rules to renderers (e.g. `DISABLE_DEVICE_STOP`)
+    - Added the `--request-timeout` option
+    - You can now also add rules to renderers (e.g. `DISABLE_DEVICE_STOP`, `REQUEST_TIMEOUT`)
     - Fixed a bug where stream urls where not parsed correctly
     - Fixed a bug which made a Chomecast Audio throwing exceptions while stopping
     - Fixed a bug where the system's default encoding could not be determined when piping the applications output
@@ -304,7 +305,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>]  [--request-timeout <timeout>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
         pulseaudio-dlna [--create-device-config]
         pulseaudio-dlna [-h | --help | --version]
 
@@ -333,6 +334,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                Devices which get discovered, but won't match the
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
+        --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
         --debug                                enables detailed debug messages.
         --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
         --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.

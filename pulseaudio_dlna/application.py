@@ -194,6 +194,12 @@ class Application(object):
         if options['--renderer-urls']:
             locations = options['--renderer-urls'].split(',')
 
+        if options['--request-timeout']:
+            request_timeout = float(options['--request-timeout'])
+            if request_timeout > 0:
+                pulseaudio_dlna.plugins.renderer.BaseRenderer.REQUEST_TIMEOUT = \
+                    request_timeout
+
         try:
             stream_server_address = stream_server.ip, stream_server.port
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
