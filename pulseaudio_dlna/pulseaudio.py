@@ -34,6 +34,7 @@ import concurrent.futures
 
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.notification
+import pulseaudio_dlna.utils.encoding
 
 logger = logging.getLogger('pulseaudio_dlna.pulseaudio')
 
@@ -500,8 +501,8 @@ class PulseWatcher(PulseAudio):
             message = ('{reason}. Your streams were switched '
                        'back to <b>{name}</b>'.format(
                            reason=reason,
-                           name=(self.fallback_sink.label).encode(
-                               sys.stdout.encoding)))
+                           name=pulseaudio_dlna.utils.encoding.encode_default(
+                               self.fallback_sink.label)))
             pulseaudio_dlna.notification.show(title, message)
 
             self._block_device_handling(bridge.sink.object_path)
