@@ -36,7 +36,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-10-14_)
+ * __0.4.6__ - (_2015-10-17_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
     - Fixed a bug where devices which does not specifiy control urls made the application crash
     - Added the `--disable-device-stop` flag

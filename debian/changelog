@@ -1,3 +1,21 @@
+pulseaudio-dlna (0.4.6) trusty; urgency=low
+
+    * Added support for Google Chromecast Audio
+    * Fixed a bug where devices which does not specifiy control urls made the
+      application crash
+    * Added the --disable-device-stop flag
+    * Added the --request-timeout option
+    * You can now also add rules to renderers
+      (e.g. DISABLE_DEVICE_STOP, REQUEST_TIMEOUT)
+    * Fixed a bug where stream urls where not parsed correctly
+    * Fixed a bug which made a Chomecast Audio throwing exceptions while
+      stopping
+    * Fixed a bug where the system's default encoding could not be determined
+      when piping the applications output
+
+ -- Massimo Mund <mo@lancode.de>  Sat, 17 Oct 2015 10:49:13 +0100
+
+
 pulseaudio-dlna (0.4.5.2) trusty; urgency=low
 
     * Fixed a bug where the encoding of SSDP headers was not detected correctly
