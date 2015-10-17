@@ -142,7 +142,7 @@ class ChromecastController():
         if not self.is_app_running(self.APP_BACKDROP):
             self.socket.send(commands.StopCommand())
             start_time = time.time()
-            while not self.is_app_running(self.APP_BACKDROP):
+            while not self.is_app_running(None):
                 self.socket.send_and_wait(commands.StatusCommand())
                 current_time = time.time()
                 if current_time - start_time > self.timeout:
@@ -155,7 +155,7 @@ class ChromecastController():
         if not self.is_app_running(self.APP_BACKDROP):
             self.socket.send(commands.CloseCommand(destination_id=False))
             start_time = time.time()
-            while self.is_app_running(self.APP_BACKDROP):
+            while not self.is_app_running(None):
                 self.socket.send_and_wait(commands.StatusCommand())
                 current_time = time.time()
                 if current_time - start_time > self.timeout:

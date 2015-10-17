@@ -28,5 +28,9 @@ try:
     mc.wait(10)
     mc.disconnect_application()
     # mc.stop_application()
+except pycastv2.ChannelClosedException:
+    print('Channel was closed.')
+except pycastv2.TimeoutException:
+    print('Request timed out.')
 finally:
     mc.cleanup()
