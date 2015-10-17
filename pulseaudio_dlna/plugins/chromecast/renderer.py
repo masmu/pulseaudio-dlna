@@ -48,7 +48,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def activate(self, config):
         if config:
-            self.set_codecs_from_config(config)
+            self.set_rules_from_config(config)
         else:
             self.codecs = [
                 pulseaudio_dlna.codecs.Mp3Codec(),
@@ -59,7 +59,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def _get_media_player(self):
         try:
-            return pycastv2.MediaPlayerController(self.ip)
+            return pycastv2.MediaPlayerController(self.ip, self.REQUEST_TIMEOUT)
         except socket.error as e:
             if e.errno == 111:
                 logger.info(
@@ -72,24 +72,40 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     def play(self, url):
         cast = self._get_media_player()
         if cast is None:
+            logger.error('No device was found!')
             return 500
         try:
-            if cast.load(url, self.codec.mime_type) is True:
-                self.state = self.PLAYING
-                return 200
-            return 500
+            cast.load(url, self.codec.mime_type)
+            self.state = self.PLAYING
+            return 200
+        except pycastv2.ChannelClosedException:
+            logger.info('Connection was closed. I guess another '
+                        'client is attached to it.')
+            return 423
+        except pycastv2.TimeoutException:
+            logger.error('PLAY command - Could no connect to "{device}". '
+                         'Connection timeout.'.format(device=self.label))
+            return 408
         finally:
             cast.cleanup()
 
     def stop(self):
         cast = self._get_media_player()
         if cast is None:
+            logger.error('No device was found!')
             return 500
         try:
             self.state = self.IDLE
-            if cast.disconnect_application() is True:
-                return 200
-            return 500
+            cast.disconnect_application()
+            return 200
+        except pycastv2.ChannelClosedException:
+            logger.info('Connection was closed. I guess another '
+                        'client is attached to it.')
+            return 423
+        except pycastv2.TimeoutException:
+            logger.error('STOP command - Could no connect to "{device}". '
+                         'Connection timeout.'.format(device=self.label))
+            return 408
         finally:
             cast.cleanup()
 

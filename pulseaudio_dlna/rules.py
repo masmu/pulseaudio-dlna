@@ -78,6 +78,15 @@ class DISABLE_DEVICE_STOP(BaseRule):
     pass
 
 
+class REQUEST_TIMEOUT(BaseRule):
+    def __init__(self, timeout=None):
+        self.timeout = float(timeout or 10)
+
+    def __str__(self):
+        return '{} (timeout="{}")'.format(
+            self.__class__.__name__, self.timeout)
+
+
 # class EXAMPLE_PROPERTIES_RULE(BaseRule):
 #     def __init__(self, prop1=None, prop2=None):
 #         self.prop1 = prop1 or 'abc'

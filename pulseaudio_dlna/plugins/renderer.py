@@ -43,6 +43,8 @@ class BaseRenderer(object):
     PAUSE = 'paused'
     STOP = 'stopped'
 
+    REQUEST_TIMEOUT = 10
+
     def __init__(self, udn, model_name=None, model_number=None,
                  manufacturer=None):
         self._udn = udn
@@ -215,6 +217,11 @@ class BaseRenderer(object):
         self.codecs.sort(key=sorting_algorithm, reverse=True)
 
     def check_for_device_rules(self):
+        for rule in self.rules:
+            if type(rule) is pulseaudio_dlna.rules.REQUEST_TIMEOUT:
+                self.REQUEST_TIMEOUT = rule.timeout
+
+    def check_for_codec_rules(self):
         if self.manufacturer == 'Sonos, Inc.':
             for codec in self.codecs:
                 if type(codec) in [
@@ -227,7 +234,7 @@ class BaseRenderer(object):
                 if type(codec) is pulseaudio_dlna.codecs.WavCodec:
                     codec.mime_type = 'audio/mpeg'
 
-    def set_codecs_from_config(self, config):
+    def set_rules_from_config(self, config):
         self.name = config['name']
         for rule in config.get('rules', []):
             self.rules.append(rule)
@@ -242,6 +249,7 @@ class BaseRenderer(object):
             for rule in codec_properties.get('rules', []):
                 codec.rules.append(rule)
             self.codecs.append(codec)
+        self.check_for_device_rules()
         logger.debug(
             'Loaded the following device configuration:\n{}'.format(
                 self.__str__(True)))
@@ -262,7 +270,7 @@ class BaseRenderer(object):
     def __str__(self, detailed=False):
         return (
             '<{} name="{}" short="{}" state="{}" udn="{}" model_name="{}" '
-            'model_number="{}" manufacturer="{}">{}{}').format(
+            'model_number="{}" manufacturer="{}" timeout="{}">{}{}').format(
                 self.__class__.__name__,
                 self.name,
                 self.short_name,
@@ -271,6 +279,7 @@ class BaseRenderer(object):
                 self.model_name,
                 self.model_number,
                 self.manufacturer,
+                self.REQUEST_TIMEOUT,
                 ('\n' if len(self.rules) > 0 else '') + '\n'.join(
                     ['  - ' + str(rule) for rule in self.rules]
                 ) if detailed else '',
