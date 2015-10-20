@@ -30,6 +30,7 @@ import gobject
 import functools
 import copy
 import signal
+import socket
 import concurrent.futures
 
 import pulseaudio_dlna.plugins.renderer
@@ -185,7 +186,73 @@ class PulseAudio(object):
             logger.error('Could not remove entity {id}'.format(id=id))
 
 
-class PulseModuleFactory(object):
+class PulseBaseFactory(object):
+
+    @classmethod
+    def _convert_bytes_to_unicode(self, byte_array):
+        name = bytes()
+        for i, b in enumerate(byte_array):
+            if not (i == len(byte_array) - 1 and int(b) == 0):
+                name += struct.pack('<B', b)
+        return name.decode(locale.getpreferredencoding())
+
+
+class PulseClientFactory(PulseBaseFactory):
+
+    @classmethod
+    def new(self, bus, client_path):
+        try:
+            obj = bus.get_object(object_path=client_path)
+            properties = obj.Get('org.PulseAudio.Core1.Client', 'PropertyList')
+            name_bytes = properties.get('application.name', [])
+            icon_bytes = properties.get('application.icon_name', [])
+            binary_bytes = properties.get('application.process.binary', [])
+            return PulseClient(
+                object_path=unicode(client_path),
+                index=unicode(obj.Get('org.PulseAudio.Core1.Client', 'Index')),
+                name=self._convert_bytes_to_unicode(name_bytes),
+                icon=self._convert_bytes_to_unicode(icon_bytes),
+                binary=self._convert_bytes_to_unicode(binary_bytes),
+            )
+        except dbus.exceptions.DBusException:
+            logger.error('PulseClientFactory - Could not get "{object_path}" from dbus.'.format(
+                object_path=client_path))
+            return None
+
+
+@functools.total_ordering
+class PulseClient(object):
+
+    __shared_state = {}
+
+    def __init__(self, object_path, index, name, icon, binary):
+        if object_path not in self.__shared_state:
+            self.__shared_state[object_path] = {}
+        self.__dict__ = self.__shared_state[object_path]
+
+        self.object_path = object_path
+        self.index = index
+        self.name = name or 'unknown'
+        self.icon = icon or 'unknown'
+        self.binary = binary or 'unknown'
+
+    def __eq__(self, other):
+        return self.object_path == other.object_path
+
+    def __gt__(self, other):
+        return self.object_path > other.object_path
+
+    def __str__(self):
+        return '<PulseClient path="{}" index="{}" name="{}" icon="{}" binary={}>\n'.format(
+            self.object_path,
+            self.index,
+            self.name,
+            self.icon,
+            self.binary,
+        )
+
+
+class PulseModuleFactory(PulseBaseFactory):
 
     @classmethod
     def new(self, bus, module_path):
@@ -197,7 +264,7 @@ class PulseModuleFactory(object):
                 name=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Name')),
             )
         except dbus.exceptions.DBusException:
-            logger.error('Could not get "{object_path}" from dbus.'.format(
+            logger.error('PulseModuleFactory - Could not get "{object_path}" from dbus.'.format(
                 object_path=module_path))
             return None
 
@@ -230,7 +297,7 @@ class PulseModule(object):
         )
 
 
-class PulseSinkFactory(object):
+class PulseSinkFactory(PulseBaseFactory):
 
     @classmethod
     def new(self, bus, object_path):
@@ -239,7 +306,6 @@ class PulseSinkFactory(object):
 
             properties = obj.Get('org.PulseAudio.Core1.Device', 'PropertyList')
             description_bytes = properties.get('device.description', [])
-            label = self._convert_bytes_to_unicode(description_bytes)
             module_path = unicode(
                 obj.Get('org.PulseAudio.Core1.Device', 'OwnerModule'))
 
@@ -247,21 +313,13 @@ class PulseSinkFactory(object):
                 object_path=unicode(object_path),
                 index=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Index')),
                 name=unicode(obj.Get('org.PulseAudio.Core1.Device', 'Name')),
-                label=label,
+                label=self._convert_bytes_to_unicode(description_bytes),
                 module=PulseModuleFactory.new(bus, module_path),
             )
         except dbus.exceptions.DBusException:
-            logger.error('Could not get "{object_path}" from dbus.'.format(
+            logger.error('PulseSinkFactory - Could not get "{object_path}" from dbus.'.format(
                 object_path=object_path))
             return None
-
-    @classmethod
-    def _convert_bytes_to_unicode(self, byte_array):
-        name = bytes()
-        for i, b in enumerate(byte_array):
-            if not (i == len(byte_array) - 1 and int(b) == 0):
-                name += struct.pack('<B', b)
-        return name.decode(locale.getpreferredencoding())
 
 
 @functools.total_ordering
@@ -284,6 +342,16 @@ class PulseSink(object):
 
         self.monitor = self.name + '.monitor'
         self.streams = []
+
+    @property
+    def stream_client_names(self):
+        names = []
+        for stream in self.streams:
+            try:
+                names.append(stream.client.name)
+            except:
+                names.append('?')
+        return names
 
     def set_as_default_sink(self):
         cmd = [
@@ -311,7 +379,7 @@ class PulseSink(object):
             self.label,
             self.name,
             self.index,
-            self.module.index,
+            self.module.index if self.module else None,
         )
         if len(self.streams) == 0:
             string = string + '        -- no streams --'
@@ -327,13 +395,15 @@ class PulseStreamFactory(object):
     def new(self, bus, stream_path):
         try:
             obj = bus.get_object(object_path=stream_path)
+            client_path = unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Client'))
             return PulseStream(
                 object_path=unicode(stream_path),
                 index=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
                 device=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Device')),
+                client=PulseClientFactory.new(bus, client_path),
             )
         except dbus.exceptions.DBusException:
-            logger.error('Could not get "{object_path}" from dbus.'.format(
+            logger.error('PulseStreamFactory - Could not get "{object_path}" from dbus.'.format(
                 object_path=stream_path))
             return None
 
@@ -343,7 +413,7 @@ class PulseStream(object):
 
     __shared_state = {}
 
-    def __init__(self, object_path, index, device):
+    def __init__(self, object_path, index, device, client):
         if object_path not in self.__shared_state:
             self.__shared_state[object_path] = {}
         self.__dict__ = self.__shared_state[object_path]
@@ -351,6 +421,7 @@ class PulseStream(object):
         self.object_path = object_path
         self.index = index
         self.device = device
+        self.client = client
 
     def switch_to_source(self, index):
         cmd = [
@@ -368,10 +439,11 @@ class PulseStream(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        return '<PulseStream path="{}" device="{}" index="{}">'.format(
+        return '<PulseStream path="{}" device="{}" index="{}" client="{}">'.format(
             self.object_path,
             self.device,
             self.index,
+            self.client.index if self.client else None,
         )
 
 
@@ -623,7 +695,11 @@ class PulseWatcher(PulseAudio):
                     logger.info(
                         'Instructing the device "{}" to play ...'.format(
                             bridge.device.label))
-                    return_code = bridge.device.play()
+                    return_code = bridge.device.play(
+                        artist='Liveaudio on {}'.format(socket.gethostname()),
+                        title=', '.join(bridge.sink.stream_client_names),
+                        thumb=bridge.device.get_image_url(),
+                    )
                     if return_code == 200:
                         logger.info('The device "{}" is playing.'.format(
                             bridge.device.label))

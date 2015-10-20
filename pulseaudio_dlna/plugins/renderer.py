@@ -306,21 +306,32 @@ class CoinedBaseRendererMixin():
         self.server_ip = ip
         self.server_port = port
 
-    def get_stream_url(self):
-        server_url = 'http://{ip}:{port}'.format(
+    def _encode_settings(self, settings, suffix=''):
+        base_url = 'http://{ip}:{port}'.format(
             ip=self.server_ip,
             port=self.server_port,
         )
-        settings = {
-            'udn': self.udn,
-        }
         data_string = ','.join(
             ['{}="{}"'.format(k, v) for k, v in settings.iteritems()])
-        stream_name = '/{base_string}/stream.{suffix}'.format(
+        stream_name = '/{base_string}/{suffix}'.format(
             base_string=urllib.quote(base64.b64encode(data_string)),
-            suffix=self.codec.suffix,
+            suffix=suffix,
         )
-        return urlparse.urljoin(server_url, stream_name)
+        return urlparse.urljoin(base_url, stream_name)
+
+    def get_stream_url(self):
+        settings = {
+            'type': 'bridge',
+            'udn': self.udn,
+        }
+        return self._encode_settings(settings, 'stream.' + self.codec.suffix)
+
+    def get_image_url(self, name='application.png'):
+        settings = {
+            'type': 'image',
+            'name': name,
+        }
+        return self._encode_settings(settings)
 
     def play(self):
         raise NotImplementedError()
