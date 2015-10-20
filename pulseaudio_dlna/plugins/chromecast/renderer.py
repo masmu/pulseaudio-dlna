@@ -69,13 +69,18 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 traceback.print_exc()
             return None
 
-    def play(self, url):
+    def play(self, url, artist=None, title=None, thumb=None):
         cast = self._get_media_player()
         if cast is None:
             logger.error('No device was found!')
             return 500
         try:
-            cast.load(url, self.codec.mime_type)
+            cast.load(
+                url,
+                mime_type=self.codec.mime_type,
+                artist=artist,
+                title=title,
+                thumb=thumb)
             self.state = self.PLAYING
             return 200
         except pycastv2.ChannelClosedException:
@@ -116,10 +121,11 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 class CoinedChromecastRenderer(
         pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, ChromecastRenderer):
 
-    def play(self, url=None, codec=None):
+    def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
         try:
             stream_url = url or self.get_stream_url()
-            return ChromecastRenderer.play(self, stream_url)
+            return ChromecastRenderer.play(
+                self, stream_url, artist=artist, title=title, thumb=thumb)
         except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
             return 500
 
