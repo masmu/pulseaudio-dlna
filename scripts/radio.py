@@ -70,16 +70,19 @@ class RadioLauncher():
                     'The device "{name}" failed to stop ({code})'.format(
                         name=device.label, code=return_code))
 
-    def play(self, url, name, flavour=None):
-        self.thread_pool.submit(self._play, url, name, flavour)
+    def play(self, url, name, flavour=None,
+             artist=None, title=None, thumb=None):
+        self.thread_pool.submit(
+            self._play, url, name, flavour, artist, title, thumb)
 
-    def _play(self, url, name, flavour=None):
+    def _play(self, url, name, flavour=None,
+              artist=None, title=None, thumb=None):
         if url.lower().endswith('.m3u'):
             url = self._get_playlist_url(url)
         codec = self._get_codec(url)
         device = self._get_device(name, flavour)
         if device:
-            return_code = device.play(url, codec)
+            return_code = device.play(url, codec, artist, title, thumb)
             if return_code == 200:
                 logger.info(
                     'The device "{name}" was instructed to play'.format(
@@ -135,8 +138,9 @@ if len(args) > 0 and args[0] == '--list':
     sys.exit(0)
 
 devices = [
-    ('Wohnzimmer', 'DLNA'),
-    ('Kueche', 'DLNA'),
+    ('Wohnzimmer', 'Chromecast'),
+    ('Küche', 'Chromecast'),
+    ('Schlafzimmer', 'Chromecast'),
 ]
 
 for device in devices:
@@ -144,4 +148,7 @@ for device in devices:
     if len(args) > 0 and args[0] == '--stop':
         rl.stop(name, flavour)
     else:
-        rl.play('http://www.wdr.de/wdrlive/media/einslive.m3u', name, flavour)
+        rl.play(
+            'http://www.wdr.de/wdrlive/media/einslive.m3u', name, flavour,
+            'Radio', 'Einslive',
+            'https://lh4.ggpht.com/7ssDAyz52UL1ahViwMkCrtfbdj45RU1Gqqpw3ncYjMrjhZofECX01j4nBufhCAkRFtRm=w600')
