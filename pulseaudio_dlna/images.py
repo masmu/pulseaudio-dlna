@@ -18,42 +18,69 @@
 from __future__ import unicode_literals
 from __future__ import with_statement
 
+import tempfile
 import logging
 
 logger = logging.getLogger('pulseaudio_dlna.images')
 
 
 class UnknownImageExtension(Exception):
-    pass
+    def __init__(self, path):
+        Exception.__init__(
+            self,
+            'The file "{}" has an unsupported file extension!'.format(path)
+        )
 
 
 class ImageNotAccessible(Exception):
-    pass
+    def __init__(self, path):
+        Exception.__init__(
+            self,
+            'The file "{}" is not accessible!'.format(path)
+        )
+
+
+class IconNotFound(Exception):
+    def __init__(self, icon_name):
+        Exception.__init__(
+            self,
+            'The icon "{}" could not be found!'.format(icon_name)
+        )
+
+
+class MissingDependencies(Exception):
+    def __init__(self, message, dependencies):
+        Exception.__init__(
+            self,
+            '{} - Could not load one of following modules "{}"!'.format(
+                message, ','.join(dependencies))
+        )
 
 
 def get_icon_by_name(name, size=256):
     try:
         import gtk
     except:
-        logger.error(
-            'Unable to retrieve system icons. You need to install: python-gtk2')
-        return None
+        raise MissingDependencies('Unable to lookup system icons!', ['gtk'])
+
     icon_theme = gtk.icon_theme_get_default()
     icon = icon_theme.lookup_icon(name, size, 0)
     if icon:
         file_path = icon.get_filename()
-        _type = get_type_by_filename(file_path)
+        _type = get_type_by_filepath(file_path)
         return _type(file_path)
-    return None
+    else:
+        raise IconNotFound(name)
 
 
-def get_type_by_filename(path):
+def get_type_by_filepath(path):
     if path.endswith('.png'):
         return PngImage
     elif path.endswith('.jpg'):
         return JpgImage
-    logger.debug('Unknown image type: "{}"'.format(path))
-    raise UnknownImageExtension()
+    elif path.endswith('.svg'):
+        return SvgPngImage
+    raise UnknownImageExtension(path)
 
 
 class BaseImage(object):
@@ -70,7 +97,7 @@ class BaseImage(object):
             with open(self.path) as h:
                 self._data = h.read()
         except EnvironmentError:
-            raise ImageNotAccessible()
+            raise ImageNotAccessible(self.path)
 
     @property
     def data(self):
@@ -84,6 +111,28 @@ class PngImage(BaseImage):
     def __init__(self, path, cached=True):
         BaseImage.__init__(self, path, cached)
         self.content_type = 'image/png'
+
+
+class SvgPngImage(BaseImage):
+    def __init__(self, path, cached=True, size=256):
+        try:
+            import cairo
+            import rsvg
+        except:
+            raise MissingDependencies(
+                'Unable to convert SVG image to PNG!', ['cairo', 'rsvg'])
+
+        tmp_file = tempfile.NamedTemporaryFile()
+        image_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
+        rsg_handle = rsvg.Handle(path)
+
+        context = cairo.Context(image_surface)
+        context.scale(
+            size / rsg_handle.props.height, size / rsg_handle.props.width)
+        rsg_handle.render_cairo(context)
+        image_surface.write_to_png(tmp_file.name)
+
+        BaseImage.__init__(self, tmp_file.name, cached=True)
 
 
 class JpgImage(BaseImage):

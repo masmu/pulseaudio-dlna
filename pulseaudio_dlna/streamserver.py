@@ -513,23 +513,25 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                     'pulseaudio_dlna.streamserver', os.path.join(
                         'images', image_name))
                 try:
-                    _type = pulseaudio_dlna.images.get_type_by_filename(
-                        image_path)
+                    _type = pulseaudio_dlna.images.get_type_by_filepath(
+                        image_path, size=512)
                     return _type(path=image_path, cached=True)
-                except pulseaudio_dlna.images.UnknownImageExtension:
-                    logger.debug('image: UnknownImageExtension')
-                except pulseaudio_dlna.images.ImageNotAccessible:
-                    logger.debug('image: ImageNotAccessible')
+                except (pulseaudio_dlna.images.UnknownImageExtension,
+                        pulseaudio_dlna.images.ImageNotAccessible,
+                        pulseaudio_dlna.images.MissingDependencies,
+                        pulseaudio_dlna.images.IconNotFound) as e:
+                    logger.error(e)
         elif settings.get('type', None) == 'sys-icon':
             icon_name = settings.get('name', None)
             if icon_name:
                 try:
                     return pulseaudio_dlna.images.get_icon_by_name(
                         icon_name, size=512)
-                except pulseaudio_dlna.images.UnknownImageExtension:
-                    logger.debug('sys-icon: UnknownImageExtension')
-                except pulseaudio_dlna.images.ImageNotAccessible:
-                    logger.debug('sys-icon: ImageNotAccessible')
+                except (pulseaudio_dlna.images.UnknownImageExtension,
+                        pulseaudio_dlna.images.ImageNotAccessible,
+                        pulseaudio_dlna.images.MissingDependencies,
+                        pulseaudio_dlna.images.IconNotFound) as e:
+                    logger.error(e)
         return None
 
     def _decode_settings(self, path):
