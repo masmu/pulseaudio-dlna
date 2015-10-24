@@ -30,12 +30,12 @@ import gobject
 import functools
 import copy
 import signal
-import socket
 import concurrent.futures
 
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.notification
 import pulseaudio_dlna.utils.encoding
+import pulseaudio_dlna.covermodes
 
 logger = logging.getLogger('pulseaudio_dlna.pulseaudio')
 
@@ -468,7 +468,7 @@ class PulseWatcher(PulseAudio):
     ASYNC_EXECUTION = True
 
     def __init__(self, bridges_shared, message_queue, disable_switchback=False,
-                 disable_device_stop=False):
+                 disable_device_stop=False, cover_mode='application'):
         PulseAudio.__init__(self)
 
         self.bridges = []
@@ -478,6 +478,7 @@ class PulseWatcher(PulseAudio):
         self.message_queue = message_queue
         self.blocked_devices = []
         self.signal_timers = {}
+        self.cover_mode = pulseaudio_dlna.covermodes.MODES[cover_mode]()
 
         self.disable_switchback = disable_switchback
         self.disable_device_stop = disable_device_stop
@@ -695,11 +696,9 @@ class PulseWatcher(PulseAudio):
                     logger.info(
                         'Instructing the device "{}" to play ...'.format(
                             bridge.device.label))
+                    artist, title, thumb = self.cover_mode.get(bridge)
                     return_code = bridge.device.play(
-                        artist='Liveaudio on {}'.format(socket.gethostname()),
-                        title=', '.join(bridge.sink.stream_client_names),
-                        thumb=bridge.device.get_image_url(),
-                    )
+                        artist=artist, title=title, thumb=thumb)
                     if return_code == 200:
                         logger.info('The device "{}" is playing.'.format(
                             bridge.device.label))
