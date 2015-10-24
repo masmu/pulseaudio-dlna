@@ -517,9 +517,19 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         image_path)
                     return _type(path=image_path, cached=True)
                 except pulseaudio_dlna.images.UnknownImageExtension:
-                    pass
+                    logger.debug('image: UnknownImageExtension')
                 except pulseaudio_dlna.images.ImageNotAccessible:
-                    pass
+                    logger.debug('image: ImageNotAccessible')
+        elif settings.get('type', None) == 'sys-icon':
+            icon_name = settings.get('name', None)
+            if icon_name:
+                try:
+                    return pulseaudio_dlna.images.get_icon_by_name(
+                        icon_name, size=512)
+                except pulseaudio_dlna.images.UnknownImageExtension:
+                    logger.debug('sys-icon: UnknownImageExtension')
+                except pulseaudio_dlna.images.ImageNotAccessible:
+                    logger.debug('sys-icon: ImageNotAccessible')
         return None
 
     def _decode_settings(self, path):

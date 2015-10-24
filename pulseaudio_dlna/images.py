@@ -31,8 +31,13 @@ class ImageNotAccessible(Exception):
     pass
 
 
-def get_image_by_application_name(name, size=256):
-    import gtk
+def get_icon_by_name(name, size=256):
+    try:
+        import gtk
+    except:
+        logger.error(
+            'Unable to retrieve system icons. You need to install: python-gtk2')
+        return None
     icon_theme = gtk.icon_theme_get_default()
     icon = icon_theme.lookup_icon(name, size, 0)
     if icon:
@@ -47,6 +52,7 @@ def get_type_by_filename(path):
         return PngImage
     elif path.endswith('.jpg'):
         return JpgImage
+    logger.debug('Unknown image type: "{}"'.format(path))
     raise UnknownImageExtension()
 
 

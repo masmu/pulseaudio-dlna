@@ -91,6 +91,16 @@ class DistributionCoverMode(BaseCoverMode):
             'distribution-{}.png'.format(dist_icon))
 
 
+class ApplicationCoverMode(BaseCoverMode):
+
+    IDENTIFIER = 'application'
+
+    @property
+    def thumb(self):
+        return self.bridge.device.get_sys_icon_url(
+            self.bridge.sink.primary_application_name)
+
+
 def load_modes():
     if len(MODES) == 0:
         for name, _type in inspect.getmembers(sys.modules[__name__]):

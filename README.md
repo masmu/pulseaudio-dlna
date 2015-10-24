@@ -339,6 +339,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                Possible modes are:
                                                  - default        Default icon
                                                  - distribution   Distribution icon
+                                                 - application    Application icon
         --debug                                enables detailed debug messages.
         --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
         --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.

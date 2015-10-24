@@ -333,5 +333,12 @@ class CoinedBaseRendererMixin():
         }
         return self._encode_settings(settings)
 
+    def get_sys_icon_url(self, name):
+        settings = {
+            'type': 'sys-icon',
+            'name': name,
+        }
+        return self._encode_settings(settings)
+
     def play(self):
         raise NotImplementedError()

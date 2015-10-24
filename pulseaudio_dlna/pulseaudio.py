@@ -353,6 +353,13 @@ class PulseSink(object):
                 names.append('?')
         return names
 
+    @property
+    def primary_application_name(self):
+        for stream in self.streams:
+            if stream.client.icon != 'unknown' and stream.client.icon != '':
+                return stream.client.icon
+        return None
+
     def set_as_default_sink(self):
         cmd = [
             'pactl',
