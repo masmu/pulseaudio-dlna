@@ -335,9 +335,9 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
         --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
-        --cover-mode=<mode>                    Set the cover mode [default: application].
+        --cover-mode=<mode>                    Set the cover mode [default: default].
                                                Possible modes are:
-                                                 - application    Application icon
+                                                 - default        Default icon
                                                  - distribution   Distribution icon
         --debug                                enables detailed debug messages.
         --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.

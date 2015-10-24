@@ -326,7 +326,7 @@ class CoinedBaseRendererMixin():
         }
         return self._encode_settings(settings, 'stream.' + self.codec.suffix)
 
-    def get_image_url(self, name='application.png'):
+    def get_image_url(self, name='default.png'):
         settings = {
             'type': 'image',
             'name': name,

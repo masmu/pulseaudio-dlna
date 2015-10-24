@@ -56,13 +56,13 @@ class BaseCoverMode(object):
             self.bridge = None
 
 
-class ApplicationCoverMode(BaseCoverMode):
+class DefaultCoverMode(BaseCoverMode):
 
-    IDENTIFIER = 'application'
+    IDENTIFIER = 'default'
 
     @property
     def thumb(self):
-        return self.bridge.device.get_image_url('application.png')
+        return self.bridge.device.get_image_url('default.png')
 
 
 class DistributionCoverMode(BaseCoverMode):
