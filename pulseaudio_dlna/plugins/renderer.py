@@ -207,7 +207,7 @@ class BaseRenderer(object):
             if isinstance(codec, pulseaudio_dlna.codecs.L16Codec):
                 value = codec.priority * 100000
                 if codec.sample_rate:
-                    value += codec.sample_rate / 1000
+                    value += 200 - abs((44100 - codec.sample_rate) / 1000)
                 if codec.channels:
                     value *= codec.channels
                 return value
