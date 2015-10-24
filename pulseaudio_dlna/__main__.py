@@ -50,6 +50,7 @@ Options:
     --cover-mode=<mode>                    Set the cover mode [default: application].
                                            Possible modes are:
                                              - application    Application icon
+                                             - distribution   Distribution icon
     --debug                                enables detailed debug messages.
     --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
     --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.

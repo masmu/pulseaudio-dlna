@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import sys
 import inspect
 import socket
+import platform
 import logging
 
 logger = logging.getLogger('pulseaudio_dlna.covermodes')
@@ -33,30 +34,68 @@ class BaseCoverMode(object):
     IDENTIFIER = None
 
     def __init__(self):
-        pass
+        self.bridge = None
+
+    @property
+    def artist(self):
+        return 'Liveaudio on {}'.format(socket.gethostname())
+
+    @property
+    def title(self):
+        return ', '.join(self.bridge.sink.stream_client_names)
+
+    @property
+    def thumb(self):
+        return None
 
     def get(self, bridge):
-        return None, None, None
+        try:
+            self.bridge = bridge
+            return self.artist, self.title, self.thumb
+        finally:
+            self.bridge = None
 
 
 class ApplicationCoverMode(BaseCoverMode):
 
     IDENTIFIER = 'application'
 
-    def get(self, bridge):
-        artist = 'Liveaudio on {}'.format(socket.gethostname())
-        title = ', '.join(bridge.sink.stream_client_names)
-        thumb = bridge.device.get_image_url('application.png')
-        return artist, title, thumb
+    @property
+    def thumb(self):
+        return self.bridge.device.get_image_url('application.png')
+
+
+class DistributionCoverMode(BaseCoverMode):
+
+    IDENTIFIER = 'distribution'
+
+    @property
+    def thumb(self):
+        dist_name, dist_ver, dist_arch = platform.linux_distribution()
+        logger.debug(dist_name)
+        if dist_name == 'Ubuntu':
+            dist_icon = 'ubuntu'
+        elif dist_name == 'debian':
+            dist_icon = 'debian'
+        elif dist_name == 'fedora':
+            dist_icon = 'fedora'
+        elif dist_name == 'LinuxMint':
+            dist_icon = 'linuxmint'
+        elif dist_name == 'openSUSE' or dist_name == 'SuSE':
+            dist_icon = 'opensuse'
+        elif dist_name == 'gentoo':
+            dist_icon = 'gentoo'
+        else:
+            dist_icon = 'unknown'
+        return self.bridge.device.get_image_url(
+            'distribution-{}.png'.format(dist_icon))
 
 
 def load_modes():
     if len(MODES) == 0:
-        logger.info('Loaded modes:')
         for name, _type in inspect.getmembers(sys.modules[__name__]):
             if inspect.isclass(_type) and issubclass(_type, BaseCoverMode):
                 if _type is not BaseCoverMode:
-                    logger.info('  {} = {}'.format(_type.IDENTIFIER, _type))
                     MODES[_type.IDENTIFIER] = _type
     return None
 
