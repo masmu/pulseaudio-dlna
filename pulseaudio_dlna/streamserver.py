@@ -514,7 +514,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         'images', image_name))
                 try:
                     _type = pulseaudio_dlna.images.get_type_by_filepath(
-                        image_path, size=512)
+                        image_path)
                     return _type(path=image_path, cached=True)
                 except (pulseaudio_dlna.images.UnknownImageExtension,
                         pulseaudio_dlna.images.ImageNotAccessible,
