@@ -124,12 +124,12 @@ class SvgPngImage(BaseImage):
 
         tmp_file = tempfile.NamedTemporaryFile()
         image_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
-        rsg_handle = rsvg.Handle(path)
+        rsvg_handle = rsvg.Handle(path)
 
         context = cairo.Context(image_surface)
         context.scale(
-            size / rsg_handle.props.height, size / rsg_handle.props.width)
-        rsg_handle.render_cairo(context)
+            size / rsvg_handle.props.height, size / rsvg_handle.props.width)
+        rsvg_handle.render_cairo(context)
         image_surface.write_to_png(tmp_file.name)
 
         BaseImage.__init__(self, tmp_file.name, cached=True)
