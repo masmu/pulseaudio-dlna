@@ -58,6 +58,7 @@ class SSDPListener(SocketServer.UDPServer):
             stream_server_address, message_queue, plugins, device_filter,
             device_config)
         if not self.disable_ssdp_listener:
+            self.allow_reuse_address = True
             SocketServer.UDPServer.__init__(
                 self, ('', 1900), SSDPRequestHandler)
             multicast = struct.pack(
