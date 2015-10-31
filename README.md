@@ -536,15 +536,34 @@ use the `--encoder` or `--bit-rate` options.
 
 ## Troubleshooting ##
 
-Some devices do not stick to the HTTP 1.0/1.1 standard. Since most devices do,
-_pulseaudio-dlna_ must be instructed by CLI flags to act in a non-standard way.
+- **My device does not get discovered by _pulseaudio-dlna_**
 
-- `--fake-http-content-length`
+    The computer _pulseaudio-dlna_ is running on and your device needs to be in
+    the same network. In uncomplicated home LANs this is normally the case.
+    You can test if other applications are able to find your device,
+    e.g. _BubbleUPnP_ (_Android_ application). If they do it is likely that
+    you are using a firewall / iptables. Try disabling it or open port
+    8080/_tcp_ and port 1900/_udp_.
 
-    Adds a faked HTTP Content-Length to HTTP 1.0/1.1 responses. The length is set 
-    to 100 GB and ensures that the device would keep playing for months.
-    This is e.g. necessary for the _Hame Soundrouter_ and depending on the used
-    encoder for _Sonos_ devices.
+- **The device is successfully instructed to play, but the device never
+    connects to _pulseaudio-dlna_**
+
+    Check if your are using a firewall / iptables. If that works, open
+    port 8080/_tcp_ and port 1900/_udp_.
+
+- **The device is successfully instructed to play, but the device immediately
+    disconnects after some seconds**
+
+    Some devices do not stick to the HTTP 1.0/1.1 standard. Since most devices
+    do, _pulseaudio-dlna_ must be instructed by CLI flags to act in a
+    non-standard way.
+
+    - `--fake-http-content-length`
+
+        Adds a faked HTTP Content-Length to HTTP 1.0/1.1 responses. The length
+        is set to 100 GB and ensures that the device would keep playing for
+        months. This is e.g. necessary for the _Hame Soundrouter_ and depending
+        on the used encoder for _Sonos_ devices.
 
 ## Tested devices ##
 
