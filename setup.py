@@ -56,7 +56,7 @@ setuptools.setup(
         "setproctitle >= 1.0.1",
         "protobuf >= 2.5.0",
         "notify2 >= 0.3",
-        "psutil >= 1.2.1",
+        "psutil >= 2.0.0",
         "futures >= 2.1.6",
         "chardet >= 2.0.1",
     ],
