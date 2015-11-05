@@ -28,8 +28,6 @@ import os
 import sys
 import chardet
 
-import pulseaudio_dlna.renderers
-
 logger = logging.getLogger('pulseaudio_dlna.listener')
 
 
@@ -43,13 +41,15 @@ class SSDPRequestHandler(SocketServer.BaseRequestHandler):
             if self._is_notify_method(lines[0]):
                 logger.debug(
                     'Recieved the following NOTIFY header: \n{header}'.format(
-                        header=header))
-                self.server.renderers_holder.process_notify_request(packet)
+                        header=packet))
+                if self.server.holder:
+                    self.server.holder.process_notify_request(packet)
             elif self._is_http_method(lines[0]):
                 logger.debug(
                     'Recieved the following SSDP header: \n{header}'.format(
-                        header=header))
-                self.server.renderers_holder.process_msearch_request(packet)
+                        header=packet))
+                if self.server.holder:
+                    self.server.holder.process_msearch_request(packet)
 
     def _is_notify_method(self, method_header):
         method = self._get_method(method_header)
@@ -75,17 +75,9 @@ class SSDPListener(SocketServer.UDPServer):
               'MX: 2\r\n' + \
               'ST: ssdp:all\r\n\r\n'
 
-    def __init__(
-            self, stream_server_address, message_queue, plugins,
-            device_filter=None, device_config=None, renderer_urls=None,
-            disable_ssdp_listener=False):
+    def __init__(self, holder=None, disable_ssdp_listener=False):
         self.disable_ssdp_listener = disable_ssdp_listener
-        self.renderers_holder = pulseaudio_dlna.renderers.RendererHolder(
-            stream_server_address, message_queue, plugins, device_filter,
-            device_config)
-
-        if renderer_urls is not None:
-            self.renderers_holder.process_locations(renderer_urls)
+        self.holder = holder
 
         self.allow_reuse_address = True
         SocketServer.UDPServer.__init__(

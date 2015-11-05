@@ -18,7 +18,6 @@
 
 from __future__ import unicode_literals
 
-import multiprocessing
 import requests
 import logging
 import sys
@@ -114,8 +113,7 @@ class RadioLauncher():
         return None
 
     def _discover_devices(self):
-        holder = pulseaudio_dlna.renderers.RendererHolder(
-            ('', 0), multiprocessing.Queue(), self.PLUGINS)
+        holder = pulseaudio_dlna.renderers.RendererHolder(self.PLUGINS)
         discover = pulseaudio_dlna.discover.RendererDiscover(holder)
         discover.search()
         logger.info('Found the following devices:')
