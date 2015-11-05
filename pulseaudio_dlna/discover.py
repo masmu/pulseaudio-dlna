@@ -21,6 +21,7 @@ import socket as s
 import logging
 import time
 import chardet
+import struct
 
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
@@ -39,7 +40,16 @@ class BaseUpnpMediaRendererDiscover(object):
     def search(self, ttl=10, timeout=5, times=4):
         s.setdefaulttimeout(timeout)
         sock = s.socket(s.AF_INET, s.SOCK_DGRAM, s.IPPROTO_UDP)
-        sock.setsockopt(s.IPPROTO_IP, s.IP_MULTICAST_TTL, ttl)
+        sock.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
+        sock.bind(('', self.SSDP_PORT))
+        sock.setsockopt(
+            s.IPPROTO_IP,
+            s.IP_ADD_MEMBERSHIP,
+            self._multicast_struct(self.SSDP_ADDRESS))
+        sock.setsockopt(
+            s.IPPROTO_IP,
+            s.IP_MULTICAST_TTL,
+            self._ttl_struct(ttl))
 
         for i in range(0, times):
             sock.sendto(self.MSEARCH, (self.SSDP_ADDRESS, self.SSDP_PORT))
@@ -54,6 +64,12 @@ class BaseUpnpMediaRendererDiscover(object):
             except s.timeout:
                 break
         sock.close()
+
+    def _multicast_struct(self, address):
+        return struct.pack('=4sl', s.inet_aton(address), s.INADDR_ANY)
+
+    def _ttl_struct(self, ttl):
+        return struct.pack('=b', ttl)
 
     def _header_received(self, header, address):
         pass
