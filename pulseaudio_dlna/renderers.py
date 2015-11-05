@@ -56,9 +56,13 @@ class RendererHolder(object):
         return None
 
     def process_locations(self, locations):
-        for plugin in self.registered.values():
-            for device in plugin.lookup(locations):
-                self._add_renderer(device.udn, device)
+        try:
+            self.lock.acquire()
+            for plugin in self.registered.values():
+                for device in plugin.lookup(locations):
+                    self._add_renderer(device.udn, device)
+        finally:
+            self.lock.release()
 
     def process_msearch_request(self, header):
         header = self._retrieve_header_map(header)
@@ -66,12 +70,16 @@ class RendererHolder(object):
 
         if device_id is None:
             return
-        st_header = header.get('st', None)
-        if st_header and st_header in self.registered:
-            if device_id not in self.renderers:
-                device = self.registered[st_header].create_device(header)
-                if device is not None:
-                    self._add_renderer_with_filter_check(device_id, device)
+        try:
+            self.lock.acquire()
+            st_header = header.get('st', None)
+            if st_header and st_header in self.registered:
+                if device_id not in self.renderers:
+                    device = self.registered[st_header].create_device(header)
+                    if device is not None:
+                        self._add_renderer_with_filter_check(device_id, device)
+        finally:
+            self.lock.release()
 
     def process_notify_request(self, header):
         header = self._retrieve_header_map(header)

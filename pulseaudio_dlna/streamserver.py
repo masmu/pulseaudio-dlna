@@ -566,7 +566,7 @@ class GobjectMainLoopMixin:
         return True
 
     def shutdown(self, *args):
-        logger.info(
+        logger.debug(
             'StreamServer GobjectMainLoopMixin.shutdown() pid: {}'.format(
                 os.getpid()))
         try:
