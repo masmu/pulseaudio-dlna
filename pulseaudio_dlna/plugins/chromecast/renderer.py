@@ -23,6 +23,7 @@ import urlparse
 import socket
 import traceback
 import BeautifulSoup
+from HTMLParser import HTMLParser
 
 import pycastv2
 import pulseaudio_dlna.plugins.renderer
@@ -149,7 +150,7 @@ class ChromecastRendererFactory(object):
                         model_name=model_name))
                 return None
             cast_device = type_(
-                soup.root.device.friendlyname.text,
+                HTMLParser().unescape(soup.root.device.friendlyname.text), # Unescape html entities in Chromecast's name
                 ip,
                 soup.root.device.udn.text,
                 soup.root.device.modelname.text,
