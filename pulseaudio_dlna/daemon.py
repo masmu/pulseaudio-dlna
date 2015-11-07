@@ -22,13 +22,13 @@ import dbus.mainloop.glib
 import logging
 import os
 import sys
-import psutil
 import gobject
 import setproctitle
 import functools
 import signal
 
 import pulseaudio_dlna.utils.subprocess
+import pulseaudio_dlna.utils.psutilshim as psutil
 
 logger = logging.getLogger('pulseaudio_dlna.daemon')
 
