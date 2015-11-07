@@ -39,14 +39,11 @@ def wait_procs(*args, **kwargs):
 
 
 def process_iter(*args, **kwargs):
-    if __series__ >= 2:
-        processes = []
-        for p in psutil.process_iter(*args, **kwargs):
-            p.__class__ = Process
-            processes.append(p)
-        return processes
-    else:
-        return psutil.process_iter(*args, **kwargs)
+    processes = []
+    for p in psutil.process_iter(*args, **kwargs):
+        p.__class__ = Process
+        processes.append(p)
+    return processes
 
 
 class Process(psutil.Process):
@@ -57,16 +54,16 @@ class Process(psutil.Process):
         if __series__ >= 2:
             return psutil.Process.name(self)
         else:
-            return psutil.Process.name.fget(self)
+            return self._platform_impl.get_process_name()
 
     def uids(self):
         if __series__ >= 2:
             return psutil.Process.uids(self)
         else:
-            return psutil.Process.uids.fget(self)
+            return self._platform_impl.get_process_uids()
 
     def gids(self):
         if __series__ >= 2:
             return psutil.Process.gids(self)
         else:
-            return psutil.Process.gids.fget(self)
+            return self._platform_impl.get_process_gids()
