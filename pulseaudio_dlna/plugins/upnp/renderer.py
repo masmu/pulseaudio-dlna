@@ -417,7 +417,9 @@ class UpnpMediaRendererFactory(object):
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
-        soup = BeautifulSoup.BeautifulSoup(response.content)
+        soup = BeautifulSoup.BeautifulSoup(
+            response.content,
+            convertEntities=BeautifulSoup.BeautifulSoup.HTML_ENTITIES)
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         services = []
