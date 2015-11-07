@@ -109,6 +109,14 @@ class PulseAudioProcess(psutil.Process):
         return self._get_proc_env(self.pid)
 
     @property
+    def uid(self):
+        return self.uids()[0]
+
+    @property
+    def gid(self):
+        return self.gids()[0]
+
+    @property
     def is_attached(self):
         if self.application:
             if self.application.poll() is None:
@@ -197,7 +205,7 @@ class PulseAudioFinder(object):
         processes = []
         try:
             for proc in psutil.process_iter():
-                if proc.name == 'pulseaudio':
+                if proc.name() == 'pulseaudio':
                     proc.__class__ = PulseAudioProcess
                     if not hasattr(proc, 'application'):
                         proc.application = None

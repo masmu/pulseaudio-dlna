@@ -53,23 +53,20 @@ class Process(psutil.Process):
     def __init__(self, *args, **kwargs):
         psutil.Process.__init__(self, *args, **kwargs)
 
-    @property
     def name(self):
         if __series__ >= 2:
             return psutil.Process.name(self)
         else:
             return psutil.Process.name.fget(self)
 
-    @property
-    def uid(self):
+    def uids(self):
         if __series__ >= 2:
-            return self.uids()[0]
+            return psutil.Process.uids(self)
         else:
-            return self.uids[0]
+            return psutil.Process.uids.fget(self)
 
-    @property
-    def gid(self):
+    def gids(self):
         if __series__ >= 2:
-            return self.gids()[0]
+            return psutil.Process.gids(self)
         else:
-            return self.gids[0]
+            return psutil.Process.gids.fget(self)
