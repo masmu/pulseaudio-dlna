@@ -145,13 +145,19 @@ class PulseAudioProcess(psutil.Process):
         for k in required_variables:
             compressed_env[k] = proc_env[k]
 
-        self.application = (
-            pulseaudio_dlna.utils.subprocess.GobjectSubprocess(
-                sys.argv,
-                uid=self.uid,
-                gid=self.gid,
-                env=compressed_env,
-                cwd=os.getcwd()))
+        try:
+            self.application = (
+                pulseaudio_dlna.utils.subprocess.GobjectSubprocess(
+                    sys.argv,
+                    uid=self.uid,
+                    gid=self.gid,
+                    env=compressed_env,
+                    cwd=os.getcwd()))
+        except OSError as e:
+            self.application = None
+            logger.error(
+                'Could not attach to pulseaudio ({pid}) - {msg}!'.format(
+                    pid=self.pid, msg=e))
 
     def detach(self):
         app_pid = self.application.pid
