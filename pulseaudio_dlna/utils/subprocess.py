@@ -71,7 +71,8 @@ class GobjectMainLoopMixin(object):
                 pipe, gobject.IO_IN | gobject.IO_PRI, self._on_new_data)
 
     def _on_new_data(self, fd, condition):
-        sys.stdout.write(fd.readline().rstrip() + '\n')
+        line = fd.readline()
+        sys.stdout.write(line)
         sys.stdout.flush()
         return True
 
