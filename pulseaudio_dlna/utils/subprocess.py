@@ -23,6 +23,9 @@ import threading
 import os
 import gobject
 import sys
+import logging
+
+logger = logging.getLogger('pulseaudio_dlna.utils.subprocess')
 
 
 class Subprocess(subprocess.Popen):
