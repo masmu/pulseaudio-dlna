@@ -22,13 +22,13 @@ import dbus.mainloop.glib
 import logging
 import os
 import sys
-import psutil
 import gobject
 import setproctitle
 import functools
 import signal
 
 import pulseaudio_dlna.utils.subprocess
+import pulseaudio_dlna.utils.psutilshim as psutil
 
 logger = logging.getLogger('pulseaudio_dlna.daemon')
 
@@ -110,11 +110,11 @@ class PulseAudioProcess(psutil.Process):
 
     @property
     def uid(self):
-        return self.uids[0]
+        return self.uids()[0]
 
     @property
     def gid(self):
-        return self.gids[0]
+        return self.gids()[0]
 
     @property
     def is_attached(self):
@@ -168,11 +168,11 @@ class PulseAudioProcess(psutil.Process):
                 self._kill_process_tree(child.pid)
             p.send_signal(signal.SIGINT)
             p.wait(timeout=timeout)
-        except psutil._error.TimeoutExpired:
+        except psutil.TimeoutExpired:
             logger.info(
                 'Process {} did not exit, sending SIGKILL ...'.format(pid))
             p.kill()
-        except psutil._error.NoSuchProcess:
+        except psutil.NoSuchProcess:
             logger.info('Process {} has exited.'.format(pid))
 
     def _get_proc_env(self, pid):
@@ -204,11 +204,11 @@ class PulseAudioFinder(object):
         processes = []
         try:
             for proc in psutil.process_iter():
-                if proc.name == 'pulseaudio':
+                if proc.name() == 'pulseaudio':
                     proc.__class__ = PulseAudioProcess
                     if not hasattr(proc, 'application'):
                         proc.application = None
                     processes.append(proc)
-        except psutil._error.NoSuchProcess:
+        except psutil.NoSuchProcess:
             pass
         return processes
