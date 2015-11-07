@@ -21,7 +21,7 @@ from __future__ import unicode_literals
 import logging
 import psutil
 
-logger = logging.getLogger('pulseaudio_dlna.daemon')
+logger = logging.getLogger('pulseaudio_dlna.utils.psutil')
 
 
 __series__ = int(psutil.__version__[:1])
@@ -39,7 +39,14 @@ def wait_procs(*args, **kwargs):
 
 
 def process_iter(*args, **kwargs):
-    return psutil.process_iter(*args, **kwargs)
+    if __series__ >= 2:
+        processes = []
+        for p in psutil.process_iter(*args, **kwargs):
+            p.__class__ = Process
+            processes.append(p)
+        return processes
+    else:
+        return psutil.process_iter(*args, **kwargs)
 
 
 class Process(psutil.Process):
