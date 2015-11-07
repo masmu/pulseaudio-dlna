@@ -26,12 +26,8 @@ logger = logging.getLogger('pulseaudio_dlna.utils.psutil')
 
 __series__ = int(psutil.__version__[:1])
 
-if __series__ >= 2:
-    NoSuchProcess = psutil.NoSuchProcess
-    TimeoutExpired = psutil.TimeoutExpired
-else:
-    NoSuchProcess = psutil._error.NoSuchProcess
-    TimeoutExpired = psutil._error.TimeoutExpired
+NoSuchProcess = psutil.NoSuchProcess
+TimeoutExpired = psutil.TimeoutExpired
 
 
 def wait_procs(*args, **kwargs):
