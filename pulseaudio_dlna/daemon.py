@@ -130,7 +130,8 @@ class PulseAudioProcess(psutil.Process):
             'DISPLAY',
             'DBUS_SESSION_BUS_ADDRESS',
             'PATH',
-            'XDG_RUNTIME_DIR'
+            'XDG_RUNTIME_DIR',
+            'LANG'
         ]
         compressed_env = {}
         for k in required_variables:
