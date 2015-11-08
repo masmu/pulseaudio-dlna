@@ -1,5 +1,5 @@
 # About #
-<img align="right" src="samples/images/application.png">
+<img align="left" src="samples/images/application.png">
 This is _pulseaudio-dlna_. A small DLNA server which brings DLNA / UPNP
 and Chromecast support to PulseAudio and Linux.
 It can stream your current PulseAudio playback to different UPNP devices
