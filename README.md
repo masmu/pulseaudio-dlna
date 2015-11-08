@@ -613,6 +613,7 @@ Onkyo TX-NR509                                                                  
 Denon AVR-3808                                                                  | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 DAMAI Airmusic                                                                  | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Panasonic TX-50CX680W                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Xbox 360                                                                        | :white_check_mark:<sup>5</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:                   | :no_entry_sign:                   | :white_check_mark:
 
 <sup>1</sup>) Works when specifing the `--fake-http-content-length` flag
 
@@ -621,6 +622,8 @@ Panasonic TX-50CX680W                                                           
 <sup>3</sup>) Works since _0.4.5_ (`--fake-http-content-length` is added automatic)
 
 <sup>4</sup>) The device needs to be in _SERVER_ mode to accept instructions
+
+<sup>5</sup>) Was reported to buffer really long. Approximately 45 seconds
 
 ## Supported encoders ##
 
