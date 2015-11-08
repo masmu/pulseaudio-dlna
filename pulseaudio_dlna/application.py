@@ -35,6 +35,8 @@ import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.utils.network
 import pulseaudio_dlna.rules
+import pulseaudio_dlna.renderers
+import pulseaudio_dlna.discover
 
 logger = logging.getLogger('pulseaudio_dlna.application')
 
@@ -200,11 +202,16 @@ class Application(object):
                 pulseaudio_dlna.plugins.renderer.BaseRenderer.REQUEST_TIMEOUT = \
                     request_timeout
 
+        holder = pulseaudio_dlna.renderers.RendererHolder(
+            self.PLUGINS, stream_server.ip, stream_server.port, message_queue,
+            device_filter, device_config)
+
+        if locations:
+            holder.process_locations(locations)
+
         try:
-            stream_server_address = stream_server.ip, stream_server.port
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
-                stream_server_address, message_queue, self.PLUGINS,
-                device_filter, device_config, locations, disable_ssdp_listener)
+                holder, disable_ssdp_listener)
         except socket.error:
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '
@@ -226,8 +233,7 @@ class Application(object):
             process.join()
 
     def create_device_config(self):
-        holder = pulseaudio_dlna.renderers.RendererHolder(
-            ('', 0), multiprocessing.Queue(), self.PLUGINS)
+        holder = pulseaudio_dlna.renderers.RendererHolder(self.PLUGINS)
         discover = pulseaudio_dlna.discover.RendererDiscover(holder)
         discover.search()
 
