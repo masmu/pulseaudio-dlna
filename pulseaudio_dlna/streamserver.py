@@ -300,7 +300,7 @@ class ProcessStream(object):
     def create_processes(self):
         if self.reinitialize_count < 3:
             self.reinitialize_count += 1
-            logger.info('Starting processes "{recorder} | {encoder}"'.format(
+            logger.debug('Starting processes "{recorder} | {encoder}"'.format(
                 recorder=' '.join(self.recorder.command),
                 encoder=' '.join(self.encoder.command)))
             self.recorder_process = subprocess.Popen(
@@ -445,7 +445,6 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             headers = {
                 'Content-Type': bridge.device.codec.specific_mime_type,
             }
-            logger.info(headers)
 
             if self.server.fake_http_content_length or \
                pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH in bridge.device.codec.rules:
