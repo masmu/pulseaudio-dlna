@@ -166,7 +166,7 @@ class PulseAudio(object):
                 sink_description.replace(' ', '\ ')
             ),
         ]
-        module_id = int(subprocess.check_output(cmd))
+        module_id = int(subprocess.check_output(cmd).strip())
         if module_id > 0:
             self.update_sinks()
             for sink in self.sinks:

@@ -22,13 +22,14 @@ import dbus.mainloop.glib
 import logging
 import os
 import sys
-import psutil
 import gobject
 import setproctitle
 import functools
 import signal
+import pwd
 
 import pulseaudio_dlna.utils.subprocess
+import pulseaudio_dlna.utils.psutil as psutil
 
 logger = logging.getLogger('pulseaudio_dlna.daemon')
 
@@ -85,7 +86,7 @@ class Daemon(object):
             logger.info('Removing pulseaudio process ({})'.format(proc.pid))
             self.processes.remove(proc)
         for proc in alive:
-            if not proc.is_attached:
+            if not proc.is_attached and not proc.disabled:
                 proc.attach()
 
         self.is_checking = False
@@ -100,9 +101,14 @@ class Daemon(object):
 
 @functools.total_ordering
 class PulseAudioProcess(psutil.Process):
+
+    DISPLAY_MANAGERS = ['gdm', 'lightdm', 'kdm', None]
+    UID_MIN = 500
+
     def __init__(self, *args, **kwargs):
         psutil.Process.__init__(*args, **kwargs)
         self.application = None
+        self.disabled = False
 
     @property
     def env(self):
@@ -110,11 +116,11 @@ class PulseAudioProcess(psutil.Process):
 
     @property
     def uid(self):
-        return self.uids[0]
+        return self.uids()[0]
 
     @property
     def gid(self):
-        return self.gids[0]
+        return self.gids()[0]
 
     @property
     def is_attached(self):
@@ -124,6 +130,13 @@ class PulseAudioProcess(psutil.Process):
         return False
 
     def attach(self):
+
+        if not self._is_pulseaudio_user_process():
+            self.disabled = True
+            logger.info('Ignoring pulseaudio process ({pid})!'.format(
+                pid=self.pid))
+            return
+
         logger.info('Attaching application to pulseaudio ({pid})'.format(
             pid=self.pid))
 
@@ -138,19 +151,27 @@ class PulseAudioProcess(psutil.Process):
             'DISPLAY',
             'DBUS_SESSION_BUS_ADDRESS',
             'PATH',
-            'XDG_RUNTIME_DIR'
+            'XDG_RUNTIME_DIR',
+            'LANG'
         ]
         compressed_env = {}
         for k in required_variables:
             compressed_env[k] = proc_env[k]
 
-        self.application = (
-            pulseaudio_dlna.utils.subprocess.GobjectSubprocess(
-                sys.argv,
-                uid=self.uid,
-                gid=self.gid,
-                env=compressed_env,
-                cwd=os.getcwd()))
+        try:
+            self.application = (
+                pulseaudio_dlna.utils.subprocess.GobjectSubprocess(
+                    sys.argv,
+                    uid=self.uid,
+                    gid=self.gid,
+                    env=compressed_env,
+                    cwd=os.getcwd()))
+        except OSError as e:
+            self.application = None
+            self.disabled = True
+            logger.error(
+                'Could not attach to pulseaudio ({pid}) - {msg}!'.format(
+                    pid=self.pid, msg=e))
 
     def detach(self):
         app_pid = self.application.pid
@@ -161,6 +182,10 @@ class PulseAudioProcess(psutil.Process):
             self._kill_process_tree(app_pid)
             self.application = None
 
+    def _is_pulseaudio_user_process(self):
+        return (self.uid >= self.UID_MIN and
+                self._get_uid_name(self.uid) not in self.DISPLAY_MANAGERS)
+
     def _kill_process_tree(self, pid, timeout=3):
         try:
             p = psutil.Process(pid)
@@ -168,12 +193,18 @@ class PulseAudioProcess(psutil.Process):
                 self._kill_process_tree(child.pid)
             p.send_signal(signal.SIGINT)
             p.wait(timeout=timeout)
-        except psutil._error.TimeoutExpired:
+        except psutil.TimeoutExpired:
             logger.info(
                 'Process {} did not exit, sending SIGKILL ...'.format(pid))
             p.kill()
-        except psutil._error.NoSuchProcess:
+        except psutil.NoSuchProcess:
             logger.info('Process {} has exited.'.format(pid))
+
+    def _get_uid_name(self, uid):
+        try:
+            return pwd.getpwuid(uid).pw_name
+        except KeyError:
+            return None
 
     def _get_proc_env(self, pid):
         env = {}
@@ -204,11 +235,13 @@ class PulseAudioFinder(object):
         processes = []
         try:
             for proc in psutil.process_iter():
-                if proc.name == 'pulseaudio':
+                if proc.name() == 'pulseaudio':
                     proc.__class__ = PulseAudioProcess
                     if not hasattr(proc, 'application'):
                         proc.application = None
+                    if not hasattr(proc, 'disabled'):
+                        proc.disabled = False
                     processes.append(proc)
-        except psutil._error.NoSuchProcess:
+        except psutil.NoSuchProcess:
             pass
         return processes
