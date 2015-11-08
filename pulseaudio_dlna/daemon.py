@@ -133,7 +133,8 @@ class PulseAudioProcess(psutil.Process):
 
         if not self._is_pulseaudio_user_process():
             self.disabled = True
-            logger.info('Ignoring pulseaudio process ({pid})!'.format())
+            logger.info('Ignoring pulseaudio process ({pid})!'.format(
+                pid=self.pid))
             return
 
         logger.info('Attaching application to pulseaudio ({pid})'.format(
