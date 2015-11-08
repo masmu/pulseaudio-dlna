@@ -41,6 +41,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - HTML entities in device descriptions are now converted automatically
     - Faster and more reliable device discovery
     - Added the `--cover-mode` option
+    - L16 codecs are now selected better (e.g. needed for _XBox 360_)
 
  * __0.4.6__ - (_2015-10-17_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
