@@ -5,7 +5,7 @@
         <dc:title>{title}</dc:title>
         <dc:creator>{creator}</dc:creator>
         <upnp:artist>{artist}</upnp:artist>
-        <upnp:albumArtURI></upnp:albumArtURI>
+        <upnp:albumArtURI>{albumart}</upnp:albumArtURI>
         <upnp:album>{album}</upnp:album>
         <res protocolInfo="http-get:*:{mime_type}:{content_features}">{stream_url}</res>
     </item>

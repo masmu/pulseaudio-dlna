@@ -34,6 +34,7 @@ import urllib
 import json
 import os
 import signal
+import pkg_resources
 import BaseHTTPServer
 import SocketServer
 
@@ -41,6 +42,7 @@ import pulseaudio_dlna.encoders
 import pulseaudio_dlna.codecs
 import pulseaudio_dlna.recorders
 import pulseaudio_dlna.rules
+import pulseaudio_dlna.images
 
 from pulseaudio_dlna.plugins.upnp.renderer import (
     UpnpContentFeatures, UpnpContentFlags)
@@ -415,15 +417,19 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def do_HEAD(self):
         logger.debug('Got the following HEAD request:\n{header}'.format(
             header=json.dumps(self.headers.items(), indent=2)))
-        self.handle_headers()
+        item = self.get_requested_item()
+        self.handle_headers(item)
 
     def do_GET(self):
         logger.debug('Got the following GET request:\n{header}'.format(
             header=json.dumps(self.headers.items(), indent=2)))
-        bridge = self.handle_headers()
-        if bridge:
-            stream = self.server.stream_manager.get_stream(self.path, bridge)
-            stream.register(bridge, self.request)
+        item = self.get_requested_item()
+        self.handle_headers(item)
+        if isinstance(item, pulseaudio_dlna.images.BaseImage):
+            self.wfile.write(item.data)
+        elif isinstance(item, pulseaudio_dlna.pulseaudio.PulseBridge):
+            stream = self.server.stream_manager.get_stream(self.path, item)
+            stream.register(item, self.request)
             self.keep_connection_alive()
 
     def keep_connection_alive(self):
@@ -438,13 +444,20 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 break
             time.sleep(1)
 
-    def handle_headers(self):
-        bridge = self.chop_request_path(self.path)
-        if bridge:
-            response_code = 200
-            headers = {
-                'Content-Type': bridge.device.codec.specific_mime_type,
-            }
+    def handle_headers(self, item):
+        response_code = 200
+        headers = {}
+
+        if not item:
+            logger.info('Error 404: File not found "{}"'.format(self.path))
+            self.send_error(404, 'File not found: %s' % self.path)
+            return
+        elif isinstance(item, pulseaudio_dlna.images.BaseImage):
+            image = item
+            headers['Content-Type'] = image.content_type
+        elif isinstance(item, pulseaudio_dlna.pulseaudio.PulseBridge):
+            bridge = item
+            headers['Content-Type'] = bridge.device.codec.specific_mime_type
 
             if self.server.fake_http_content_length or \
                pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH in bridge.device.codec.rules:
@@ -478,23 +491,52 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
 
-            logger.debug('Sending header ({response_code}):\n{header}'.format(
-                response_code=response_code,
-                header=json.dumps(headers, indent=2),
-            ))
-            self.send_response(response_code)
-            for name, value in headers.items():
-                self.send_header(name, value)
-            self.end_headers()
-            return bridge
-        else:
-            logger.info('Error 404: File not found "{}"'.format(self.path))
-            self.send_error(404, 'File not found: %s' % self.path)
-            return None
+        logger.debug('Sending header ({response_code}):\n{header}'.format(
+            response_code=response_code,
+            header=json.dumps(headers, indent=2),
+        ))
+        self.send_response(response_code)
+        for name, value in headers.items():
+            self.send_header(name, value)
+        self.end_headers()
 
-    def chop_request_path(self, path):
+    def get_requested_item(self):
+        settings = self._decode_settings(self.path)
+        if settings.get('type', None) == 'bridge':
+            for bridge in self.server.bridges:
+                if settings.get('udn') == bridge.device.udn:
+                    return bridge
+        elif settings.get('type', None) == 'image':
+            image_name = settings.get('name', None)
+            if image_name:
+                image_path = pkg_resources.resource_filename(
+                    'pulseaudio_dlna.streamserver', os.path.join(
+                        'images', image_name))
+                try:
+                    _type = pulseaudio_dlna.images.get_type_by_filepath(
+                        image_path)
+                    return _type(path=image_path, cached=True)
+                except (pulseaudio_dlna.images.UnknownImageExtension,
+                        pulseaudio_dlna.images.ImageNotAccessible,
+                        pulseaudio_dlna.images.MissingDependencies,
+                        pulseaudio_dlna.images.IconNotFound) as e:
+                    logger.error(e)
+        elif settings.get('type', None) == 'sys-icon':
+            icon_name = settings.get('name', None)
+            if icon_name:
+                try:
+                    return pulseaudio_dlna.images.get_icon_by_name(
+                        icon_name, size=512)
+                except (pulseaudio_dlna.images.UnknownImageExtension,
+                        pulseaudio_dlna.images.ImageNotAccessible,
+                        pulseaudio_dlna.images.MissingDependencies,
+                        pulseaudio_dlna.images.IconNotFound) as e:
+                    logger.error(e)
+        return None
+
+    def _decode_settings(self, path):
         try:
-            data_quoted, suffix = re.findall(r'/(.*?)/stream\.(.*)', path)[0]
+            data_quoted = re.findall(r'/(.*?)/', path)[0]
             data_string = base64.b64decode(urllib.unquote(data_quoted))
             settings = {
                 k: v for k, v in re.findall('(.*?)="(.*?)",?', data_string)
@@ -503,12 +545,10 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 'URL settings: {path} ({data_string})'.format(
                     path=path,
                     data_string=data_string))
-            for bridge in self.server.bridges:
-                if settings.get('udn') == bridge.device.udn:
-                    return bridge
+            return settings
         except (TypeError, ValueError, IndexError):
             pass
-        return None
+        return {}
 
     def log_message(self, format, *args):
         args = [unicode(arg) for arg in args]

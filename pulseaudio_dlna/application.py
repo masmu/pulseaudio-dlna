@@ -31,6 +31,7 @@ import pulseaudio_dlna.listener
 import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.plugins.chromecast
 import pulseaudio_dlna.encoders
+import pulseaudio_dlna.covermodes
 import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.utils.network
@@ -132,6 +133,12 @@ class Application(object):
                                 )))
                         sys.exit(0)
 
+        cover_mode = options['--cover-mode']
+        if cover_mode not in pulseaudio_dlna.covermodes.MODES:
+            logger.info('You specified an unknown cover mode! '
+                        'Application terminates.')
+            sys.exit(1)
+
         logger.info('Encoder settings:')
         for _type in pulseaudio_dlna.encoders.ENCODERS:
             _type.AVAILABLE = False
@@ -186,6 +193,7 @@ class Application(object):
             bridges, message_queue,
             disable_switchback=disable_switchback,
             disable_device_stop=disable_device_stop,
+            cover_mode=cover_mode,
         )
 
         device_filter = None

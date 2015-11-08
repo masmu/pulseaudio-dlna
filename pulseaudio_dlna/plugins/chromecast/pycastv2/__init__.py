@@ -172,26 +172,31 @@ class ChromecastController():
 
 
 class LoadCommand(commands.BaseCommand):
-    def __init__(self, url, mime_type, title=None, thumb=None,
+    def __init__(self, url, mime_type, artist=None, title=None, thumb=None,
                  session_id=None, destination_id=None, namespace=None):
         commands.BaseCommand.__init__(self)
-        custom_data = {}
-        if title or thumb:
-            custom_data = {
-                'payload': {
-                    'title': title,
-                    'thumb': thumb,
-                }
-            }
         self.data = {
             'autoplay': True,
             'currentTime': 0,
-            'customData': custom_data,
             'media': {'contentId': url,
                       'contentType': mime_type,
-                      'streamType': 'BUFFERED'},
+                      'streamType': 'LIVE',
+                      },
             'type': 'LOAD'
         }
+        if artist or title or thumb:
+            self.data['media']['metadata'] = {
+                'metadataType': 3,
+            }
+            if artist:
+                self.data['media']['metadata']['artist'] = artist
+            if title:
+                self.data['media']['metadata']['title'] = title
+            if thumb:
+                self.data['media']['metadata']['images'] = [
+                    {'url': thumb},
+                ]
+
         self.request_id = False
         self.session_id = False
         self.destination_id = destination_id
@@ -225,12 +230,16 @@ class MediaPlayerController(ChromecastController):
     def launch(self):
         self.launch_application(self.APP_MEDIA_PLAYER)
 
-    def load(self, url, mime_type, title=None, thumb=None):
+    def load(self, url, mime_type, artist=None, title=None, thumb=None):
         self.launch()
         try:
             self.socket.send_and_wait(
                 LoadCommand(
-                    url, mime_type, title, thumb, destination_id=False))
+                    url, mime_type,
+                    artist=artist,
+                    title=title,
+                    thumb=thumb,
+                    destination_id=False))
             return True
         except (cast_socket.NoResponseException, LoadFailedException):
             return False

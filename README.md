@@ -1,8 +1,7 @@
 # About #
-
+<img align="left" src="samples/images/application.png">
 This is _pulseaudio-dlna_. A small DLNA server which brings DLNA / UPNP
 and Chromecast support to PulseAudio and Linux.
-
 It can stream your current PulseAudio playback to different UPNP devices
 (UPNP Media Renderers) or Chromecasts in your network.
 It's main goals are: easy to use, no configuration hassle, no
@@ -312,7 +311,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>]  [--request-timeout <timeout>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>]  [--request-timeout <timeout>] [--cover-mode <mode>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
         pulseaudio-dlna [--create-device-config]
         pulseaudio-dlna [-h | --help | --version]
 
@@ -342,6 +341,11 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
         --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
+        --cover-mode=<mode>                    Set the cover mode [default: default].
+                                               Possible modes are:
+                                                 - default        Default icon
+                                                 - distribution   Distribution icon
+                                                 - application    Application icon
         --debug                                enables detailed debug messages.
         --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
         --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.

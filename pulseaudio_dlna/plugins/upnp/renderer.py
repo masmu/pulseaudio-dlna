@@ -20,7 +20,6 @@ from __future__ import unicode_literals
 import cgi
 import requests
 import urlparse
-import socket
 import logging
 import pkg_resources
 import BeautifulSoup
@@ -206,7 +205,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 status_code=response.status_code,
                 result=response.text))
 
-    def register(self, stream_url, codec=None):
+    def register(self, stream_url, codec=None, artist=None, title=None, thumb=None):
         url = self.service_transport.control_url
         codec = codec or self.codec
         headers = {
@@ -226,10 +225,11 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             ])
         metadata = self.xml['register_metadata'].format(
             stream_url=stream_url,
-            title='Live Audio',
-            artist='PulseAudio on {}'.format(socket.gethostname()),
-            creator='PulseAudio',
-            album='Stream',
+            title=title or '',
+            artist=artist or '',
+            albumart=thumb or '',
+            creator='',
+            album='',
             encoding=self.ENCODING,
             mime_type=codec.mime_type,
             content_features=str(content_features),
@@ -380,10 +380,12 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 class CoinedUpnpMediaRenderer(
         pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, UpnpMediaRenderer):
 
-    def play(self, url=None, codec=None):
+    def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
         try:
             stream_url = url or self.get_stream_url()
-            return_code = UpnpMediaRenderer.register(self, stream_url, codec)
+            return_code = UpnpMediaRenderer.register(
+                self, stream_url, codec,
+                artist=artist, title=title, thumb=thumb)
             if return_code == 200:
                 return UpnpMediaRenderer.play(self)
             else:
