@@ -437,13 +437,15 @@ class PulseWatcher(PulseAudio):
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
         mainloop = gobject.MainLoop()
-        gobject.timeout_add(100, self._check_message_queue)
+        gobject.io_add_watch(
+            self.message_queue._reader, gobject.IO_IN | gobject.IO_PRI,
+            self._on_new_message)
         try:
             mainloop.run()
         except KeyboardInterrupt:
             pass
 
-    def _check_message_queue(self):
+    def _on_new_message(self, fd, condition):
         try:
             message = self.message_queue.get_nowait()
         except:
