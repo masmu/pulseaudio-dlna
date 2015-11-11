@@ -93,6 +93,10 @@ class Application(object):
             self.create_device_config()
             sys.exit(0)
 
+        if options['--update-device-config']:
+            self.create_device_config(update=True)
+            sys.exit(0)
+
         device_config = None
         if not options['--encoder'] and not options['--bit-rate']:
             device_config = self.read_device_config()
@@ -242,7 +246,7 @@ class Application(object):
         for process in self.processes:
             process.join()
 
-    def create_device_config(self):
+    def create_device_config(self, update=False):
         holder = pulseaudio_dlna.renderers.RendererHolder(self.PLUGINS)
         discover = pulseaudio_dlna.discover.RendererDiscover(holder)
         discover.search()
@@ -257,10 +261,16 @@ class Application(object):
             json_text = json.dumps(obj, default=device_filter)
             return json.loads(json_text)
 
-        existing_config = self.read_device_config()
-        if existing_config:
-            new_config = obj_to_dict(holder.renderers)
-            new_config.update(existing_config)
+        if update:
+            existing_config = self.read_device_config()
+            if existing_config:
+                new_config = obj_to_dict(holder.renderers)
+                new_config.update(existing_config)
+            else:
+                logger.error(
+                    'Your device config could not be found at any of the '
+                    'locations "{}"'.format(','.join(self.DEVICE_CONFIG_PATHS)))
+                sys.exit(1)
         else:
             new_config = obj_to_dict(holder.renderers)
         json_text = json.dumps(new_config, indent=4)

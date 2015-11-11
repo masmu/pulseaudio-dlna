@@ -43,6 +43,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added the `--cover-mode` option, one mode requires (optional) dependencies `gtk`, `cairo`, `rsvg`
     - L16 codecs are now selected better (e.g. needed for _XBox 360_)
     - Fixed a bug where sometimes it was tried to remove sinks twice on cleanup
+    - Added the `--update-device-config` flag
 
  * __0.4.6__ - (_2015-10-17_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
@@ -315,7 +316,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 
     Usage:
         pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>]  [--request-timeout <timeout>] [--cover-mode <mode>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
-        pulseaudio-dlna [--create-device-config]
+        pulseaudio-dlna [--create-device-config] | [--update-device-config]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
@@ -327,6 +328,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                  - Various codec settings such as the mime type, specific rules or
                                                    the bit rate (depends on the codec)
                                                A written config is loaded by default if the --encoder and --bit-rate options are not used.
+        --update-device-config                 Same as --create-device-config but preserves your existing config from being overwritten
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
         -e --encoder=<encoders>                Set the audio encoder.
