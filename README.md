@@ -42,6 +42,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Faster and more reliable device discovery
     - Added the `--cover-mode` option, one mode requires (optional) dependencies `gtk`, `cairo`, `rsvg`
     - L16 codecs are now selected better (e.g. needed for _XBox 360_)
+    - Fixed a bug where sometimes it was tried to remove sinks twice on cleanup
 
  * __0.4.6__ - (_2015-10-17_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))

@@ -485,14 +485,17 @@ class PulseWatcher(PulseAudio):
         self.message_queue = message_queue
         self.blocked_devices = []
         self.signal_timers = {}
+        self.is_terminating = False
         self.cover_mode = pulseaudio_dlna.covermodes.MODES[cover_mode]()
 
         self.disable_switchback = disable_switchback
         self.disable_device_stop = disable_device_stop
 
     def terminate(self, signal_number=None, frame=None):
-        self.cleanup()
-        sys.exit(0)
+        if not self.is_terminating:
+            self.is_terminating = True
+            self.cleanup()
+            sys.exit(0)
 
     def run(self):
         signal.signal(signal.SIGINT, self.terminate)
