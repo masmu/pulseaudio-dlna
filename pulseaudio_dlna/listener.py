@@ -75,8 +75,11 @@ class SSDPListener(SocketServer.UDPServer):
               'MX: 2\r\n' + \
               'ST: ssdp:all\r\n\r\n'
 
-    def __init__(self, holder=None, disable_ssdp_listener=False):
+    def __init__(
+            self, holder=None, disable_ssdp_listener=False,
+            disable_ssdp_search=False):
         self.disable_ssdp_listener = disable_ssdp_listener
+        self.disable_ssdp_search = disable_ssdp_search
         self.holder = holder
 
         self.allow_reuse_address = True
@@ -91,7 +94,8 @@ class SSDPListener(SocketServer.UDPServer):
             socket.IP_MULTICAST_TTL,
             self._ttl_struct(self.TTL))
 
-        self.search()
+        if not self.disable_ssdp_search:
+            self.search()
 
     def _multicast_struct(self, address):
         return struct.pack(
