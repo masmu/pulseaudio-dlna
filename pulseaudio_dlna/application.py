@@ -193,8 +193,10 @@ class Application(object):
             device_filter = options['--filter-device'].split(',')
 
         locations = None
+        disable_ssdp_search = False
         if options['--renderer-urls']:
             locations = options['--renderer-urls'].split(',')
+            disable_ssdp_search = True
 
         if options['--request-timeout']:
             request_timeout = float(options['--request-timeout'])
@@ -211,7 +213,7 @@ class Application(object):
 
         try:
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
-                holder, disable_ssdp_listener)
+                holder, disable_ssdp_listener, disable_ssdp_search)
         except socket.error:
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '
