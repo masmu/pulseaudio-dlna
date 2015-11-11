@@ -70,6 +70,6 @@ setuptools.setup(
     ],
     package_data={
         "pulseaudio_dlna.plugins.upnp": ["xml/*.xml"],
-        "pulseaudio_dlna.streamserver": ["images/*.png"],
+        "pulseaudio_dlna": ["images/*.png"],
     }
 )
