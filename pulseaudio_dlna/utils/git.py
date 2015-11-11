@@ -17,18 +17,31 @@
 
 from __future__ import unicode_literals
 
-import commands
+import os
+
+GIT_DIRECTORY = '../../.git/'
 
 
-def describe_tags():
-    status_code, result = commands.getstatusoutput('git describe --tags')
-    if status_code == 0:
-        return result
-    return 'unknown'
+def get_head_version():
 
+    def _get_first_line(path):
+        try:
+            with open(path) as f:
+                content = f.readlines()
+                return content[0]
+        except EnvironmentError:
+            return None
 
-def short_revision_hash():
-    status_code, result = commands.getstatusoutput('git rev-parse --short HEAD')
-    if status_code == 0:
-        return result
-    return 'unknown'
+    module_path = os.path.dirname(os.path.abspath(__file__))
+    head_path = os.path.join(module_path, GIT_DIRECTORY, 'HEAD')
+    line = _get_first_line(head_path)
+
+    if not line:
+        return None, None
+    elif line.startswith('ref: '):
+        prefix, ref_path = [s.strip() for s in line.split('ref: ')]
+        branch = os.path.basename(ref_path)
+        ref_path = os.path.join(module_path, GIT_DIRECTORY, ref_path)
+        return branch, _get_first_line(ref_path).strip()
+    else:
+        return 'detached-head', line.strip()

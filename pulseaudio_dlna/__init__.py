@@ -17,9 +17,22 @@
 
 from __future__ import unicode_literals
 
+import os
 import pkg_resources
+
+import utils.git
+
 try:
-    __version__ = pkg_resources.get_distribution(__package__).version
+    version = pkg_resources.get_distribution(__package__).version
 except pkg_resources.DistributionNotFound:
-    import utils.git
-    __version__ = utils.git.describe_tags()
+    version = 'unknown'
+
+if os.environ.get('USE_PKG_VERSION', None) == '1':
+    branch, rev = None, None
+else:
+    branch, rev = utils.git.get_head_version()
+
+__version__ = '{version}{rev}'.format(
+    version=version,
+    rev='~{} ({})'.format(rev, branch) if rev else '',
+)

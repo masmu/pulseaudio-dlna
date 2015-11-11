@@ -46,7 +46,7 @@ release: manpage
 manpage: debian/pulseaudio-dlna.1
 
 debian/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
-	help2man "bin/pulseaudio-dlna" > /tmp/pulseaudio-dlna.1
+	export USE_PKG_VERSION=1; help2man "bin/pulseaudio-dlna" > /tmp/pulseaudio-dlna.1
 	mv /tmp/pulseaudio-dlna.1 debian/pulseaudio-dlna.1
 
 clean:
