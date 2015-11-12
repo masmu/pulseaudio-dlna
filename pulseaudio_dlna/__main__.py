@@ -50,9 +50,10 @@ Options:
     --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
     --cover-mode=<mode>                    Set the cover mode [default: default].
                                            Possible modes are:
-                                             - default        Default icon
-                                             - distribution   Distribution icon
-                                             - application    Application icon
+                                             - disabled       No icon is shown
+                                             - default        The application icon is shown
+                                             - distribution   The icon of your distribution is shown
+                                             - application    The audio application's icon is shown
     --debug                                enables detailed debug messages.
     --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
     --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.
