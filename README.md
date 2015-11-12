@@ -596,6 +596,7 @@ Samsung Smart TV LED48 (UE48JU6560)                                             
 Xbmc / Kodi                                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle:<sup>2</sup>        | :white_circle:<sup>2</sup>        | :white_check_mark:
 Philips Streamium NP2500 Network Player                                         | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Yamaha RX-475 (AV Receiver)                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Yamaha RX-V573 (AV Receiver) <sup>6</sup>                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
@@ -629,6 +630,8 @@ Xbox 360                                                                        
 <sup>4</sup>) The device needs to be in _SERVER_ mode to accept instructions
 
 <sup>5</sup>) Was reported to buffer really long. Approximately 45 seconds
+
+<sup>6</sup>) Was reported to have issues being discovered. Make sure you run the latest firmware
 
 ## Supported encoders ##
 
