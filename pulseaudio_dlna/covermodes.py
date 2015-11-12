@@ -56,6 +56,11 @@ class BaseCoverMode(object):
             self.bridge = None
 
 
+class DisabledCoverMode(BaseCoverMode):
+
+    IDENTIFIER = 'disabled'
+
+
 class DefaultCoverMode(BaseCoverMode):
 
     IDENTIFIER = 'default'
