@@ -40,9 +40,9 @@ Suggests: python-cairo (>=1.8.8),
           python-rsvg (>=2.32.0),
           python-gtk2 (>=2.24.0),
 Homepage: https://github.com/masmu/pulseaudio-dlna
-Description: A small DLNA server which brings DLNA / UPNP and Chromecast
- support to PulseAudio and Linux.
- It can stream your current PulseAudio playback to different UPNP
- devices (UPNP Media Renderers) or Chromecasts in your network.
+Description: Stream audio to DLNA devices and Chromecasts
+ Creates Pulseaudio sinks for DLNA devices or Chromecasts in your network
+ and streams the current playback to those.
+ .
  It's main goals are:
  easy to use, no configuration hassle, no big dependencies.
