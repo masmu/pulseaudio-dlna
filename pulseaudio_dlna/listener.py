@@ -110,7 +110,7 @@ class SSDPListener(SocketServer.UDPServer):
         msg = 'M-SEARCH * HTTP/1.1\r\n' + \
               'HOST: {}:{}\r\n'.format(self.SSDP_ADDRESS, self.SSDP_PORT) + \
               'MAN: "ssdp:discover"\r\n' + \
-              'MX: {}\r\n'.format(self.timeout) + \
+              'MX: {}\r\n'.format(self.timeout - 1) + \
               'ST: ssdp:all\r\n\r\n'
         self.socket.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
         return False
