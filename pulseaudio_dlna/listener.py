@@ -44,12 +44,14 @@ class SSDPRequestHandler(SocketServer.BaseRequestHandler):
                         header=packet))
                 if self.server.holder:
                     self.server.holder.process_notify_request(packet)
+                    self.server._reset_listener_timer()
             elif self._is_http_method(lines[0]):
                 logger.debug(
                     'Recieved the following SSDP header: \n{header}'.format(
                         header=packet))
                 if self.server.holder:
                     self.server.holder.process_msearch_request(packet)
+                    self.server._reset_listener_timer()
 
     def _is_notify_method(self, method_header):
         method = self._get_method(method_header)
@@ -67,21 +69,21 @@ class SSDPListener(SocketServer.UDPServer):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
-    TTL = 10
-
-    MSEARCH = 'M-SEARCH * HTTP/1.1\r\n' + \
-              'HOST: {}:{}\r\n'.format(SSDP_ADDRESS, SSDP_PORT) + \
-              'MAN: "ssdp:discover"\r\n' + \
-              'MX: 2\r\n' + \
-              'ST: ssdp:all\r\n\r\n'
 
     def __init__(
-            self, holder=None, disable_ssdp_listener=False,
+            self, holder=None, timeout=5, ttl=10, times=5,
+            disable_ssdp_listener=False,
             disable_ssdp_search=False):
+        self.holder = holder
+        self.timeout = timeout
+        self.ttl = ttl
+        self.times = times
         self.disable_ssdp_listener = disable_ssdp_listener
         self.disable_ssdp_search = disable_ssdp_search
-        self.holder = holder
 
+        self.listener_timer = None
+
+    def run(self):
         self.allow_reuse_address = True
         SocketServer.UDPServer.__init__(
             self, ('', self.SSDP_PORT), SSDPRequestHandler)
@@ -92,10 +94,26 @@ class SSDPListener(SocketServer.UDPServer):
         self.socket.setsockopt(
             socket.IPPROTO_IP,
             socket.IP_MULTICAST_TTL,
-            self._ttl_struct(self.TTL))
+            self._ttl_struct(self.ttl))
 
         if not self.disable_ssdp_search:
-            self.search()
+            for i in range(1, self.times + 1):
+                gobject.timeout_add(i * 500, self.search)
+
+        if self.disable_ssdp_listener:
+            self._add_listener_timer()
+
+        setproctitle.setproctitle('ssdp_listener')
+        self.serve_forever(self)
+
+    def search(self):
+        msg = 'M-SEARCH * HTTP/1.1\r\n' + \
+              'HOST: {}:{}\r\n'.format(self.SSDP_ADDRESS, self.SSDP_PORT) + \
+              'MAN: "ssdp:discover"\r\n' + \
+              'MX: {}\r\n'.format(self.timeout) + \
+              'ST: ssdp:all\r\n\r\n'
+        self.socket.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
+        return False
 
     def _multicast_struct(self, address):
         return struct.pack(
@@ -104,22 +122,20 @@ class SSDPListener(SocketServer.UDPServer):
     def _ttl_struct(self, ttl):
         return struct.pack('=b', ttl)
 
-    def search(self, times=4):
-        for i in range(0, times):
-            self.socket.sendto(
-                self.MSEARCH, (self.SSDP_ADDRESS, self.SSDP_PORT))
-            time.sleep(0.1)
+    def _add_listener_timer(self):
+        self.listener_timer = gobject.timeout_add(
+            self.timeout * 1000, self._on_shutdown)
+
+    def _reset_listener_timer(self):
+        if self.listener_timer:
+            gobject.source_remove(self.listener_timer)
+            self._add_listener_timer()
+            self.listener_timer = None
 
     def _on_shutdown(self):
         logger.info('Discovery complete.')
         self.shutdown()
         return False
-
-    def run(self):
-        if self.disable_ssdp_listener:
-            gobject.timeout_add(5000, self._on_shutdown)
-        setproctitle.setproctitle('ssdp_listener')
-        self.serve_forever(self)
 
 
 class GobjectMainLoopMixin:

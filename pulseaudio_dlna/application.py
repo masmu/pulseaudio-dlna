@@ -225,7 +225,10 @@ class Application(object):
 
         try:
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
-                holder, disable_ssdp_listener, disable_ssdp_search)
+                holder,
+                disable_ssdp_listener=disable_ssdp_listener,
+                disable_ssdp_search=disable_ssdp_search
+            )
         except socket.error:
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '
