@@ -35,7 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-11-08_)
+ * __master__ - (_2015-11-13_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
     - Fixed the daemon mode to support `psutil` 1.x and 2.x (thanks to [klaernie](https://github.com/klaernie))
     - HTML entities in device descriptions are now converted automatically
@@ -44,6 +44,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - L16 codecs are now selected better (e.g. needed for _XBox 360_)
     - Fixed a bug where sometimes it was tried to remove sinks twice on cleanup
     - Added the `--update-device-config` flag
+    - Added the `--ssdp-ttl`, `--ssdp-mx`, `--ssdp-amount` options
 
  * __0.4.6__ - (_2015-10-17_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
@@ -315,8 +316,8 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>]  [--request-timeout <timeout>] [--cover-mode <mode>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
-        pulseaudio-dlna [--create-device-config] | [--update-device-config]
+        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>]  [--request-timeout <timeout>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>] [--cover-mode <mode>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
+        pulseaudio-dlna [--create-device-config] [--update-device-config] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
@@ -346,6 +347,9 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
         --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
+        --ssdp-ttl=<ssdp-ttl>                  Set the SSDP socket's TTL [default: 10].
+        --ssdp-mx=<ssdp-mx>                    Set the SSDP MX [default: 2].
+        --ssdp-amount=<ssdp-amount>            Set the amount of SSDP messages being sent [default: 5].
         --cover-mode=<mode>                    Set the cover mode [default: default].
                                                Possible modes are:
                                                  - disabled       No icon is shown

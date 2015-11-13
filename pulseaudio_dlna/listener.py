@@ -69,15 +69,19 @@ class SSDPListener(SocketServer.UDPServer):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
+    SSDP_MX = 2
+    SSDP_TTL = 10
+    SSDP_AMOUNT = 5
 
     def __init__(
-            self, holder=None, mx=2, ttl=10, times=5,
+            self, holder=None,
+            ssdp_mx=None, ssdp_ttl=None, ssdp_amount=None,
             disable_ssdp_listener=False,
             disable_ssdp_search=False):
         self.holder = holder
-        self.mx = mx
-        self.ttl = ttl
-        self.times = times
+        self.ssdp_mx = ssdp_mx or self.SSDP_MX
+        self.ssdp_ttl = ssdp_ttl or self.SSDP_TTL
+        self.ssdp_amount = ssdp_amount or self.SSDP_AMOUNT
         self.disable_ssdp_listener = disable_ssdp_listener
         self.disable_ssdp_search = disable_ssdp_search
 
@@ -94,10 +98,10 @@ class SSDPListener(SocketServer.UDPServer):
         self.socket.setsockopt(
             socket.IPPROTO_IP,
             socket.IP_MULTICAST_TTL,
-            self._ttl_struct(self.ttl))
+            self._ttl_struct(self.ssdp_ttl))
 
         if not self.disable_ssdp_search:
-            for i in range(1, self.times + 1):
+            for i in range(1, self.ssdp_amount + 1):
                 gobject.timeout_add(i * 500, self.search)
 
         if self.disable_ssdp_listener:
@@ -110,9 +114,8 @@ class SSDPListener(SocketServer.UDPServer):
         msg = 'M-SEARCH * HTTP/1.1\r\n' + \
               'HOST: {}:{}\r\n'.format(self.SSDP_ADDRESS, self.SSDP_PORT) + \
               'MAN: "ssdp:discover"\r\n' + \
-              'MX: {}\r\n'.format(self.mx) + \
+              'MX: {}\r\n'.format(self.ssdp_mx) + \
               'ST: ssdp:all\r\n\r\n'
-        logger.info('Sending M-SEARCH:\n{}'.format(msg))
         self.socket.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
         return False
 
@@ -130,8 +133,8 @@ class SSDPListener(SocketServer.UDPServer):
     def _reset_listener_timer(self):
         if self.listener_timer:
             gobject.source_remove(self.listener_timer)
-            self._add_listener_timer()
             self.listener_timer = None
+            self._add_listener_timer()
 
     def _on_shutdown(self):
         logger.info('Discovery complete.')

@@ -89,6 +89,21 @@ class Application(object):
         logger.info('Using localhost: {host}:{port}'.format(
             host=host, port=port))
 
+        if options['--ssdp-ttl']:
+            ssdp_ttl = int(options['--ssdp-ttl'])
+            pulseaudio_dlna.discover.RendererDiscover.SSDP_TTL = ssdp_ttl
+            pulseaudio_dlna.listener.SSDPListener.SSDP_TTL = ssdp_ttl
+
+        if options['--ssdp-mx']:
+            ssdp_mx = int(options['--ssdp-mx'])
+            pulseaudio_dlna.discover.RendererDiscover.SSDP_MX = ssdp_mx
+            pulseaudio_dlna.listener.SSDPListener.SSDP_MX = ssdp_mx
+
+        if options['--ssdp-amount']:
+            ssdp_amount = int(options['--ssdp-amount'])
+            pulseaudio_dlna.discover.RendererDiscover.SSDP_AMOUNT = ssdp_amount
+            pulseaudio_dlna.listener.SSDPListener.SSDP_AMOUNT = ssdp_amount
+
         if options['--create-device-config']:
             self.create_device_config()
             sys.exit(0)

@@ -30,6 +30,9 @@ class BaseUpnpMediaRendererDiscover(object):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
+    SSDP_MX = 2
+    SSDP_TTL = 10
+    SSDP_AMOUNT = 5
 
     MSEARCH = 'M-SEARCH * HTTP/1.1\r\n' + \
               'HOST: {}:{}\r\n'.format(SSDP_ADDRESS, SSDP_PORT) + \
@@ -37,8 +40,12 @@ class BaseUpnpMediaRendererDiscover(object):
               'MX: 2\r\n' + \
               'ST: ssdp:all\r\n\r\n'
 
-    def search(self, ttl=10, timeout=5, times=4):
-        s.setdefaulttimeout(timeout)
+    def search(self, ssdp_ttl=None, ssdp_mx=None, ssdp_amount=None):
+        ssdp_mx = ssdp_mx or self.SSDP_MX
+        ssdp_ttl = ssdp_ttl or self.SSDP_TTL
+        ssdp_amount = ssdp_amount or self.SSDP_AMOUNT
+
+        s.setdefaulttimeout(ssdp_mx + 2)
         sock = s.socket(s.AF_INET, s.SOCK_DGRAM, s.IPPROTO_UDP)
         sock.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
         sock.bind(('', self.SSDP_PORT))
@@ -49,10 +56,15 @@ class BaseUpnpMediaRendererDiscover(object):
         sock.setsockopt(
             s.IPPROTO_IP,
             s.IP_MULTICAST_TTL,
-            self._ttl_struct(ttl))
+            self._ttl_struct(ssdp_ttl))
 
-        for i in range(0, times):
-            sock.sendto(self.MSEARCH, (self.SSDP_ADDRESS, self.SSDP_PORT))
+        msg = 'M-SEARCH * HTTP/1.1\r\n' + \
+              'HOST: {}:{}\r\n'.format(self.SSDP_ADDRESS, self.SSDP_PORT) + \
+              'MAN: "ssdp:discover"\r\n' + \
+              'MX: {}\r\n'.format(ssdp_mx) + \
+              'ST: ssdp:all\r\n\r\n'
+        for i in range(0, ssdp_amount):
+            sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
             time.sleep(0.1)
 
         buffer_size = 1024
@@ -60,7 +72,8 @@ class BaseUpnpMediaRendererDiscover(object):
             try:
                 header, address = sock.recvfrom(buffer_size)
                 guess = chardet.detect(header)
-                self._header_received(header.decode(guess['encoding']), address)
+                self._header_received(
+                    header.decode(guess['encoding']), address)
             except s.timeout:
                 break
         sock.close()
@@ -80,9 +93,9 @@ class RendererDiscover(BaseUpnpMediaRendererDiscover):
     def __init__(self, renderer_holder):
         self.renderer_holder = renderer_holder
 
-    def search(self, ttl=10, timeout=5, times=2):
+    def search(self, *args, **kwargs):
         self.renderers = []
-        BaseUpnpMediaRendererDiscover.search(self, ttl, timeout, times)
+        BaseUpnpMediaRendererDiscover.search(self, *args, **kwargs)
 
     def _header_received(self, header, address):
         logger.debug('Recieved the following SSDP header: \n{header}'.format(
