@@ -34,5 +34,5 @@ else:
 
 __version__ = '{version}{rev}'.format(
     version=version,
-    rev='~{} ({})'.format(rev, branch) if rev else '',
+    rev='+git-{} ({})'.format(rev, branch) if rev else '',
 )
