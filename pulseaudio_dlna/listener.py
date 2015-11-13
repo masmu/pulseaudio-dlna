@@ -71,11 +71,11 @@ class SSDPListener(SocketServer.UDPServer):
     SSDP_PORT = 1900
 
     def __init__(
-            self, holder=None, timeout=5, ttl=10, times=5,
+            self, holder=None, mx=2, ttl=10, times=5,
             disable_ssdp_listener=False,
             disable_ssdp_search=False):
         self.holder = holder
-        self.timeout = timeout
+        self.mx = mx
         self.ttl = ttl
         self.times = times
         self.disable_ssdp_listener = disable_ssdp_listener
@@ -110,8 +110,9 @@ class SSDPListener(SocketServer.UDPServer):
         msg = 'M-SEARCH * HTTP/1.1\r\n' + \
               'HOST: {}:{}\r\n'.format(self.SSDP_ADDRESS, self.SSDP_PORT) + \
               'MAN: "ssdp:discover"\r\n' + \
-              'MX: {}\r\n'.format(self.timeout - 1) + \
+              'MX: {}\r\n'.format(self.mx) + \
               'ST: ssdp:all\r\n\r\n'
+        logger.info('Sending M-SEARCH:\n{}'.format(msg))
         self.socket.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
         return False
 
@@ -124,7 +125,7 @@ class SSDPListener(SocketServer.UDPServer):
 
     def _add_listener_timer(self):
         self.listener_timer = gobject.timeout_add(
-            self.timeout * 1000, self._on_shutdown)
+            (self.mx + 2) * 1000, self._on_shutdown)
 
     def _reset_listener_timer(self):
         if self.listener_timer:
