@@ -563,10 +563,6 @@ class StreamServer(SocketServer.TCPServer):
     def __init__(
             self, ip, port, bridges, message_queue,
             fake_http_content_length=False, *args):
-        SocketServer.TCPServer.allow_reuse_address = True
-        SocketServer.TCPServer.__init__(
-            self, ('', port), StreamRequestHandler, *args)
-
         self.ip = ip
         self.port = port
         self.bridges = bridges
@@ -574,13 +570,11 @@ class StreamServer(SocketServer.TCPServer):
         self.stream_manager = StreamManager(self)
         self.fake_http_content_length = fake_http_content_length
 
-    def get_server_url(self):
-        return 'http://{ip}:{port}'.format(
-            ip=self.ip,
-            port=self.port,
-        )
-
     def run(self):
+        self.allow_reuse_address = True
+        SocketServer.TCPServer.__init__(
+            self, ('', self.port), StreamRequestHandler)
+
         setproctitle.setproctitle('stream_server')
         self.serve_forever()
 
