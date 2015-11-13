@@ -48,9 +48,9 @@ Options:
                                            filter text will be skipped.
     --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
     --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
-    --ssdp-ttl=<ssdp-ttl>                  Set the SSDP socket's TTL [default: 10]
-    --ssdp-mx=<ssdp-mx>                    Set the SSDP MX [default: 2]
-    --ssdp-amount=<ssdp-amount>            Set the amount of SSDP messages being sent [default: 5]
+    --ssdp-ttl=<ssdp-ttl>                  Set the SSDP socket's TTL [default: 10].
+    --ssdp-mx=<ssdp-mx>                    Set the SSDP MX [default: 2].
+    --ssdp-amount=<ssdp-amount>            Set the amount of SSDP messages being sent [default: 5].
     --cover-mode=<mode>                    Set the cover mode [default: default].
                                            Possible modes are:
                                              - disabled       No icon is shown
