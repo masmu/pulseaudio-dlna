@@ -40,6 +40,9 @@ class BaseUpnpMediaRendererDiscover(object):
               'MX: 2\r\n' + \
               'ST: ssdp:all\r\n\r\n'
 
+    def __init__(self, host=None):
+        self.host = host or ''
+
     def search(self, ssdp_ttl=None, ssdp_mx=None, ssdp_amount=None):
         ssdp_mx = ssdp_mx or self.SSDP_MX
         ssdp_ttl = ssdp_ttl or self.SSDP_TTL
@@ -48,7 +51,7 @@ class BaseUpnpMediaRendererDiscover(object):
         s.setdefaulttimeout(ssdp_mx + 2)
         sock = s.socket(s.AF_INET, s.SOCK_DGRAM, s.IPPROTO_UDP)
         sock.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
-        sock.bind(('', self.SSDP_PORT))
+        sock.bind((self.host, self.SSDP_PORT))
         sock.setsockopt(
             s.IPPROTO_IP,
             s.IP_ADD_MEMBERSHIP,
@@ -90,7 +93,8 @@ class BaseUpnpMediaRendererDiscover(object):
 
 class RendererDiscover(BaseUpnpMediaRendererDiscover):
 
-    def __init__(self, renderer_holder):
+    def __init__(self, renderer_holder, host=None):
+        BaseUpnpMediaRendererDiscover.__init__(self, host)
         self.renderer_holder = renderer_holder
 
     def search(self, *args, **kwargs):

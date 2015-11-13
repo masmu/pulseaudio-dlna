@@ -74,11 +74,12 @@ class SSDPListener(SocketServer.UDPServer):
     SSDP_AMOUNT = 5
 
     def __init__(
-            self, holder=None,
+            self, holder=None, host=None,
             ssdp_mx=None, ssdp_ttl=None, ssdp_amount=None,
             disable_ssdp_listener=False,
             disable_ssdp_search=False):
         self.holder = holder
+        self.host = host or ''
         self.ssdp_mx = ssdp_mx or self.SSDP_MX
         self.ssdp_ttl = ssdp_ttl or self.SSDP_TTL
         self.ssdp_amount = ssdp_amount or self.SSDP_AMOUNT
@@ -90,7 +91,7 @@ class SSDPListener(SocketServer.UDPServer):
     def run(self):
         self.allow_reuse_address = True
         SocketServer.UDPServer.__init__(
-            self, ('', self.SSDP_PORT), SSDPRequestHandler)
+            self, (self.host, self.SSDP_PORT), SSDPRequestHandler)
         self.socket.setsockopt(
             socket.IPPROTO_IP,
             socket.IP_ADD_MEMBERSHIP,

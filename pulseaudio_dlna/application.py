@@ -105,11 +105,11 @@ class Application(object):
             pulseaudio_dlna.listener.SSDPListener.SSDP_AMOUNT = ssdp_amount
 
         if options['--create-device-config']:
-            self.create_device_config()
+            self.create_device_config(host=host)
             sys.exit(0)
 
         if options['--update-device-config']:
-            self.create_device_config(update=True)
+            self.create_device_config(host=host, update=True)
             sys.exit(0)
 
         device_config = None
@@ -241,6 +241,7 @@ class Application(object):
         try:
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
                 holder,
+                host=host,
                 disable_ssdp_listener=disable_ssdp_listener,
                 disable_ssdp_search=disable_ssdp_search
             )
@@ -264,9 +265,9 @@ class Application(object):
         for process in self.processes:
             process.join()
 
-    def create_device_config(self, update=False):
+    def create_device_config(self, host=None, update=False):
         holder = pulseaudio_dlna.renderers.RendererHolder(self.PLUGINS)
-        discover = pulseaudio_dlna.discover.RendererDiscover(holder)
+        discover = pulseaudio_dlna.discover.RendererDiscover(holder, host=host)
         discover.search()
 
         def device_filter(obj):
