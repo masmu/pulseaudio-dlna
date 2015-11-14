@@ -583,8 +583,9 @@ class GobjectMainLoopMixin:
 
     def serve_forever(self, poll_interval=0.5):
         self.mainloop = gobject.MainLoop()
-        gobject.io_add_watch(
-            self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
+        if hasattr(self, 'socket'):
+            gobject.io_add_watch(
+                self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
         context = self.mainloop.get_context()
         while True:
             try:

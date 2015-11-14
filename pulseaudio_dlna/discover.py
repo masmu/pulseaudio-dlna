@@ -17,16 +17,15 @@
 
 from __future__ import unicode_literals
 
-import socket as s
+import socket
 import logging
-import time
 import chardet
-import struct
+import threading
 
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
 
-class BaseUpnpMediaRendererDiscover(object):
+class SSDPDiscover(object):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
@@ -34,72 +33,66 @@ class BaseUpnpMediaRendererDiscover(object):
     SSDP_TTL = 10
     SSDP_AMOUNT = 5
 
-    MSEARCH = 'M-SEARCH * HTTP/1.1\r\n' + \
-              'HOST: {}:{}\r\n'.format(SSDP_ADDRESS, SSDP_PORT) + \
-              'MAN: "ssdp:discover"\r\n' + \
-              'MX: 2\r\n' + \
-              'ST: ssdp:all\r\n\r\n'
-
-    def __init__(self, host=None):
-        self.host = host or ''
+    BUFFER_SIZE = 1024
+    MSEARCH = '\r\n'.join([
+        'M-SEARCH * HTTP/1.1',
+        'HOST: {host}:{port}',
+        'MAN: "ssdp:discover"',
+        'MX: {mx}',
+        'ST: ssdp:all',
+    ]) + '\r\n' * 2
 
     def search(self, ssdp_ttl=None, ssdp_mx=None, ssdp_amount=None):
         ssdp_mx = ssdp_mx or self.SSDP_MX
         ssdp_ttl = ssdp_ttl or self.SSDP_TTL
         ssdp_amount = ssdp_amount or self.SSDP_AMOUNT
 
-        s.setdefaulttimeout(ssdp_mx + 2)
-        sock = s.socket(s.AF_INET, s.SOCK_DGRAM, s.IPPROTO_UDP)
-        sock.setsockopt(s.SOL_SOCKET, s.SO_REUSEADDR, 1)
-        sock.bind((self.host, self.SSDP_PORT))
+        sock = socket.socket(
+            socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
+        sock.settimeout(ssdp_mx + 2)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(
-            s.IPPROTO_IP,
-            s.IP_ADD_MEMBERSHIP,
-            self._multicast_struct(self.SSDP_ADDRESS))
-        sock.setsockopt(
-            s.IPPROTO_IP,
-            s.IP_MULTICAST_TTL,
-            self._ttl_struct(ssdp_ttl))
+            socket.IPPROTO_IP,
+            socket.IP_MULTICAST_TTL,
+            ssdp_ttl)
+        sock.bind(('', self.SSDP_PORT))
 
-        msg = 'M-SEARCH * HTTP/1.1\r\n' + \
-              'HOST: {}:{}\r\n'.format(self.SSDP_ADDRESS, self.SSDP_PORT) + \
-              'MAN: "ssdp:discover"\r\n' + \
-              'MX: {}\r\n'.format(ssdp_mx) + \
-              'ST: ssdp:all\r\n\r\n'
-        for i in range(0, ssdp_amount):
-            sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
-            time.sleep(0.1)
+        for i in range(1, ssdp_amount + 1):
+            t = threading.Timer(
+                float(i) / 2, self._send_discover, args=[sock, ssdp_mx])
+            t.start()
 
-        buffer_size = 1024
+        self._listen(sock)
+        sock.close()
+
+    def _listen(self, sock):
         while True:
             try:
-                header, address = sock.recvfrom(buffer_size)
+                header, address = sock.recvfrom(self.BUFFER_SIZE)
                 guess = chardet.detect(header)
                 self._header_received(
                     header.decode(guess['encoding']), address)
-            except s.timeout:
+            except socket.timeout:
                 break
-        sock.close()
 
-    def _multicast_struct(self, address):
-        return struct.pack('=4sl', s.inet_aton(address), s.INADDR_ANY)
-
-    def _ttl_struct(self, ttl):
-        return struct.pack('=b', ttl)
+    def _send_discover(self, sock, ssdp_mx):
+        msg = self.MSEARCH.format(
+            host=self.SSDP_ADDRESS, port=self.SSDP_PORT, mx=ssdp_mx)
+        sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
 
     def _header_received(self, header, address):
         pass
 
 
-class RendererDiscover(BaseUpnpMediaRendererDiscover):
+class RendererDiscover(SSDPDiscover):
 
-    def __init__(self, renderer_holder, host=None):
-        BaseUpnpMediaRendererDiscover.__init__(self, host)
+    def __init__(self, renderer_holder):
+        SSDPDiscover.__init__(self)
         self.renderer_holder = renderer_holder
 
     def search(self, *args, **kwargs):
         self.renderers = []
-        BaseUpnpMediaRendererDiscover.search(self, *args, **kwargs)
+        SSDPDiscover.search(self, *args, **kwargs)
 
     def _header_received(self, header, address):
         logger.debug('Recieved the following SSDP header: \n{header}'.format(
