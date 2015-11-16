@@ -22,6 +22,8 @@ import logging
 import chardet
 import threading
 
+import pulseaudio_dlna.utils.network
+
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
 
@@ -42,11 +44,31 @@ class SSDPDiscover(object):
         'ST: ssdp:all',
     ]) + '\r\n' * 2
 
+    USE_SINGLE_SOCKET = True
+
     def search(self, ssdp_ttl=None, ssdp_mx=None, ssdp_amount=None):
         ssdp_mx = ssdp_mx or self.SSDP_MX
         ssdp_ttl = ssdp_ttl or self.SSDP_TTL
         ssdp_amount = ssdp_amount or self.SSDP_AMOUNT
 
+        if self.USE_SINGLE_SOCKET:
+            logger.debug('Binding socket to "{}" ...'.format(''))
+            self._search('', ssdp_ttl, ssdp_mx, ssdp_amount)
+        else:
+            ips = pulseaudio_dlna.utils.network.ipv4_addresses()
+            threads = []
+            for ip in ips:
+                logger.debug('Binding socket to "{}" ...'.format(ip))
+                thread = threading.Thread(
+                    target=self._search,
+                    args=[ip, ssdp_ttl, ssdp_mx, ssdp_amount])
+                threads.append(thread)
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+
+    def _search(self, host, ssdp_ttl, ssdp_mx, ssdp_amount):
         sock = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         sock.settimeout(ssdp_mx + 2)
@@ -55,17 +77,13 @@ class SSDPDiscover(object):
             socket.IPPROTO_IP,
             socket.IP_MULTICAST_TTL,
             ssdp_ttl)
-        sock.bind(('', self.SSDP_PORT))
+        sock.bind((host, self.SSDP_PORT))
 
         for i in range(1, ssdp_amount + 1):
             t = threading.Timer(
                 float(i) / 2, self._send_discover, args=[sock, ssdp_mx])
             t.start()
 
-        self._listen(sock)
-        sock.close()
-
-    def _listen(self, sock):
         while True:
             try:
                 header, address = sock.recvfrom(self.BUFFER_SIZE)
@@ -74,6 +92,7 @@ class SSDPDiscover(object):
                     header.decode(guess['encoding']), address)
             except socket.timeout:
                 break
+        sock.close()
 
     def _send_discover(self, sock, ssdp_mx):
         msg = self.MSEARCH.format(
