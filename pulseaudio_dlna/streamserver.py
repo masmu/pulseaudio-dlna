@@ -511,7 +511,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if image_name:
                 image_path = pkg_resources.resource_filename(
                     'pulseaudio_dlna.streamserver', os.path.join(
-                        'images', image_name))
+                        'images', os.path.basename(image_name)))
                 try:
                     _type = pulseaudio_dlna.images.get_type_by_filepath(
                         image_path)
@@ -526,7 +526,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if icon_name:
                 try:
                     return pulseaudio_dlna.images.get_icon_by_name(
-                        icon_name, size=512)
+                        os.path.basename(icon_name), size=512)
                 except (pulseaudio_dlna.images.UnknownImageExtension,
                         pulseaudio_dlna.images.ImageNotAccessible,
                         pulseaudio_dlna.images.MissingDependencies,
