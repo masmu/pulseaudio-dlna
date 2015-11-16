@@ -29,7 +29,7 @@ class SSDPDiscover(object):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
-    SSDP_MX = 2
+    SSDP_MX = 3
     SSDP_TTL = 10
     SSDP_AMOUNT = 5
 
