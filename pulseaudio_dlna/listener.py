@@ -36,8 +36,7 @@ logger = logging.getLogger('pulseaudio_dlna.listener')
 class SSDPRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        guess = chardet.detect(self.request[0])
-        packet = self.request[0].decode(guess['encoding'])
+        packet = self._decode(self.request[0])
         lines = packet.splitlines()
         if len(lines) > 0:
             if self._is_notify_method(lines[0]):
@@ -46,6 +45,16 @@ class SSDPRequestHandler(SocketServer.BaseRequestHandler):
                         header=packet))
                 if self.server.holder:
                     self.server.holder.process_notify_request(packet)
+
+    def _decode(self, data):
+        guess = chardet.detect(data)
+        for encoding in [guess['encoding'], 'utf-8', 'ascii']:
+            try:
+                return data.decode(encoding)
+            except:
+                pass
+        logger.error('Could not decode SSDP packet.')
+        return ''
 
     def _is_notify_method(self, method_header):
         method = self._get_method(method_header)
