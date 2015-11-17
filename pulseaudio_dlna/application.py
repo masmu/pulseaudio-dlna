@@ -102,6 +102,11 @@ class Application(object):
             ssdp_amount = int(options['--ssdp-amount'])
             pulseaudio_dlna.discover.RendererDiscover.SSDP_AMOUNT = ssdp_amount
 
+        msearch_port = options.get('--msearch-port', None)
+        if msearch_port != 'random':
+            pulseaudio_dlna.discover.RendererDiscover.MSEARCH_PORT = \
+                int(msearch_port)
+
         if options['--create-device-config']:
             self.create_device_config()
             sys.exit(0)

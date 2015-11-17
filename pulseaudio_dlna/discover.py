@@ -35,8 +35,8 @@ class SSDPDiscover(object):
     SSDP_TTL = 10
     SSDP_AMOUNT = 5
 
-    BUFFER_SIZE = 1024
-    MSEARCH = '\r\n'.join([
+    MSEARCH_PORT = 0
+    MSEARCH_MSG = '\r\n'.join([
         'M-SEARCH * HTTP/1.1',
         'HOST: {host}:{port}',
         'MAN: "ssdp:discover"',
@@ -44,6 +44,7 @@ class SSDPDiscover(object):
         'ST: ssdp:all',
     ]) + '\r\n' * 2
 
+    BUFFER_SIZE = 1024
     USE_SINGLE_SOCKET = True
 
     def search(self, ssdp_ttl=None, ssdp_mx=None, ssdp_amount=None):
@@ -77,7 +78,7 @@ class SSDPDiscover(object):
             socket.IPPROTO_IP,
             socket.IP_MULTICAST_TTL,
             ssdp_ttl)
-        sock.bind((host, self.SSDP_PORT))
+        sock.bind((host, self.MSEARCH_PORT))
 
         for i in range(1, ssdp_amount + 1):
             t = threading.Timer(
@@ -95,7 +96,7 @@ class SSDPDiscover(object):
         sock.close()
 
     def _send_discover(self, sock, ssdp_mx):
-        msg = self.MSEARCH.format(
+        msg = self.MSEARCH_MSG.format(
             host=self.SSDP_ADDRESS, port=self.SSDP_PORT, mx=ssdp_mx)
         sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
 
