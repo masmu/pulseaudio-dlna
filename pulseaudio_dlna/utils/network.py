@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 
 import commands
 import re
+import netifaces
 
 
 def default_ipv4():
@@ -28,3 +29,13 @@ def default_ipv4():
         if match:
             return match[0]
     return None
+
+
+def ipv4_addresses():
+    ips = []
+    for iface in netifaces.interfaces():
+        for link in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
+            ip = link.get('addr', None)
+            if ip:
+                ips.append(ip)
+    return ips

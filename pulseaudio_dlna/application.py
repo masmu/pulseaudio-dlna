@@ -89,6 +89,24 @@ class Application(object):
         logger.info('Using localhost: {host}:{port}'.format(
             host=host, port=port))
 
+        if options['--ssdp-ttl']:
+            ssdp_ttl = int(options['--ssdp-ttl'])
+            pulseaudio_dlna.discover.RendererDiscover.SSDP_TTL = ssdp_ttl
+            pulseaudio_dlna.listener.SSDPListener.SSDP_TTL = ssdp_ttl
+
+        if options['--ssdp-mx']:
+            ssdp_mx = int(options['--ssdp-mx'])
+            pulseaudio_dlna.discover.RendererDiscover.SSDP_MX = ssdp_mx
+
+        if options['--ssdp-amount']:
+            ssdp_amount = int(options['--ssdp-amount'])
+            pulseaudio_dlna.discover.RendererDiscover.SSDP_AMOUNT = ssdp_amount
+
+        msearch_port = options.get('--msearch-port', None)
+        if msearch_port != 'random':
+            pulseaudio_dlna.discover.RendererDiscover.MSEARCH_PORT = \
+                int(msearch_port)
+
         if options['--create-device-config']:
             self.create_device_config()
             sys.exit(0)
@@ -225,7 +243,10 @@ class Application(object):
 
         try:
             ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
-                holder, disable_ssdp_listener, disable_ssdp_search)
+                holder,
+                disable_ssdp_listener=disable_ssdp_listener,
+                disable_ssdp_search=disable_ssdp_search
+            )
         except socket.error:
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '

@@ -28,14 +28,15 @@ import os
 import sys
 import chardet
 
+import pulseaudio_dlna.discover
+
 logger = logging.getLogger('pulseaudio_dlna.listener')
 
 
 class SSDPRequestHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        guess = chardet.detect(self.request[0])
-        packet = self.request[0].decode(guess['encoding'])
+        packet = self._decode(self.request[0])
         lines = packet.splitlines()
         if len(lines) > 0:
             if self._is_notify_method(lines[0]):
@@ -44,20 +45,20 @@ class SSDPRequestHandler(SocketServer.BaseRequestHandler):
                         header=packet))
                 if self.server.holder:
                     self.server.holder.process_notify_request(packet)
-            elif self._is_http_method(lines[0]):
-                logger.debug(
-                    'Recieved the following SSDP header: \n{header}'.format(
-                        header=packet))
-                if self.server.holder:
-                    self.server.holder.process_msearch_request(packet)
+
+    def _decode(self, data):
+        guess = chardet.detect(data)
+        for encoding in [guess['encoding'], 'utf-8', 'ascii']:
+            try:
+                return data.decode(encoding)
+            except:
+                pass
+        logger.error('Could not decode SSDP packet.')
+        return ''
 
     def _is_notify_method(self, method_header):
         method = self._get_method(method_header)
         return method == 'NOTIFY'
-
-    def _is_http_method(self, method_header):
-        method = self._get_method(method_header)
-        return method in ['HTTP/0.9', 'HTTP/1.0', 'HTTP/1.1']
 
     def _get_method(self, method_header):
         return method_header.split(' ')[0]
@@ -67,67 +68,55 @@ class SSDPListener(SocketServer.UDPServer):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
-    TTL = 10
-
-    MSEARCH = 'M-SEARCH * HTTP/1.1\r\n' + \
-              'HOST: {}:{}\r\n'.format(SSDP_ADDRESS, SSDP_PORT) + \
-              'MAN: "ssdp:discover"\r\n' + \
-              'MX: 2\r\n' + \
-              'ST: ssdp:all\r\n\r\n'
+    SSDP_TTL = 10
 
     def __init__(
-            self, holder=None, disable_ssdp_listener=False,
+            self, holder=None,
+            ssdp_ttl=None,
+            disable_ssdp_listener=False,
             disable_ssdp_search=False):
+        self.holder = holder
+        self.ssdp_ttl = ssdp_ttl or self.SSDP_TTL
         self.disable_ssdp_listener = disable_ssdp_listener
         self.disable_ssdp_search = disable_ssdp_search
-        self.holder = holder
 
-        self.allow_reuse_address = True
-        SocketServer.UDPServer.__init__(
-            self, ('', self.SSDP_PORT), SSDPRequestHandler)
-        self.socket.setsockopt(
-            socket.IPPROTO_IP,
-            socket.IP_ADD_MEMBERSHIP,
-            self._multicast_struct(self.SSDP_ADDRESS))
-        self.socket.setsockopt(
-            socket.IPPROTO_IP,
-            socket.IP_MULTICAST_TTL,
-            self._ttl_struct(self.TTL))
+    def run(self):
+        if not self.disable_ssdp_listener:
+            self.allow_reuse_address = True
+            SocketServer.UDPServer.__init__(
+                self, ('', self.SSDP_PORT), SSDPRequestHandler)
+            self.socket.setsockopt(
+                socket.IPPROTO_IP,
+                socket.IP_ADD_MEMBERSHIP,
+                self._multicast_struct(self.SSDP_ADDRESS))
+            self.socket.setsockopt(
+                socket.IPPROTO_IP,
+                socket.IP_MULTICAST_TTL,
+                self.ssdp_ttl)
 
         if not self.disable_ssdp_search:
-            self.search()
+            gobject.timeout_add(100, self.search)
+
+        setproctitle.setproctitle('ssdp_listener')
+        self.serve_forever(self)
+
+    def search(self):
+        discover = pulseaudio_dlna.discover.RendererDiscover(self.holder)
+        discover.search()
+        logger.info('Discovery complete.')
 
     def _multicast_struct(self, address):
         return struct.pack(
-            '=4sl', socket.inet_aton(address), socket.INADDR_ANY)
-
-    def _ttl_struct(self, ttl):
-        return struct.pack('=b', ttl)
-
-    def search(self, times=4):
-        for i in range(0, times):
-            self.socket.sendto(
-                self.MSEARCH, (self.SSDP_ADDRESS, self.SSDP_PORT))
-            time.sleep(0.1)
-
-    def _on_shutdown(self):
-        logger.info('Discovery complete.')
-        self.shutdown()
-        return False
-
-    def run(self):
-        if self.disable_ssdp_listener:
-            gobject.timeout_add(5000, self._on_shutdown)
-        setproctitle.setproctitle('ssdp_listener')
-        self.serve_forever(self)
+            '4sl', socket.inet_aton(address), socket.INADDR_ANY)
 
 
 class GobjectMainLoopMixin:
 
     def serve_forever(self, poll_interval=0.5):
         self.mainloop = gobject.MainLoop()
-        gobject.io_add_watch(
-            self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
+        if hasattr(self, 'socket'):
+            gobject.io_add_watch(
+                self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
         context = self.mainloop.get_context()
         while True:
             try:

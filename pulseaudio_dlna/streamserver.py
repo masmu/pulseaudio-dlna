@@ -511,7 +511,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if image_name:
                 image_path = pkg_resources.resource_filename(
                     'pulseaudio_dlna.streamserver', os.path.join(
-                        'images', image_name))
+                        'images', os.path.basename(image_name)))
                 try:
                     _type = pulseaudio_dlna.images.get_type_by_filepath(
                         image_path)
@@ -526,7 +526,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if icon_name:
                 try:
                     return pulseaudio_dlna.images.get_icon_by_name(
-                        icon_name, size=512)
+                        os.path.basename(icon_name), size=512)
                 except (pulseaudio_dlna.images.UnknownImageExtension,
                         pulseaudio_dlna.images.ImageNotAccessible,
                         pulseaudio_dlna.images.MissingDependencies,
@@ -563,10 +563,6 @@ class StreamServer(SocketServer.TCPServer):
     def __init__(
             self, ip, port, bridges, message_queue,
             fake_http_content_length=False, *args):
-        SocketServer.TCPServer.allow_reuse_address = True
-        SocketServer.TCPServer.__init__(
-            self, ('', port), StreamRequestHandler, *args)
-
         self.ip = ip
         self.port = port
         self.bridges = bridges
@@ -574,13 +570,11 @@ class StreamServer(SocketServer.TCPServer):
         self.stream_manager = StreamManager(self)
         self.fake_http_content_length = fake_http_content_length
 
-    def get_server_url(self):
-        return 'http://{ip}:{port}'.format(
-            ip=self.ip,
-            port=self.port,
-        )
-
     def run(self):
+        self.allow_reuse_address = True
+        SocketServer.TCPServer.__init__(
+            self, ('', self.port), StreamRequestHandler)
+
         setproctitle.setproctitle('stream_server')
         self.serve_forever()
 
@@ -589,8 +583,9 @@ class GobjectMainLoopMixin:
 
     def serve_forever(self, poll_interval=0.5):
         self.mainloop = gobject.MainLoop()
-        gobject.io_add_watch(
-            self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
+        if hasattr(self, 'socket'):
+            gobject.io_add_watch(
+                self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
         context = self.mainloop.get_context()
         while True:
             try:

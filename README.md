@@ -35,15 +35,17 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2015-11-08_)
+ * __master__ - (_2015-11-17_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
     - Fixed the daemon mode to support `psutil` 1.x and 2.x (thanks to [klaernie](https://github.com/klaernie))
     - HTML entities in device descriptions are now converted automatically
-    - Faster and more reliable device discovery
+    - Faster and more reliable device discovery (new dependency `python-netifaces`)
     - Added the `--cover-mode` option, one mode requires (optional) dependencies `gtk`, `cairo`, `rsvg`
     - L16 codecs are now selected better (e.g. needed for _XBox 360_)
     - Fixed a bug where sometimes it was tried to remove sinks twice on cleanup
     - Added the `--update-device-config` flag
+    - Added the `--ssdp-ttl`, `--ssdp-mx`, `--ssdp-amount` options
+    - Added the `--msearch-port` option
 
  * __0.4.6__ - (_2015-10-17_)
     - Added support for _Google Chromecast Audio_ (thanks to [leonhandreke](https://github.com/leonhandreke))
@@ -215,6 +217,7 @@ will get installed if you install it via the PPA.
 - python-psutil
 - python-concurrent.futures
 - python-chardet
+- python-netifaces
 - vorbis-tools
 - sox
 - lame
@@ -224,7 +227,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -315,8 +318,17 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>] [--encoder <encoders>] [--bit-rate=<rate>] [--filter-device=<filter-device>] [--renderer-urls <urls>]  [--request-timeout <timeout>] [--cover-mode <mode>] [--debug] [--fake-http10-content-length] [--fake-http-content-length] [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
-        pulseaudio-dlna [--create-device-config] | [--update-device-config]
+        pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders>] [--bit-rate=<rate>]
+                        [--filter-device=<filter-device>]
+                        [--renderer-urls <urls>]
+                        [--request-timeout <timeout>]
+                        [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
+                        [--cover-mode <mode>]
+                        [--debug]
+                        [--fake-http10-content-length] [--fake-http-content-length]
+                        [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
+        pulseaudio-dlna [--host <host>] [--create-device-config] [--update-device-config]
+                        [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
         pulseaudio-dlna [-h | --help | --version]
 
     Options:
@@ -346,6 +358,10 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
         --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
+        --ssdp-ttl=<ssdp-ttl>                  Set the SSDP socket's TTL [default: 10].
+        --ssdp-mx=<ssdp-mx>                    Set the MX value of the SSDP discovery message [default: 3].
+        --ssdp-amount=<ssdp-amount>            Set the amount of SSDP discovery messages being sent [default: 5].
+        --msearch-port=<msearch-port>          Set the source port of the MSEARCH socket [default: random].
         --cover-mode=<mode>                    Set the cover mode [default: default].
                                                Possible modes are:
                                                  - disabled       No icon is shown
@@ -556,8 +572,9 @@ use the `--encoder` or `--bit-rate` options.
     the same network. In uncomplicated home LANs this is normally the case.
     You can test if other applications are able to find your device,
     e.g. _BubbleUPnP_ (_Android_ application). If they do it is likely that
-    you are using a firewall / iptables. Try disabling it or open port
-    8080/_tcp_ and port 1900/_udp_.
+    you are using a firewall / iptables. Try disabling it. If you verified that
+    your firewall is blocking, you should use the `--msearch-port <port>`
+    option and open port 8080/_tcp_, port 1900/_udp_ and port `<port>`/_udp_.
 
 - **The device is successfully instructed to play, but the device never
     connects to _pulseaudio-dlna_**
@@ -596,6 +613,7 @@ Samsung Smart TV LED48 (UE48JU6560)                                             
 Xbmc / Kodi                                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_circle:<sup>2</sup>        | :white_circle:<sup>2</sup>        | :white_check_mark:
 Philips Streamium NP2500 Network Player                                         | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Yamaha RX-475 (AV Receiver)                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Yamaha RX-V573 (AV Receiver) <sup>6</sup>                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
@@ -629,6 +647,8 @@ Xbox 360                                                                        
 <sup>4</sup>) The device needs to be in _SERVER_ mode to accept instructions
 
 <sup>5</sup>) Was reported to buffer really long. Approximately 45 seconds
+
+<sup>6</sup>) Was reported to have issues being discovered. Make sure you run the latest firmware
 
 ## Supported encoders ##
 
