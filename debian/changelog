@@ -1,3 +1,21 @@
+pulseaudio-dlna (0.4.7) trusty; urgency=low
+
+    * The application can now co-exist with other applications which are
+      using the port 1900/udp
+    * Fixed the daemon mode to support `psutil` 1.x and 2.x
+    * HTML entities in device descriptions are now converted automatically
+    * Faster and more reliable device discovery
+    * Added the --cover-mode option, one mode requires
+      (optional) dependencies gtk, cairo, rsvg
+    * L16 codecs are now selected better (e.g. needed for _XBox 360_)
+    * Fixed a bug where sometimes it was tried to remove sinks twice on cleanup
+    * Added the --update-device-config flag
+    * Added the --ssdp-ttl, --ssdp-mx, --ssdp-amount options
+    * Added the --msearch-port option
+
+ -- Massimo Mund <mo@lancode.de>  Wed, 18 Nov 2015 00:48:12 +0100
+
+
 pulseaudio-dlna (0.4.6) trusty; urgency=low
 
     * Added support for Google Chromecast Audio
