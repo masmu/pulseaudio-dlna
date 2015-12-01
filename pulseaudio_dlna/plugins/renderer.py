@@ -148,11 +148,13 @@ class BaseRenderer(object):
         for codec in self.codecs:
             if codec.enabled and codec.encoder.available:
                 return codec
-        logger.info('There was no suitable codec found for "{name}". '
-                    'The device can play "{codecs}"'.format(
-                        name=self.label,
-                        codecs=','.join(
-                            [codec.mime_type for codec in self.codecs])))
+        logger.info(
+            'There was no suitable codec found for "{name}". '
+            'Cannot find any of the appropriate binaries: {binaries}.'.format(
+                name=self.label,
+                binaries=', '.join('{} ({})'.format(codec.encoder._binary, codec.mime_type) for codec in self.codecs),
+            )
+        )
         raise NoSuitableEncoderFoundException()
 
     @property
