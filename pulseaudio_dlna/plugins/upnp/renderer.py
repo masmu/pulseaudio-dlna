@@ -401,7 +401,10 @@ class CoinedUpnpMediaRenderer(
 
 class UpnpMediaRendererFactory(object):
 
-    ST_HEADER = 'urn:schemas-upnp-org:device:MediaRenderer:1'
+    ST_HEADERS = [
+        'urn:schemas-upnp-org:device:MediaRenderer:1',
+        'urn:schemas-upnp-org:device:MediaRenderer:2',
+    ]
 
     @classmethod
     def from_url(self, url, type_=UpnpMediaRenderer):
@@ -427,7 +430,7 @@ class UpnpMediaRendererFactory(object):
         services = []
         try:
             for device in soup.root.findAll('device'):
-                if device.devicetype.text != self.ST_HEADER:
+                if device.devicetype.text not in self.ST_HEADERS:
                     continue
                 for service in device.findAll('service'):
                     service = {

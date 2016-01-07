@@ -24,7 +24,7 @@ import pulseaudio_dlna.plugins.chromecast.renderer
 class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
     def __init__(self, *args):
         pulseaudio_dlna.plugins.BasePlugin.__init__(self, *args)
-        self.st_header = 'urn:dial-multiscreen-org:service:dial:1'
+        self.st_headers = ['urn:dial-multiscreen-org:service:dial:1']
 
     def lookup(self, locations):
         renderers = []
