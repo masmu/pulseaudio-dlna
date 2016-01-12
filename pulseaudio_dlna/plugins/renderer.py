@@ -62,6 +62,7 @@ class BaseRenderer(object):
         self._flavour = None
         self._codecs = []
         self._rules = pulseaudio_dlna.rules.Rules()
+        self._workarounds = []
 
     @property
     def udn(self):
@@ -179,6 +180,14 @@ class BaseRenderer(object):
     def rules(self, value):
         self._rules = value
 
+    @property
+    def workarounds(self):
+        return self._workarounds
+
+    @workarounds.setter
+    def workarounds(self, value):
+        self._workarounds = value
+
     def activate(self):
         pass
 
@@ -254,6 +263,22 @@ class BaseRenderer(object):
             'Loaded the following device configuration:\n{}'.format(
                 self.__str__(True)))
         return True
+
+    def _before_play(self):
+        for workaround in self.workarounds:
+            workaround.run('before_play')
+
+    def _after_play(self):
+        for workaround in self.workarounds:
+            workaround.run('after_play')
+
+    def _before_stop(self):
+        for workaround in self.workarounds:
+            workaround.run('before_stop')
+
+    def _after_stop(self):
+        for workaround in self.workarounds:
+            workaround.run('after_stop')
 
     def __eq__(self, other):
         if isinstance(other, BaseRenderer):

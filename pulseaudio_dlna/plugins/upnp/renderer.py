@@ -23,8 +23,10 @@ import urlparse
 import logging
 import pkg_resources
 import BeautifulSoup
+
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
+import pulseaudio_dlna.workarounds
 import pulseaudio_dlna.plugins.renderer
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.renderer')
@@ -296,6 +298,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         return response.status_code
 
     def play(self):
+        self._before_play()
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
@@ -321,8 +324,11 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 'PLAY command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
+        finally:
+            self._after_play()
 
     def stop(self):
+        self._before_stop()
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
@@ -348,6 +354,8 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 'STOP command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
+        finally:
+            self._after_stop()
 
     def pause(self):
         url = self.service_transport.control_url
@@ -447,6 +455,13 @@ class UpnpMediaRendererFactory(object):
                     device.modelnumber.text if device.modelnumber else None,
                     device.manufacturer.text if device.manufacturer else None,
                     services)
+
+                if device.manufacturer and \
+                   device.manufacturer.text == 'YAMAHA CORPORATION':
+                    upnp_device.workarounds.append(
+                        pulseaudio_dlna.workarounds.YamahaWorkaround(
+                            response.content))
+
                 return upnp_device
         except AttributeError:
             logger.error(
