@@ -68,7 +68,7 @@ class YamahaWorkaround(BaseWorkaround):
             self.set_source('PC')
         else:
             logger.error(
-                'Not sending Yamaha AVRC command. No control_url found!')
+                'Not sending Yamaha AVRC command. No control url found!')
 
     def set_source(self, mode='PC'):
         self._put('Main Zone', 'Input', 'Input_Sel', mode)
