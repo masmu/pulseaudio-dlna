@@ -18,6 +18,10 @@
 from __future__ import unicode_literals
 
 import logging
+import requests
+import urlparse
+import BeautifulSoup
+
 
 logger = logging.getLogger('pulseaudio_dlna.workarounds')
 
@@ -51,13 +55,53 @@ class YamahaWorkaround(BaseWorkaround):
     REQUEST_TIMEOUT = 5
     ENCODING = 'utf-8'
 
+    XML_PUT = ('<YAMAHA_AV cmd="PUT"><{zone}><{category}><{key}>{value}'
+               '</{key}></{category}></{zone}></YAMAHA_AV>')
+
     def __init__(self, xml):
         BaseWorkaround.__init__(self)
         self.control_url = None
         self._parse_xml(xml)
 
-    def _parse_xml(self, xml):
-        pass
-
     def before_play(self):
-        pass
+        if self.control_url:
+            self.set_source('PC')
+        else:
+            logger.error(
+                'Not sending Yamaha AVRC command. No control_url found!')
+
+    def set_source(self, mode='PC'):
+        self._put('Main Zone', 'Input', 'Input_Sel', mode)
+
+    def _parse_xml(self, xml):
+        soup = BeautifulSoup.BeautifulSoup(xml)
+        for device in soup.root.findAll('yamaha:x_device'):
+            url_base = device.find('yamaha:x_urlbase')
+            control_path = device.find('yamaha:x_controlurl')
+            if url_base and control_path:
+                self.control_url = urlparse.urljoin(
+                    url_base.text, control_path.text)
+
+    def _put(self, zone, category, key, value):
+        headers = {
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
+        }
+        data = self.XML_PUT.format(
+            zone=zone, category=category, key=key, value=value)
+        try:
+            logger.debug(
+                'Yamaha AVRC command - POST request: {request}'.format(
+                    request=data))
+            response = requests.post(
+                self.control_url, data.encode(self.ENCODING),
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
+            logger.debug(
+                'Yamaha AVRC command - POST response: {response}'.format(
+                    response=response.text))
+        except requests.exceptions.Timeout:
+            logger.error(
+                'Yamaha AVRC {category} command - Could no connect to {url}. '
+                'Connection timeout.'.format(
+                    url=self.control_url, category=category))
