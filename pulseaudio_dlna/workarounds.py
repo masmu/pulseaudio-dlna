@@ -42,7 +42,7 @@ class BaseWorkaround(object):
     def run(self, method_name, *args, **kwargs):
         method = getattr(self, method_name, None)
         if method and callable(method):
-            logger.info('Running workaround "{}".'.format(method_name))
+            logger.debug('Running workaround "{}".'.format(method_name))
             method(*args, **kwargs)
 
 
