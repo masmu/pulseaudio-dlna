@@ -58,11 +58,11 @@ class YamahaWorkaround(BaseWorkaround):
 
     # MediaRenderer constants
     MR_YAMAHA_PREFIX = 'yamaha'
-    MR_YAMAHA_DEVICE = MR_YAMAHA_PREFIX +':' +'X_device'
-    MR_YAMAHA_URLBASE = MR_YAMAHA_PREFIX +':' +'X_URLBase'
-    MR_YAMAHA_SERVICELIST = MR_YAMAHA_PREFIX +':' +'X_serviceList'
-    MR_YAMAHA_SERVICE = MR_YAMAHA_PREFIX +':' +'X_service'
-    MR_YAMAHA_CONTROLURL= MR_YAMAHA_PREFIX +':' +'X_controlURL'
+    MR_YAMAHA_DEVICE = MR_YAMAHA_PREFIX + ':' + 'X_device'
+    MR_YAMAHA_URLBASE = MR_YAMAHA_PREFIX + ':' + 'X_URLBase'
+    MR_YAMAHA_SERVICELIST = MR_YAMAHA_PREFIX + ':' + 'X_serviceList'
+    MR_YAMAHA_SERVICE = MR_YAMAHA_PREFIX + ':' + 'X_service'
+    MR_YAMAHA_CONTROLURL = MR_YAMAHA_PREFIX + ':' + 'X_controlURL'
 
     MR_YAMAHA_URLBASE_PATH = '/'.join([MR_YAMAHA_DEVICE, MR_YAMAHA_URLBASE])
     MR_YAMAHA_CONTROLURL_PATH = '/'.join(
@@ -89,7 +89,7 @@ class YamahaWorkaround(BaseWorkaround):
         '<YAMAHA_AV cmd="{cmd}">{request}</YAMAHA_AV>'
 
     # Known server modes
-    YRC_SERVER_MODES = [ 'SERVER', 'PC' ]
+    YRC_SERVER_MODES = ['SERVER', 'PC']
 
     def __init__(self, xml):
         BaseWorkaround.__init__(self)
@@ -110,31 +110,30 @@ class YamahaWorkaround(BaseWorkaround):
             logger.warning(
                 'Automatic source switching will not be enabled'
                 ' - Please switch to server mode manually to enable UPnP'
-                    ' streaming'
+                ' streaming'
             )
             return
 
         self.enabled = True
-
 
     def _detect_remotecontrolinterface(self, xml):
         # Check for YamahaRemoteControl support
         if (not self._parse_xml(xml)):
             logger.info('No Yamaha RemoteControl interface detected')
             return False
-        logger.info('Yamaha RemoteControl found: ' +self.URL_FORMAT.format(
+        logger.info('Yamaha RemoteControl found: ' + self.URL_FORMAT.format(
             ip=self.ip, port=self.port, url=self.control_url))
         # Get supported features
         self.zones, self.sources = self._query_supported_features()
         # Determine main zone
-        logger.info('Supported zones: ' +', '.join(self.zones))
+        logger.info('Supported zones: ' + ', '.join(self.zones))
         self.server_mode_zone = self.zones[0]
         logger.info('Using \'{zone}\' as main zone'.format(
             zone=self.server_mode_zone
         ))
         # Determine UPnP server source
         if (self.sources):
-            logger.info('Supported sources: ' +', '.join(self.sources))
+            logger.info('Supported sources: ' + ', '.join(self.sources))
             for source in self.YRC_SERVER_MODES:
                 if (source not in self.sources):
                     continue
@@ -169,7 +168,6 @@ class YamahaWorkaround(BaseWorkaround):
         self.port = port
         self.control_url = control_url.text
         return True
-
 
     def _generate_request(self, cmd, root, path, value):
         # Generate headers
@@ -208,7 +206,7 @@ class YamahaWorkaround(BaseWorkaround):
             response = requests.post(
                 url, data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
-            logger.debug('Yamaha RC response: ' +response.text)
+            logger.debug('Yamaha RC response: ' + response.text)
             if response.status_code != 200:
                 logger.error(
                     'Yamaha RC request failed - Status code: {code}'.format(
@@ -229,8 +227,9 @@ class YamahaWorkaround(BaseWorkaround):
             return None
         rc = int(rc)
         if (rc > 0):
-            logger.error('Yamaha RC request failed - Response code: {code}'.
-                format(code=rc))
+            logger.error(
+                'Yamaha RC request failed - Response code: {code}'.format(
+                    code=rc))
             return rc
         # Only return subtree
         result_path = []
@@ -251,7 +250,7 @@ class YamahaWorkaround(BaseWorkaround):
             response = requests.post(
                 url, data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
-            logger.debug('Yamaha RC response: ' +response.text)
+            logger.debug('Yamaha RC response: ' + response.text)
             if response.status_code != 200:
                 logger.error(
                     'Yamaha RC request failed - Status code: {code}'.format(
@@ -272,11 +271,11 @@ class YamahaWorkaround(BaseWorkaround):
             return None
         rc = int(rc)
         if (rc > 0):
-            logger.error('Yamaha RC request failed - Response code: {code}'.
-                format(code=rc))
+            logger.error(
+                'Yamaha RC request failed - Response code: {code}'.format(
+                    code=rc))
             return rc
         return 0
-
 
     def _query_supported_features(self):
         xml_response = self._get('System', 'Config', self.YRC_CMD_GETPARAM)
@@ -327,14 +326,10 @@ class YamahaWorkaround(BaseWorkaround):
 
         return zones, sources
 
-
-
-
     def _set_source(self, value, zone=None):
         if (not zone):
             zone = self.server_mode_zone
         self._put(zone, self.YRC_BASEPATH_SOURCE, value)
-
 
     def before_play(self):
         if (not self.enabled):
