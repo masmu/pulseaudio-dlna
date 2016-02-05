@@ -36,7 +36,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 ## Changelog ##
 
  * __master__ - (_2016-02-05_)
-    - Set Yamaha devices to the appropriate mode before playing (thanks to [hlchau](https://github.com/hlchau))
+    - Set Yamaha devices to the appropriate mode before playing (thanks to [hlchau](https://github.com/hlchau)) (new dependency: `python-lxml`)
     - Fixed a bug where SSDP some messages could not get parsed correctly
     - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
     - Added the `--disable-workarounds` flag
@@ -224,6 +224,7 @@ will get installed if you install it via the PPA.
 - python-concurrent.futures
 - python-chardet
 - python-netifaces
+- python-lxml
 - vorbis-tools
 - sox
 - lame
@@ -233,7 +234,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
