@@ -155,8 +155,17 @@ class PulseAudioProcess(psutil.Process):
             'LANG'
         ]
         compressed_env = {}
+        missing_env = []
         for k in required_variables:
-            compressed_env[k] = proc_env[k]
+            if k in proc_env:
+                compressed_env[k] = proc_env[k]
+            else:
+                missing_env.append(k)
+
+        if len(missing_env) > 0:
+            logger.warning(
+                'The following environment variables were not set: "{}". '
+                'Starting as root may not work!'.format(','.join(missing_env)))
 
         try:
             self.application = (
