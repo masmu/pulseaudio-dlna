@@ -152,7 +152,10 @@ class BaseRenderer(object):
             'There was no suitable codec found for "{name}". '
             'Cannot find any of the appropriate binaries: {binaries}.'.format(
                 name=self.label,
-                binaries=', '.join('{} ({})'.format(codec.encoder._binary, codec.mime_type) for codec in self.codecs),
+                binaries=', '.join(
+                    '{} ({})'.format(
+                        codec.encoder._binary, codec.mime_type
+                    ) for codec in self.codecs),
             )
         )
         raise NoSuitableEncoderFoundException()
