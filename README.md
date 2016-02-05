@@ -35,6 +35,10 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __master__ - (_2016-02-05_)
+    - Fixed a bug where SSDP some messages could not get parsed correctly
+    - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
+
  * __0.4.7__ - (_2015-11-18_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
     - Fixed the daemon mode to support `psutil` 1.x and 2.x (thanks to [klaernie](https://github.com/klaernie))
