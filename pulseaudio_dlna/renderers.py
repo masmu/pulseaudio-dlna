@@ -42,11 +42,14 @@ class RendererHolder(object):
         self.message_queue = message_queue
         self.lock = threading.Lock()
         for plugin in plugins:
-            self.registered[plugin.st_header] = plugin
+            for st_header in plugin.st_headers:
+                self.registered[st_header] = plugin
 
     def _retrieve_header_map(self, header):
-        header = re.findall(r"(?P<name>.*?): (?P<value>.*?)\n", header)
-        header = {k.lower(): v.strip() for k, v in dict(header).items()}
+        header = re.findall(r"(?P<name>.*?):(?P<value>.*?)\n", header)
+        header = {
+            k.strip().lower(): v.strip() for k, v in dict(header).items()
+        }
         return header
 
     def _retrieve_device_id(self, header):
@@ -69,7 +72,6 @@ class RendererHolder(object):
     def process_msearch_request(self, header):
         header = self._retrieve_header_map(header)
         device_id = self._retrieve_device_id(header)
-
         if device_id is None:
             return
         try:
