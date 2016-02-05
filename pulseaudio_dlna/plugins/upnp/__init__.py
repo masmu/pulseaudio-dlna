@@ -24,7 +24,10 @@ import pulseaudio_dlna.plugins.upnp.renderer
 class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
     def __init__(self, *args):
         pulseaudio_dlna.plugins.BasePlugin.__init__(self, *args)
-        self.st_header = 'urn:schemas-upnp-org:device:MediaRenderer:1'
+        self.st_headers = [
+            'urn:schemas-upnp-org:device:MediaRenderer:1',
+            'urn:schemas-upnp-org:device:MediaRenderer:2',
+        ]
 
     def lookup(self, locations):
         renderers = []
