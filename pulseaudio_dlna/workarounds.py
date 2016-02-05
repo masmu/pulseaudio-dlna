@@ -40,12 +40,14 @@ class BaseWorkaround(object):
     This may be extended in the future.
     """
 
+    ENABLED = True
+
     def __init__(self):
         pass
 
     def run(self, method_name, *args, **kwargs):
         method = getattr(self, method_name, None)
-        if method and callable(method):
+        if self.ENABLED and method and callable(method):
             logger.debug('Running workaround "{}".'.format(method_name))
             method(*args, **kwargs)
 

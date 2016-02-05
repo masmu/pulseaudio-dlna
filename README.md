@@ -39,6 +39,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Set Yamaha devices to the appropriate mode before playing (thanks to [hlchau](https://github.com/hlchau))
     - Fixed a bug where SSDP some messages could not get parsed correctly
     - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
+    - Added the `--disable-workarounds` flag
 
  * __0.4.7__ - (_2015-11-18_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
@@ -378,6 +379,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
         --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.
         --disable-ssdp-listener                If set, the application won't bind to the port 1900 and therefore the automatic discovery of new devices won't work.
         --disable-device-stop                  If set, the application won't send any stop commands to renderers at all
+        --disable-workarounds                  If set, the application won't apply any device workarounds
         -v --version                           Show the version.
         -h --help                              Show the help.
 
