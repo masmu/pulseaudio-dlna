@@ -21,6 +21,7 @@ import logging
 from lxml import etree
 import requests
 import urlparse
+import traceback
 
 
 logger = logging.getLogger('pulseaudio_dlna.workarounds')
@@ -107,16 +108,18 @@ class YamahaWorkaround(BaseWorkaround):
         self.server_mode_zone = None
         self.server_mode_source = None
 
-        # Initialize YamahaRemoteControl interface
-        if (not self._detect_remotecontrolinterface(xml)):
-            logger.warning(
-                'Automatic source switching will not be enabled'
-                ' - Please switch to server mode manually to enable UPnP'
-                ' streaming'
-            )
-            return
-
-        self.enabled = True
+        try:
+            # Initialize YamahaRemoteControl interface
+            if (not self._detect_remotecontrolinterface(xml)):
+                logger.warning(
+                    'Automatic source switching will not be enabled'
+                    ' - Please switch to server mode manually to enable UPnP'
+                    ' streaming'
+                )
+                return
+            self.enabled = True
+        except:
+            traceback.print_exc()
 
     def _detect_remotecontrolinterface(self, xml):
         # Check for YamahaRemoteControl support
