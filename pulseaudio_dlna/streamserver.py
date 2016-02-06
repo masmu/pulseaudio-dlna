@@ -490,6 +490,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 headers['contentFeatures.dlna.org'] = str(content_features)
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
+                headers['Content-Disposition'] = 'inline;'
 
         logger.debug('Sending header ({response_code}):\n{header}'.format(
             response_code=response_code,
