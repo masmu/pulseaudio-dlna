@@ -573,7 +573,7 @@ class StreamServer(SocketServer.TCPServer):
     def run(self):
         self.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
-            self, ('', self.port), StreamRequestHandler)
+            self, (self.ip or '', self.port), StreamRequestHandler)
 
         setproctitle.setproctitle('stream_server')
         self.serve_forever()
