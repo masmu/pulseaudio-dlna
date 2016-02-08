@@ -360,9 +360,7 @@ class StreamManager(object):
                 'stopped_bridge': bridge,
             })
 
-        if isinstance(
-                remote_device.bridge.device.codec,
-                pulseaudio_dlna.codecs.WavCodec):
+        if remote_device.bridge.device.codec.encoder.writes_header:
             self.single_streams = [
                 s for s in self.single_streams if stream.id != s.id]
 
@@ -382,10 +380,10 @@ class StreamManager(object):
         )
 
     def get_stream(self, path, bridge):
-        if isinstance(bridge.device.codec, pulseaudio_dlna.codecs.WavCodec):
-            # always create a seperate process stream for wav codecs
-            # since the client devices require the wav header which is
-            # just send at the beginning of each encoding process
+        if bridge.device.codec.encoder.writes_header:
+            # always create a seperate process stream for codecs which write
+            # a header, because those header may be required by some devices
+            # and are just send at the beginning of each encoding process
             stream = self._create_stream(path, bridge)
             self.single_streams.append(stream)
             return stream
