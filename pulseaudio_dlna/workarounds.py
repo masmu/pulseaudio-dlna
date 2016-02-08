@@ -130,6 +130,9 @@ class YamahaWorkaround(BaseWorkaround):
             ip=self.ip, port=self.port, url=self.control_url))
         # Get supported features
         self.zones, self.sources = self._query_supported_features()
+        if ((self.zones is None) or (self.sources is None)):
+            logger.error('Failed to query features')
+            return False
         # Determine main zone
         logger.info('Supported zones: ' + ', '.join(self.zones))
         self.server_mode_zone = self.zones[0]
@@ -285,12 +288,12 @@ class YamahaWorkaround(BaseWorkaround):
     def _query_supported_features(self):
         xml_response = self._get('System', 'Config', self.YRC_CMD_GETPARAM)
         if (xml_response is None):
-            return None
+            return None, None
 
         xml_features = xml_response.find(self.YRC_BASEPATH_FEAURES)
-        xml_names = xml_response.find(self.YRC_BASEPATH_INPUTNAMES)
         if (xml_features is None):
-            return None
+            logger.debug('Failed to find feature description')
+            return None, None
 
         # Features can be retrieved in different ways, most probably
         # dependending on the recever's firmware / protocol version
@@ -320,8 +323,10 @@ class YamahaWorkaround(BaseWorkaround):
                     zones.append(child.tag)
                 else:
                     sources.append(child.tag)
-            for child in xml_names.getchildren():
-                sources.append(child.tag)
+            xml_names = xml_response.find(self.YRC_BASEPATH_INPUTNAMES)
+            if (xml_names is not None):
+                for child in xml_names.getchildren():
+                    sources.append(child.tag)
 
         # If we got no zones up to now, we have to assume, that the receiver
         # has no multi zone support. Thus there can be only one!
