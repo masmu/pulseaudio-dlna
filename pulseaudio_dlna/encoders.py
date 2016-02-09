@@ -118,56 +118,67 @@ class NullEncoder(BaseEncoder):
         self._command = []
 
 
-class LameEncoder(BitRateMixin, BaseEncoder):
+class FFMpegMixin(object):
+
+    def _ffmpeg_command(
+            self, format, bit_rate=None, sample_rate=None, channels=None):
+        command = [
+            '-loglevel', 'panic',
+        ]
+        command.extend([
+            '-ac', '2',
+            '-ar', '44100',
+            '-f', 's16le',
+            '-i', '-',
+        ])
+        command.extend([
+            '-strict', '-2',
+            '-f', format,
+        ])
+        if bit_rate:
+            command.extend(['-b:a', str(bit_rate) + 'k'])
+        if sample_rate:
+            command.extend(['-ar', str(sample_rate)])
+        if channels:
+            command.extend(['-ac', str(channels)])
+        command.append('pipe:')
+        return command
+
+
+class FFMpegMp3Encoder(BitRateMixin, FFMpegMixin, BaseEncoder):
 
     SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
                            128, 160, 192, 224, 256, 320]
 
     def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
-        self.bit_rate = bit_rate or LameEncoder.DEFAULT_BIT_RATE
+        self.bit_rate = bit_rate or FFMpegMp3Encoder.DEFAULT_BIT_RATE
 
-        self._writes_header = False
-        self._binary = 'lame'
-        self._command = ['-r', '-']
-
-    @property
-    def command(self):
-        if self.bit_rate is None:
-            return super(LameEncoder, self).command
-        else:
-            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
-
-
-class WavEncoder(BaseEncoder):
-    def __init__(self):
-        BaseEncoder.__init__(self)
         self._writes_header = True
-        self._binary = 'sox'
-        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
-                         '-r', '44100', '-',
-                         '-t', 'wav', '-b', '16', '-e', 'signed', '-c', '2',
-                         '-r', '44100',
-                         '-L', '-',
-                         ]
+        self._binary = 'ffmpeg'
+        self._command = self._ffmpeg_command('mp3', bit_rate=self.bit_rate)
 
 
-class L16Encoder(BaseEncoder):
+class FFMpegWavEncoder(FFMpegMixin, BaseEncoder):
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+
+        self._writes_header = True
+        self._binary = 'ffmpeg'
+        self._command = self._ffmpeg_command('wav')
+
+
+class FFMpegL16Encoder(FFMpegMixin, BaseEncoder):
     def __init__(self, sample_rate=None, channels=None):
         BaseEncoder.__init__(self)
         self._sample_rate = sample_rate or 44100
         self._channels = channels or 2
 
-        self._writes_header = True
-        self._binary = 'sox'
-        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
-                         '-r', '44100', '-',
-                         '-t', 'wav', '-b', '16', '-e', 'signed',
-                         '-c', str(self.channels),
-                         '-r', '44100',
-                         '-B', '-',
-                         'rate', str(self.sample_rate),
-                         ]
+        self._writes_header = None
+        self._binary = 'ffmpeg'
+        self._command = self._ffmpeg_command(
+            's16be', sample_rate=self.sample_rate, channels=self.channels)
 
     @property
     def sample_rate(self):
@@ -194,81 +205,55 @@ class L16Encoder(BaseEncoder):
         )
 
 
-class AacEncoder(BitRateMixin, BaseEncoder):
+class FFMpegAacEncoder(BitRateMixin, FFMpegMixin, BaseEncoder):
 
     SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
                            128, 160, 192, 224, 256, 320]
 
     def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
-        self.bit_rate = bit_rate or AacEncoder.DEFAULT_BIT_RATE
+        self.bit_rate = bit_rate or FFMpegAacEncoder.DEFAULT_BIT_RATE
 
-        self._writes_header = None
-        self._binary = 'faac'
-        self._command = ['-X', '-P', '-o', '-', '-']
-
-    @property
-    def command(self):
-        if self.bit_rate is None:
-            return super(AacEncoder, self).command
-        else:
-            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
+        self._writes_header = False
+        self._binary = 'ffmpeg'
+        self._command = self._ffmpeg_command('adts', bit_rate=self.bit_rate)
 
 
-class OggEncoder(BitRateMixin, BaseEncoder):
+class FFMpegOggEncoder(BitRateMixin, FFMpegMixin, BaseEncoder):
 
     SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
                            128, 160, 192, 224, 256, 320]
 
     def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
-        self.bit_rate = bit_rate or OggEncoder.DEFAULT_BIT_RATE
+        self.bit_rate = bit_rate or FFMpegOggEncoder.DEFAULT_BIT_RATE
 
         self._writes_header = True
-        self._binary = 'oggenc'
-        self._command = ['-Q', '-r', '--ignorelength', '-']
-
-    @property
-    def command(self):
-        if self.bit_rate is None:
-            return super(OggEncoder, self).command
-        else:
-            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
+        self._binary = 'ffmpeg'
+        self._command = self._ffmpeg_command('ogg', bit_rate=self.bit_rate)
 
 
-class FlacEncoder(BaseEncoder):
+class FFMpegFlacEncoder(FFMpegMixin, BaseEncoder):
 
     def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
+
         self._writes_header = True
-        self._binary = 'flac'
-        self._command = ['-', '-c', '--channels', '2', '--bps', '16',
-                         '--sample-rate', '44100',
-                         '--endian', 'little', '--sign', 'signed', '-s']
+        self._binary = 'ffmpeg'
+        self._command = self._ffmpeg_command('flac')
 
 
-class OpusEncoder(BitRateMixin, BaseEncoder):
+class FFMpegOpusEncoder(BitRateMixin, FFMpegMixin, BaseEncoder):
 
     SUPPORTED_BIT_RATES = [i for i in range(6, 257)]
 
     def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
-        self.bit_rate = bit_rate or OpusEncoder.DEFAULT_BIT_RATE
+        self.bit_rate = bit_rate or FFMpegOpusEncoder.DEFAULT_BIT_RATE
 
-        self._writes_header = False
-        self._binary = 'opusenc'
-        self._command = ['--padding', '0', '--max-delay', '0',
-                         '--expect-loss', '1', '--framesize', '2.5',
-                         '--raw-rate', '44100',
-                         '--raw', '-', '-']
-
-    @property
-    def command(self):
-        if self.bit_rate is None:
-            return super(OpusEncoder, self).command
-        else:
-            return [self.binary] + \
-                ['--bitrate', str(self.bit_rate)] + self._command
+        self._writes_header = True
+        self._binary = 'ffmpeg'
+        self._command = self._ffmpeg_command('opus', bit_rate=self.bit_rate)
 
 
 def load_encoders():

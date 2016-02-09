@@ -150,14 +150,10 @@ class BaseRenderer(object):
                 return codec
         logger.info(
             'There was no suitable codec found for "{name}". '
-            'Cannot find any of the appropriate binaries: {binaries}.'.format(
+            'The device can play "{codecs}"'.format(
                 name=self.label,
-                binaries=', '.join(
-                    '{} ({})'.format(
-                        codec.encoder._binary, codec.mime_type
-                    ) for codec in self.codecs),
-            )
-        )
+                codecs=','.join(
+                    [codec.mime_type for codec in self.codecs])))
         raise NoSuitableEncoderFoundException()
 
     @property
@@ -234,10 +230,6 @@ class BaseRenderer(object):
                         pulseaudio_dlna.codecs.OggCodec]:
                     codec.rules.append(
                         pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH())
-        if self.model_name == 'Kodi':
-            for codec in self.codecs:
-                if type(codec) is pulseaudio_dlna.codecs.WavCodec:
-                    codec.mime_type = 'audio/mpeg'
 
     def set_rules_from_config(self, config):
         self.name = config['name']
