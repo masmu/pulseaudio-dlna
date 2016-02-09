@@ -255,7 +255,7 @@ class OpusEncoder(BitRateMixin, BaseEncoder):
         BaseEncoder.__init__(self)
         self.bit_rate = bit_rate or OpusEncoder.DEFAULT_BIT_RATE
 
-        self._writes_header = None
+        self._writes_header = False
         self._binary = 'opusenc'
         self._command = ['--padding', '0', '--max-delay', '0',
                          '--expect-loss', '1', '--framesize', '2.5',
