@@ -146,14 +146,25 @@ class BaseRenderer(object):
     @property
     def codec(self):
         for codec in self.codecs:
-            if codec.enabled and codec.encoder.available:
+            if codec.enabled and codec.encoder and codec.encoder.available:
                 return codec
+
+        missing_encoders = []
+        for codec in self.codecs:
+            for encoder_type in codec.ENCODERS:
+                encoder = encoder_type()
+                if encoder.binary not in missing_encoders:
+                    missing_encoders.append(encoder.binary)
+
         logger.info(
             'There was no suitable codec found for "{name}". '
-            'The device can play "{codecs}"'.format(
+            'The device can play "{codecs}". Install one of following '
+            'encoders: "{encoders}".'.format(
                 name=self.label,
                 codecs=','.join(
-                    [codec.mime_type for codec in self.codecs])))
+                    [codec.mime_type for codec in self.codecs]),
+                encoders=','.join(missing_encoders),
+            ))
         raise NoSuitableEncoderFoundException()
 
     @property

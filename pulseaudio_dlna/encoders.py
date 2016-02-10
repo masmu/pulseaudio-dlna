@@ -256,6 +256,56 @@ class FFMpegOpusEncoder(BitRateMixin, FFMpegMixin, BaseEncoder):
         self._command = self._ffmpeg_command('opus', bit_rate=self.bit_rate)
 
 
+class AVConvMp3Encoder(FFMpegMp3Encoder):
+
+    def __init__(self, bit_rate=None):
+        super(AVConvMp3Encoder, self).__init__(bit_rate=bit_rate)
+        self._binary = 'avconv'
+
+
+class AVConvWavEncoder(FFMpegWavEncoder):
+
+    def __init__(self, bit_rate=None):
+        super(AVConvWavEncoder, self).__init__()
+        self._binary = 'avconv'
+
+
+class AVConvL16Encoder(FFMpegL16Encoder):
+
+    def __init__(self, sample_rate=None, channels=None):
+        super(AVConvL16Encoder, self).__init__(
+            sample_rate=sample_rate, channels=channels)
+        self._binary = 'avconv'
+
+
+class AVConvAacEncoder(FFMpegAacEncoder):
+
+    def __init__(self, bit_rate=None):
+        super(AVConvAacEncoder, self).__init__(bit_rate=bit_rate)
+        self._binary = 'avconv'
+
+
+class AVConvOggEncoder(FFMpegOggEncoder):
+
+    def __init__(self, bit_rate=None):
+        super(AVConvOggEncoder, self).__init__(bit_rate=bit_rate)
+        self._binary = 'avconv'
+
+
+class AVConvFlacEncoder(FFMpegFlacEncoder):
+
+    def __init__(self, bit_rate=None):
+        super(AVConvFlacEncoder, self).__init__()
+        self._binary = 'avconv'
+
+
+class AVConvOpusEncoder(FFMpegOpusEncoder):
+
+    def __init__(self, bit_rate=None):
+        super(AVConvOpusEncoder, self).__init__(bit_rate=bit_rate)
+        self._binary = 'avconv'
+
+
 def load_encoders():
     if len(ENCODERS) == 0:
         logger.debug('Loaded encoders:')
