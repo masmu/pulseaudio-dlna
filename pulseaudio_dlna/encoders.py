@@ -161,7 +161,7 @@ class FFMpegMp3Encoder(BitRateMixin, FFMpegMixin, BaseEncoder):
 
 class FFMpegWavEncoder(FFMpegMixin, BaseEncoder):
 
-    def __init__(self, bit_rate=None):
+    def __init__(self):
         BaseEncoder.__init__(self)
 
         self._writes_header = True
@@ -235,7 +235,7 @@ class FFMpegOggEncoder(BitRateMixin, FFMpegMixin, BaseEncoder):
 
 class FFMpegFlacEncoder(FFMpegMixin, BaseEncoder):
 
-    def __init__(self, bit_rate=None):
+    def __init__(self):
         BaseEncoder.__init__(self)
 
         self._writes_header = True
