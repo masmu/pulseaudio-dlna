@@ -460,7 +460,7 @@ class UpnpMediaRendererFactory(object):
                     services)
 
                 if device.manufacturer and \
-                   device.manufacturer.text == 'YAMAHA CORPORATION':
+                   device.manufacturer.text.lower() == 'yamaha corporation':
                     upnp_device.workarounds.append(
                         pulseaudio_dlna.workarounds.YamahaWorkaround(
                             response.content))
