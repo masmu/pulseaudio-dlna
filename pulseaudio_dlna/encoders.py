@@ -118,6 +118,26 @@ class NullEncoder(BaseEncoder):
         self._command = []
 
 
+class LameEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
+                           128, 160, 192, 224, 256, 320]
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or LameEncoder.DEFAULT_BIT_RATE
+
+        self._binary = 'lame'
+        self._command = ['-r', '-']
+
+    @property
+    def command(self):
+        if self.bit_rate is None:
+            return super(LameEncoder, self).command
+        else:
+            return [self.binary] + ['-b', str(self.bit_rate)] + self._command
+
+
 class FFMpegMixin(object):
 
     def _ffmpeg_command(

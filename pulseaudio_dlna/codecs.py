@@ -125,6 +125,7 @@ class Mp3Codec(BitRateMixin, BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/mpeg', 'audio/mp3']
     IDENTIFIER = 'mp3'
     ENCODERS = [
+        pulseaudio_dlna.encoders.LameEncoder,
         pulseaudio_dlna.encoders.FFMpegMp3Encoder,
         pulseaudio_dlna.encoders.AVConvMp3Encoder,
     ]
