@@ -56,7 +56,7 @@ Options:
                                            Devices which get discovered, but won't match the
                                            filter text will be skipped.
     --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
-    --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 10].
+    --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 15].
     --ssdp-ttl=<ssdp-ttl>                  Set the SSDP socket's TTL [default: 10].
     --ssdp-mx=<ssdp-mx>                    Set the MX value of the SSDP discovery message [default: 3].
     --ssdp-amount=<ssdp-amount>            Set the amount of SSDP discovery messages being sent [default: 5].
