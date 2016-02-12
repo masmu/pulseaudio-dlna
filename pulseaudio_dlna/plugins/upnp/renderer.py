@@ -210,9 +210,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 status_code=response_code,
                 result=response_text))
 
-    def _update_current_state(self, timeout=15):
+    def _update_current_state(self):
         start_time = time.time()
-        while time.time() - start_time <= timeout:
+        while time.time() - start_time <= self.REQUEST_TIMEOUT:
             state = self.get_transport_info()
             if state is None:
                 return False
