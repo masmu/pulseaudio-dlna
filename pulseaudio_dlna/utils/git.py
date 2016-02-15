@@ -42,6 +42,6 @@ def get_head_version():
         prefix, ref_path = [s.strip() for s in line.split('ref: ')]
         branch = os.path.basename(ref_path)
         ref_path = os.path.join(module_path, GIT_DIRECTORY, ref_path)
-        return branch, _get_first_line(ref_path).strip()
+        return branch, (_get_first_line(ref_path) or 'unknown').strip()
     else:
         return 'detached-head', line.strip()
