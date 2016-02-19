@@ -269,6 +269,14 @@ class BaseRenderer(object):
                 self.__str__(True)))
         return True
 
+    def _before_register(self):
+        for workaround in self.workarounds:
+            workaround.run('before_register')
+
+    def _after_register(self):
+        for workaround in self.workarounds:
+            workaround.run('after_register')
+
     def _before_play(self):
         for workaround in self.workarounds:
             workaround.run('before_play')

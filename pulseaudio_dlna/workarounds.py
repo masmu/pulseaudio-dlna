@@ -33,6 +33,8 @@ class BaseWorkaround(object):
     application.
 
     Those may be:
+        - before_register
+        - after_register
         - before_play
         - after_play
         - before_stop
@@ -49,7 +51,7 @@ class BaseWorkaround(object):
     def run(self, method_name, *args, **kwargs):
         method = getattr(self, method_name, None)
         if self.ENABLED and method and callable(method):
-            logger.debug('Running workaround "{}".'.format(method_name))
+            logger.info('Running workaround "{}".'.format(method_name))
             method(*args, **kwargs)
 
 
@@ -341,7 +343,7 @@ class YamahaWorkaround(BaseWorkaround):
             zone = self.server_mode_zone
         self._put(zone, self.YRC_BASEPATH_SOURCE, value)
 
-    def before_play(self):
+    def before_register(self):
         if (not self.enabled):
             return
         logger.info('Switching to UPnP server mode')

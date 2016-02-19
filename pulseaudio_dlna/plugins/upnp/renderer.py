@@ -208,6 +208,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 result=response.text))
 
     def register(self, stream_url, codec=None, artist=None, title=None, thumb=None):
+        self._before_register()
         url = self.service_transport.control_url
         codec = codec or self.codec
         headers = {
@@ -253,6 +254,8 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 'REGISTER command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
+        finally:
+            self._after_register()
 
     def get_protocol_info(self):
         url = self.service_connection.control_url
