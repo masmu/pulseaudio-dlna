@@ -27,16 +27,41 @@ logger = logging.getLogger('pulseaudio_dlna.encoder')
 ENCODERS = []
 
 
-class InvalidBitrateException():
-    pass
+class InvalidBitrateException(Exception):
+    def __init__(self, bit_rate):
+        Exception.__init__(
+            self,
+            'You specified an invalid bit rate "{}"!'.format(bit_rate),
+        )
 
 
-class UnsupportedBitrateException():
-    pass
+class UnsupportedBitrateException(Exception):
+    def __init__(self, bit_rate, cls):
+        Exception.__init__(
+            self,
+            'You specified an unsupported bit rate for the {encoder}! '
+            'Supported bit rates are "{bit_rates}"! '.format(
+                encoder=cls.__name__,
+                bit_rates=','.join(
+                    str(e) for e in cls.SUPPORTED_BIT_RATES
+                )
+            )
+        )
 
 
-class UnsupportedMimeTypeException():
-    pass
+def set_bit_rate(bit_rate):
+    try:
+        bit_rate = int(bit_rate)
+    except ValueError:
+        raise InvalidBitrateException(bit_rate)
+
+    for _type in ENCODERS:
+        if hasattr(_type, 'DEFAULT_BIT_RATE') and \
+           hasattr(_type, 'SUPPORTED_BIT_RATES'):
+            if bit_rate in _type.SUPPORTED_BIT_RATES:
+                _type.DEFAULT_BIT_RATE = bit_rate
+            else:
+                raise UnsupportedBitrateException(bit_rate, _type)
 
 
 class BaseEncoder(object):

@@ -322,7 +322,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders>] [--bit-rate=<rate>]
+        pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders> | --codec <codec>] [--bit-rate=<rate>]
                         [--encoder-backend <encoder-backend>]
                         [--filter-device=<filter-device>]
                         [--renderer-urls <urls>]
@@ -348,8 +348,9 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
         --update-device-config                 Same as --create-device-config but preserves your existing config from being overwritten
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
-        -e --encoder=<encoders>                Set the audio encoder.
-                                               Possible encoders are:
+        -e --encoder=<encoders>                Deprecated alias for --codec
+        -c --codec=<codecs>                    Set the audio codec.
+                                               Possible codecs are:
                                                  - mp3   MPEG Audio Layer III (MP3)
                                                  - ogg   Ogg Vorbis (OGG)
                                                  - flac  Free Lossless Audio Codec (FLAC)

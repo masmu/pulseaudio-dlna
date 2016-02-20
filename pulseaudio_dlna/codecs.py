@@ -28,6 +28,7 @@ import pulseaudio_dlna.rules
 
 logger = logging.getLogger('pulseaudio_dlna.codecs')
 
+BACKENDS = ['generic', 'ffmpeg', 'avconv']
 CODECS = {}
 
 
@@ -35,15 +36,33 @@ class UnknownBackendException(Exception):
     def __init__(self, backend):
         Exception.__init__(
             self,
-            'There is no backend named "{}"!'.format(backend)
+            'You specified an unknown backend "{}"!'.format(backend)
+        )
+
+
+class UnknownCodecException(Exception):
+    def __init__(self, codec):
+        Exception.__init__(
+            self,
+            'You specified an unknown codec "{}"!'.format(codec),
         )
 
 
 def set_backend(backend):
-    if backend in ['generic', 'ffmpeg', 'avconv']:
+    if backend in BACKENDS:
         BaseCodec.BACKEND = backend
         return
     raise UnknownBackendException(backend)
+
+
+def set_codecs(identifiers):
+    for identifier, _type in CODECS.iteritems():
+        _type.ENABLED = False
+    for identifier in identifiers:
+        try:
+            CODECS[identifier].ENABLED = True
+        except KeyError:
+            raise UnknownCodecException(identifier)
 
 
 @functools.total_ordering
