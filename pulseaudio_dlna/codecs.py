@@ -40,7 +40,7 @@ class UnknownBackendException(Exception):
 
 
 def set_backend(backend):
-    if backend in ['ffmpeg', 'avconv']:
+    if backend in ['generic', 'ffmpeg', 'avconv']:
         BaseCodec.BACKEND = backend
         return
     raise UnknownBackendException(backend)
@@ -51,7 +51,7 @@ class BaseCodec(object):
 
     ENABLED = True
     IDENTIFIER = None
-    BACKEND = 'ffmpeg'
+    BACKEND = 'generic'
 
     def __init__(self):
         self.mime_type = None
@@ -135,6 +135,7 @@ class Mp3Codec(BitRateMixin, BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/mpeg', 'audio/mp3']
     IDENTIFIER = 'mp3'
     ENCODERS = {
+        'generic': pulseaudio_dlna.encoders.LameMp3Encoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegMp3Encoder,
         'avconv': pulseaudio_dlna.encoders.AVConvMp3Encoder,
     }
@@ -152,6 +153,7 @@ class WavCodec(BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/wav', 'audio/x-wav']
     IDENTIFIER = 'wav'
     ENCODERS = {
+        'generic': pulseaudio_dlna.encoders.SoxWavEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegWavEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvWavEncoder,
     }
@@ -168,6 +170,7 @@ class L16Codec(BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/l16']
     IDENTIFIER = 'l16'
     ENCODERS = {
+        'generic': pulseaudio_dlna.encoders.SoxL16Encoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegL16Encoder,
         'avconv': pulseaudio_dlna.encoders.AVConvL16Encoder,
     }
@@ -219,6 +222,7 @@ class AacCodec(BitRateMixin, BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/aac', 'audio/x-aac']
     IDENTIFIER = 'aac'
     ENCODERS = {
+        'generic': pulseaudio_dlna.encoders.FaacAacEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegAacEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvAacEncoder,
     }
@@ -236,6 +240,7 @@ class OggCodec(BitRateMixin, BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/ogg', 'audio/x-ogg', 'application/ogg']
     IDENTIFIER = 'ogg'
     ENCODERS = {
+        'generic': pulseaudio_dlna.encoders.OggencOggEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegOggEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvOggEncoder,
     }
@@ -253,6 +258,7 @@ class FlacCodec(BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/flac', 'audio/x-flac']
     IDENTIFIER = 'flac'
     ENCODERS = {
+        'generic': pulseaudio_dlna.encoders.FlacFlacEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegFlacEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvFlacEncoder,
     }
@@ -269,6 +275,7 @@ class OpusCodec(BitRateMixin, BaseCodec):
     SUPPORTED_MIME_TYPES = ['audio/opus', 'audio/x-opus']
     IDENTIFIER = 'opus'
     ENCODERS = {
+        'generic': pulseaudio_dlna.encoders.OpusencOpusEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegOpusEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvOpusEncoder,
     }

@@ -54,6 +54,7 @@ Options:
                                              - l16   Linear PCM (L16)
     --encoder-backend=<encoder-backend>    Set the backend for all encoders.
                                            Possible backends are:
+                                             - generic (default)
                                              - ffmpeg
                                              - avconv
     -b --bit-rate=<rate>                   Set the audio encoder's bitrate.

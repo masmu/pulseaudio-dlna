@@ -110,6 +110,33 @@ class BitRateMixin(object):
         )
 
 
+class SamplerateChannelMixin(object):
+
+    @property
+    def sample_rate(self):
+        return self._sample_rate
+
+    @sample_rate.setter
+    def sample_rate(self, value):
+        self._sample_rate = int(value)
+
+    @property
+    def channels(self):
+        return self._channels
+
+    @channels.setter
+    def channels(self, value):
+        self._channels = int(value)
+
+    def __str__(self):
+        return '<{} available="{}" sample-rate="{}" channels="{}">'.format(
+            self.__class__.__name__,
+            unicode(self.available),
+            unicode(self.sample_rate),
+            unicode(self.channels),
+        )
+
+
 class NullEncoder(BaseEncoder):
 
     def __init__(self):
@@ -169,40 +196,16 @@ class FFMpegWavEncoder(FFMpegMixin, BaseEncoder):
         self._command = self._ffmpeg_command('wav')
 
 
-class FFMpegL16Encoder(FFMpegMixin, BaseEncoder):
+class FFMpegL16Encoder(SamplerateChannelMixin, FFMpegMixin, BaseEncoder):
     def __init__(self, sample_rate=None, channels=None):
         BaseEncoder.__init__(self)
-        self._sample_rate = sample_rate or 44100
-        self._channels = channels or 2
+        self.sample_rate = sample_rate or 44100
+        self.channels = channels or 2
 
         self._writes_header = None
         self._binary = 'ffmpeg'
         self._command = self._ffmpeg_command(
             's16be', sample_rate=self.sample_rate, channels=self.channels)
-
-    @property
-    def sample_rate(self):
-        return self._sample_rate
-
-    @sample_rate.setter
-    def sample_rate(self, value):
-        self._sample_rate = int(value)
-
-    @property
-    def channels(self):
-        return self._channels
-
-    @channels.setter
-    def channels(self, value):
-        self._channels = int(value)
-
-    def __str__(self):
-        return '<{} available="{}" sample-rate="{}" channels="{}">'.format(
-            self.__class__.__name__,
-            unicode(self.available),
-            unicode(self.sample_rate),
-            unicode(self.channels),
-        )
 
 
 class FFMpegAacEncoder(BitRateMixin, FFMpegMixin, BaseEncoder):
@@ -304,6 +307,102 @@ class AVConvOpusEncoder(FFMpegOpusEncoder):
     def __init__(self, bit_rate=None):
         super(AVConvOpusEncoder, self).__init__(bit_rate=bit_rate)
         self._binary = 'avconv'
+
+
+class LameMp3Encoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
+                           128, 160, 192, 224, 256, 320]
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or LameMp3Encoder.DEFAULT_BIT_RATE
+
+        self._binary = 'lame'
+        self._command = ['-b', str(self.bit_rate), '-r', '-']
+
+
+class SoxWavEncoder(BaseEncoder):
+    def __init__(self):
+        BaseEncoder.__init__(self)
+        self._binary = 'sox'
+        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100', '-',
+                         '-t', 'wav', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100',
+                         '-L', '-',
+                         ]
+
+
+class SoxL16Encoder(SamplerateChannelMixin, BaseEncoder):
+    def __init__(self, sample_rate=None, channels=None):
+        BaseEncoder.__init__(self)
+        self.sample_rate = sample_rate or 44100
+        self.channels = channels or 2
+
+        self._binary = 'sox'
+        self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
+                         '-r', '44100', '-',
+                         '-t', 'wav', '-b', '16', '-e', 'signed',
+                         '-c', str(self.channels),
+                         '-r', '44100',
+                         '-B', '-',
+                         'rate', str(self.sample_rate),
+                         ]
+
+
+class FaacAacEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
+                           128, 160, 192, 224, 256, 320]
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or FaacAacEncoder.DEFAULT_BIT_RATE
+
+        self._binary = 'faac'
+        self._command = ['-b', str(self.bit_rate),
+                         '-X', '-P', '-o', '-', '-']
+
+
+class OggencOggEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [32, 40, 48, 56, 64, 80, 96, 112,
+                           128, 160, 192, 224, 256, 320]
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or OggencOggEncoder.DEFAULT_BIT_RATE
+
+        self._binary = 'oggenc'
+        self._command = ['-b', str(self.bit_rate),
+                         '-Q', '-r', '--ignorelength', '-']
+
+
+class FlacFlacEncoder(BaseEncoder):
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self._binary = 'flac'
+        self._command = ['-', '-c', '--channels', '2', '--bps', '16',
+                         '--sample-rate', '44100',
+                         '--endian', 'little', '--sign', 'signed', '-s']
+
+
+class OpusencOpusEncoder(BitRateMixin, BaseEncoder):
+
+    SUPPORTED_BIT_RATES = [i for i in range(6, 257)]
+
+    def __init__(self, bit_rate=None):
+        BaseEncoder.__init__(self)
+        self.bit_rate = bit_rate or OpusencOpusEncoder.DEFAULT_BIT_RATE
+
+        self._binary = 'opusenc'
+        self._command = ['--bitrate', str(self.bit_rate),
+                         '--padding', '0', '--max-delay', '0',
+                         '--expect-loss', '1', '--framesize', '2.5',
+                         '--raw-rate', '44100',
+                         '--raw', '-', '-']
 
 
 def load_encoders():
