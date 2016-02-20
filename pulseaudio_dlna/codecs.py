@@ -31,11 +31,27 @@ logger = logging.getLogger('pulseaudio_dlna.codecs')
 CODECS = {}
 
 
+class UnknownBackendException(Exception):
+    def __init__(self, backend):
+        Exception.__init__(
+            self,
+            'There is no backend named "{}"!'.format(backend)
+        )
+
+
+def set_backend(backend):
+    if backend in ['ffmpeg', 'avconv']:
+        BaseCodec.BACKEND = backend
+        return
+    raise UnknownBackendException(backend)
+
+
 @functools.total_ordering
 class BaseCodec(object):
 
     ENABLED = True
     IDENTIFIER = None
+    BACKEND = 'ffmpeg'
 
     def __init__(self):
         self.mime_type = None
@@ -57,10 +73,7 @@ class BaseCodec(object):
 
     @property
     def encoder(self):
-        for encoder_type in self.ENCODERS:
-            if encoder_type.AVAILABLE:
-                return encoder_type()
-        return None
+        return self.ENCODERS[self.BACKEND]()
 
     @classmethod
     def accepts(cls, mime_type):
@@ -108,10 +121,7 @@ class BitRateMixin(object):
 
     @property
     def encoder(self):
-        for encoder_type in self.ENCODERS:
-            if encoder_type.AVAILABLE:
-                return encoder_type(self.bit_rate)
-        return None
+        return self.ENCODERS[self.BACKEND](self.bit_rate)
 
     def __eq__(self, other):
         return type(self) is type(other) and self.bit_rate == other.bit_rate
@@ -124,10 +134,10 @@ class Mp3Codec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/mpeg', 'audio/mp3']
     IDENTIFIER = 'mp3'
-    ENCODERS = [
-        pulseaudio_dlna.encoders.FFMpegMp3Encoder,
-        pulseaudio_dlna.encoders.AVConvMp3Encoder,
-    ]
+    ENCODERS = {
+        'ffmpeg': pulseaudio_dlna.encoders.FFMpegMp3Encoder,
+        'avconv': pulseaudio_dlna.encoders.AVConvMp3Encoder,
+    }
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
@@ -141,10 +151,10 @@ class WavCodec(BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/wav', 'audio/x-wav']
     IDENTIFIER = 'wav'
-    ENCODERS = [
-        pulseaudio_dlna.encoders.FFMpegWavEncoder,
-        pulseaudio_dlna.encoders.AVConvWavEncoder,
-    ]
+    ENCODERS = {
+        'ffmpeg': pulseaudio_dlna.encoders.FFMpegWavEncoder,
+        'avconv': pulseaudio_dlna.encoders.AVConvWavEncoder,
+    }
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
@@ -157,10 +167,10 @@ class L16Codec(BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/l16']
     IDENTIFIER = 'l16'
-    ENCODERS = [
-        pulseaudio_dlna.encoders.FFMpegL16Encoder,
-        pulseaudio_dlna.encoders.AVConvL16Encoder,
-    ]
+    ENCODERS = {
+        'ffmpeg': pulseaudio_dlna.encoders.FFMpegL16Encoder,
+        'avconv': pulseaudio_dlna.encoders.AVConvL16Encoder,
+    }
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
@@ -191,10 +201,7 @@ class L16Codec(BaseCodec):
 
     @property
     def encoder(self):
-        for encoder_type in self.ENCODERS:
-            if encoder_type.AVAILABLE:
-                return encoder_type(self.sample_rate, self.channels)
-        return None
+        return self.ENCODERS[self.BACKEND](self.sample_rate, self.channels)
 
     def __eq__(self, other):
         return type(self) is type(other) and (
@@ -211,10 +218,10 @@ class AacCodec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/aac', 'audio/x-aac']
     IDENTIFIER = 'aac'
-    ENCODERS = [
-        pulseaudio_dlna.encoders.FFMpegAacEncoder,
-        pulseaudio_dlna.encoders.AVConvAacEncoder,
-    ]
+    ENCODERS = {
+        'ffmpeg': pulseaudio_dlna.encoders.FFMpegAacEncoder,
+        'avconv': pulseaudio_dlna.encoders.AVConvAacEncoder,
+    }
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
@@ -228,10 +235,10 @@ class OggCodec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/ogg', 'audio/x-ogg', 'application/ogg']
     IDENTIFIER = 'ogg'
-    ENCODERS = [
-        pulseaudio_dlna.encoders.FFMpegOggEncoder,
-        pulseaudio_dlna.encoders.AVConvOggEncoder,
-    ]
+    ENCODERS = {
+        'ffmpeg': pulseaudio_dlna.encoders.FFMpegOggEncoder,
+        'avconv': pulseaudio_dlna.encoders.AVConvOggEncoder,
+    }
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
@@ -245,10 +252,10 @@ class FlacCodec(BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/flac', 'audio/x-flac']
     IDENTIFIER = 'flac'
-    ENCODERS = [
-        pulseaudio_dlna.encoders.FFMpegFlacEncoder,
-        pulseaudio_dlna.encoders.AVConvFlacEncoder,
-    ]
+    ENCODERS = {
+        'ffmpeg': pulseaudio_dlna.encoders.FFMpegFlacEncoder,
+        'avconv': pulseaudio_dlna.encoders.AVConvFlacEncoder,
+    }
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)
@@ -261,10 +268,10 @@ class OpusCodec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/opus', 'audio/x-opus']
     IDENTIFIER = 'opus'
-    ENCODERS = [
-        pulseaudio_dlna.encoders.FFMpegOpusEncoder,
-        pulseaudio_dlna.encoders.AVConvOpusEncoder,
-    ]
+    ENCODERS = {
+        'ffmpeg': pulseaudio_dlna.encoders.FFMpegOpusEncoder,
+        'avconv': pulseaudio_dlna.encoders.AVConvOpusEncoder,
+    }
 
     def __init__(self, mime_string=None):
         BaseCodec.__init__(self)

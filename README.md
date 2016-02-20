@@ -323,6 +323,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 
     Usage:
         pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders>] [--bit-rate=<rate>]
+                        [--encoder-backend <encoder-backend>]
                         [--filter-device=<filter-device>]
                         [--renderer-urls <urls>]
                         [--request-timeout <timeout>]
@@ -356,6 +357,10 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                  - opus  Opus Interactive Audio Codec (OPUS)
                                                  - aac   Advanced Audio Coding (AAC)
                                                  - l16   Linear PCM (L16)
+        --encoder-backend=<encoder-backend>    Set the backend for all encoders.
+                                               Possible backends are:
+                                                 - ffmpeg
+                                                 - avconv
         -b --bit-rate=<rate>                   Set the audio encoder's bitrate.
         --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                                Devices which get discovered, but won't match the

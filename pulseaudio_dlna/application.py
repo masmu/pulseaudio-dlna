@@ -119,6 +119,14 @@ class Application(object):
         if not options['--encoder'] and not options['--bit-rate']:
             device_config = self.read_device_config()
 
+        if options['--encoder-backend']:
+            try:
+                pulseaudio_dlna.codecs.set_backend(
+                    options['--encoder-backend'])
+            except pulseaudio_dlna.codecs.UnknownBackendException as e:
+                logger.error(e)
+                sys.exit(1)
+
         if options['--encoder']:
             for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
                 _type.ENABLED = False
