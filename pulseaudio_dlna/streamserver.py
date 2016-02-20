@@ -50,8 +50,14 @@ PROTOCOL_VERSION_V10 = 'HTTP/1.0'
 PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 
 
+def time_log(method, point=None):
+    logger.info('{time} - {method}() - {point}'.format(
+        time=time.time(), method=method, point=point or ''))
+
+
 class ProcessStream(object):
     def __init__(self, path, sock, recorder, encoder, bridge):
+        time_log('ProcessStream.__init__')
         self.path = path
         self.sock = sock
         self.recorder = recorder
@@ -68,6 +74,7 @@ class ProcessStream(object):
             10000, self._on_regenerate_reinitialize_count)
 
     def run(self):
+        time_log('ProcessStream.run')
         while True:
             if not self.do_processes_exist():
                 self.create_processes()
@@ -106,6 +113,7 @@ class ProcessStream(object):
             bytes_sent += sock.send(data[bytes_sent:])
 
     def _on_regenerate_reinitialize_count(self):
+        time_log('ProcessStream._on_regenerate_reinitialize_count')
         if self.reinitialize_count > 0:
             self.reinitialize_count -= 1
         return True
@@ -119,6 +127,7 @@ class ProcessStream(object):
                 self.encoder_process.poll() is None)
 
     def terminate_processes(self):
+        time_log('ProcessStream.terminate_processes')
 
         def _kill_process(process):
             pid = process.pid
@@ -136,6 +145,7 @@ class ProcessStream(object):
         _kill_process(self.recorder_process)
 
     def create_processes(self):
+        time_log('ProcessStream.create_processes')
         if self.reinitialize_count < 3:
             self.reinitialize_count += 1
             logger.info('Starting processes "{recorder} | {encoder}"'.format(
@@ -150,7 +160,6 @@ class ProcessStream(object):
                 stdout=subprocess.PIPE)
             self.recorder_process.stdout.close()
         else:
-            self.update_thread.pause()
             logger.error('There were more than {} attempts to reinitialize '
                          'the record process. Aborting.'.format(
                              self.reinitialize_count))
@@ -169,6 +178,7 @@ class StreamManager(object):
         self.server = server
 
     def create_stream(self, path, request, bridge):
+        time_log('StreamManager.create_stream')
         stream = ProcessStream(
             path=path,
             sock=request,
@@ -181,6 +191,7 @@ class StreamManager(object):
         self.unregister(stream)
 
     def register(self, stream):
+        time_log('StreamManager.register')
         logger.info('Registered stream "{}" ({}) ...'.format(
             stream.path, stream.id))
         if not self.streams.get(stream.path, None):
@@ -188,6 +199,7 @@ class StreamManager(object):
         self.streams[stream.path][stream.id] = stream
 
     def unregister(self, stream):
+        time_log('StreamManager.unregister')
         logger.info('Unregistered stream "{}" ({}) ...'.format(
             stream.path, stream.id))
         del self.streams[stream.path][stream.id]
@@ -198,6 +210,7 @@ class StreamManager(object):
             2000, self._on_disconnect, stream)
 
     def _on_disconnect(self, stream):
+        time_log('StreamManager._on_disconnect')
         self.timeouts.pop(stream.path)
         if len(self.streams[stream.path]) == 0:
             logger.info('No more stream from device "{}".'.format(
@@ -221,18 +234,21 @@ class StreamManager(object):
 
 class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def __init__(self, *args):
+        time_log('StreamRequestHandler.__init__')
         try:
             BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args)
         except IOError:
             pass
 
     def do_HEAD(self):
+        time_log('StreamRequestHandler.do_HEAD')
         logger.debug('Got the following HEAD request:\n{header}'.format(
             header=json.dumps(self.headers.items(), indent=2)))
         item = self.get_requested_item()
         self.handle_headers(item)
 
     def do_GET(self):
+        time_log('StreamRequestHandler.do_GET')
         logger.debug('Got the following GET request:\n{header}'.format(
             header=json.dumps(self.headers.items(), indent=2)))
         item = self.get_requested_item()
@@ -244,6 +260,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 self.path, self.request, item)
 
     def handle_headers(self, item):
+        time_log('StreamRequestHandler.handle_headers')
         response_code = 200
         headers = {}
 
@@ -255,31 +272,43 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             image = item
             headers['Content-Type'] = image.content_type
         elif isinstance(item, pulseaudio_dlna.pulseaudio.PulseBridge):
+            time_log('StreamRequestHandler.handle_headers', 1)
             bridge = item
             headers['Content-Type'] = bridge.device.codec.specific_mime_type
 
+            time_log('StreamRequestHandler.handle_headers', 2)
             if self.server.fake_http_content_length or \
                pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH in \
                bridge.device.codec.rules:
+                time_log('StreamRequestHandler.handle_headers', 31)
                 gb_in_bytes = pow(1024, 3)
                 headers['Content-Length'] = gb_in_bytes * 100
+                time_log('StreamRequestHandler.handle_headers', 32)
             else:
+                time_log('StreamRequestHandler.handle_headers', 4)
                 if self.request_version == PROTOCOL_VERSION_V10:
                     pass
                 elif self.request_version == PROTOCOL_VERSION_V11:
                     headers['Connection'] = 'close'
+                time_log('StreamRequestHandler.handle_headers', 5)
 
             if self.headers.get('range'):
+                time_log('StreamRequestHandler.handle_headers', 6)
                 match = re.search(
                     'bytes=(\d+)-(\d+)?', self.headers['range'], re.IGNORECASE)
+                time_log('StreamRequestHandler.handle_headers', 61)
                 if match:
+                    time_log('StreamRequestHandler.handle_headers', 62)
                     start_range = int(match.group(1))
+                    time_log('StreamRequestHandler.handle_headers', 63)
                     if start_range != 0:
+                        time_log('StreamRequestHandler.handle_headers', 64)
                         response_code = 206
 
             if isinstance(
                 bridge.device,
                     pulseaudio_dlna.plugins.upnp.renderer.UpnpMediaRenderer):
+                time_log('StreamRequestHandler.handle_headers', 7)
                 content_features = UpnpContentFeatures(
                     flags=[
                         UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
@@ -287,76 +316,105 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                         UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
                         UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
                     ])
+                time_log('StreamRequestHandler.handle_headers', 71)
                 headers['contentFeatures.dlna.org'] = str(content_features)
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
                 headers['Content-Disposition'] = 'inline;'
+                time_log('StreamRequestHandler.handle_headers', 72)
 
         logger.debug('Sending header ({response_code}):\n{header}'.format(
             response_code=response_code,
             header=json.dumps(headers, indent=2),
         ))
+        time_log('StreamRequestHandler.handle_headers', 8)
         self.send_response(response_code)
         for name, value in headers.items():
+            time_log('StreamRequestHandler.handle_headers', 81)
             self.send_header(name, value)
+        time_log('StreamRequestHandler.handle_headers', 82)
         self.end_headers()
+        time_log('StreamRequestHandler.handle_headers', 83)
 
     def get_requested_item(self):
+        time_log('StreamRequestHandler.get_requested_item')
         settings = self._decode_settings(self.path)
+        time_log('StreamRequestHandler.get_requested_item', 1)
         if settings.get('type', None) == 'bridge':
+            time_log('StreamRequestHandler.get_requested_item', 2)
             for bridge in self.server.bridges:
                 if settings.get('udn') == bridge.device.udn:
+                    time_log('StreamRequestHandler.get_requested_item', 21)
                     return bridge
         elif settings.get('type', None) == 'image':
+            time_log('StreamRequestHandler.get_requested_item', 3)
             image_name = settings.get('name', None)
             if image_name:
+                time_log('StreamRequestHandler.get_requested_item', 31)
                 image_path = pkg_resources.resource_filename(
                     'pulseaudio_dlna.streamserver', os.path.join(
                         'images', os.path.basename(image_name)))
+                time_log('StreamRequestHandler.get_requested_item', 32)
                 try:
+                    time_log('StreamRequestHandler.get_requested_item', 33)
                     _type = pulseaudio_dlna.images.get_type_by_filepath(
                         image_path)
+                    time_log('StreamRequestHandler.get_requested_item', 34)
                     return _type(path=image_path, cached=True)
                 except (pulseaudio_dlna.images.UnknownImageExtension,
                         pulseaudio_dlna.images.ImageNotAccessible,
                         pulseaudio_dlna.images.MissingDependencies,
                         pulseaudio_dlna.images.IconNotFound) as e:
+                    time_log('StreamRequestHandler.get_requested_item', 35)
                     logger.error(e)
         elif settings.get('type', None) == 'sys-icon':
+            time_log('StreamRequestHandler.get_requested_item', 4)
             icon_name = settings.get('name', None)
             if icon_name:
+                time_log('StreamRequestHandler.get_requested_item', 41)
                 try:
+                    time_log('StreamRequestHandler.get_requested_item', 42)
                     return pulseaudio_dlna.images.get_icon_by_name(
                         os.path.basename(icon_name), size=512)
                 except (pulseaudio_dlna.images.UnknownImageExtension,
                         pulseaudio_dlna.images.ImageNotAccessible,
                         pulseaudio_dlna.images.MissingDependencies,
                         pulseaudio_dlna.images.IconNotFound) as e:
+                    time_log('StreamRequestHandler.get_requested_item', 43)
                     logger.error(e)
         return None
 
     def _decode_settings(self, path):
+        time_log('StreamRequestHandler._decode_settings')
         try:
+            time_log('StreamRequestHandler._decode_settings', 1)
             data_quoted = re.findall(r'/(.*?)/', path)[0]
+            time_log('StreamRequestHandler._decode_settings', 2)
             data_string = base64.b64decode(urllib.unquote(data_quoted))
+            time_log('StreamRequestHandler._decode_settings', 3)
             settings = {
                 k: v for k, v in re.findall('(.*?)="(.*?)",?', data_string)
             }
+            time_log('StreamRequestHandler._decode_settings', 4)
             logger.info(
                 'URL settings: {path} ({data_string})'.format(
                     path=path,
                     data_string=data_string))
+            time_log('StreamRequestHandler._decode_settings', 5)
             return settings
         except (TypeError, ValueError, IndexError):
             pass
         return {}
 
     def log_message(self, format, *args):
+        time_log('StreamRequestHandler.log_message', 1)
         args = [unicode(arg) for arg in args]
+        time_log('StreamRequestHandler.log_message', 2)
         logger.info('Got request from {host} - {args}' .format(
             host=self.address_string(),
             time=self.log_date_time_string(),
             args=','.join(args)))
+        args = time_log('StreamRequestHandler.log_message', 3)
 
 
 class StreamServer(SocketServer.TCPServer):
