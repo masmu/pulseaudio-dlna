@@ -127,21 +127,22 @@ class Application(object):
                 logger.error(e)
                 sys.exit(1)
 
-        if options['--encoder'] or options['--codec']:
-            codecs = (options['--encoder'] or options['--codec']).split(',')
-            if options['--encoder']:
-                logger.warning(
-                    'The option "--encoder" is deprecated. '
-                    'Please use "--codec" instead.')
+        if options['--encoder']:
+            logger.warning(
+                'The option "--encoder" is deprecated. '
+                'Please use "--codec" instead.')
+        codecs = (options['--encoder'] or options['--codec']).split(',')
+        if codecs:
             try:
                 pulseaudio_dlna.codecs.set_codecs(codecs)
             except pulseaudio_dlna.codecs.UnknownCodecException as e:
                 logger.error(e)
                 sys.exit(1)
 
-        if options['--bit-rate']:
+        bit_rate = options['--bit-rate']
+        if bit_rate:
             try:
-                pulseaudio_dlna.encoders.set_bit_rate(options['--bit-rate'])
+                pulseaudio_dlna.encoders.set_bit_rate(bit_rate)
             except (pulseaudio_dlna.encoders.InvalidBitrateException,
                     pulseaudio_dlna.encoders.UnsupportedBitrateException) as e:
                 logger.error(e)
