@@ -119,46 +119,40 @@ class Application(object):
         if not options['--encoder'] and not options['--bit-rate']:
             device_config = self.read_device_config()
 
-        if options['--encoder']:
-            for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
-                _type.ENABLED = False
-            for identifier in options['--encoder'].split(','):
-                try:
-                    pulseaudio_dlna.codecs.CODECS[identifier].ENABLED = True
-                    continue
-                except KeyError:
-                    logger.error('You specified an unknown codec! '
-                                 'Application terminates.')
-                    sys.exit(1)
-
-        if options['--bit-rate']:
+        if options['--encoder-backend']:
             try:
-                bit_rate = int(options['--bit-rate'])
-            except ValueError:
-                logger.error('Bit rates must be specified as integers!')
-                sys.exit(0)
-            for _type in pulseaudio_dlna.encoders.ENCODERS:
-                if hasattr(_type, 'DEFAULT_BIT_RATE') and \
-                   hasattr(_type, 'SUPPORTED_BIT_RATES'):
-                    if bit_rate in _type.SUPPORTED_BIT_RATES:
-                        _type.DEFAULT_BIT_RATE = bit_rate
-                    else:
-                        logger.error(
-                            'You specified an invalid bit rate '
-                            'for the {encoder}!'
-                            ' Supported bit rates '
-                            'are "{bit_rates}"! '
-                            'Application terminates.'.format(
-                                encoder=_type().__class__.__name__,
-                                bit_rates=','.join(
-                                    str(e) for e in _type.SUPPORTED_BIT_RATES
-                                )))
-                        sys.exit(0)
+                pulseaudio_dlna.codecs.set_backend(
+                    options['--encoder-backend'])
+            except pulseaudio_dlna.codecs.UnknownBackendException as e:
+                logger.error(e)
+                sys.exit(1)
+
+        if options['--encoder']:
+            logger.warning(
+                'The option "--encoder" is deprecated. '
+                'Please use "--codec" instead.')
+        codecs = (options['--encoder'] or options['--codec']).split(',')
+        if codecs:
+            try:
+                pulseaudio_dlna.codecs.set_codecs(codecs)
+            except pulseaudio_dlna.codecs.UnknownCodecException as e:
+                logger.error(e)
+                sys.exit(1)
+
+        bit_rate = options['--bit-rate']
+        if bit_rate:
+            try:
+                pulseaudio_dlna.encoders.set_bit_rate(bit_rate)
+            except (pulseaudio_dlna.encoders.InvalidBitrateException,
+                    pulseaudio_dlna.encoders.UnsupportedBitrateException) as e:
+                logger.error(e)
+                sys.exit(1)
 
         cover_mode = options['--cover-mode']
-        if cover_mode not in pulseaudio_dlna.covermodes.MODES:
-            logger.info('You specified an unknown cover mode! '
-                        'Application terminates.')
+        try:
+            pulseaudio_dlna.covermodes.validate(cover_mode)
+        except pulseaudio_dlna.covermodes.UnknownCoverModeException as e:
+            logger.error(e)
             sys.exit(1)
 
         logger.info('Encoder settings:')
@@ -251,8 +245,8 @@ class Application(object):
             logger.error(
                 'The SSDP listener could not bind to the port 1900/UDP. '
                 'Probably the port is in use by another application. '
-                'Terminate the application which is using the port or run this '
-                'application with the "--disable-ssdp-listener" flag.')
+                'Terminate the application which is using the port or run '
+                'this application with the "--disable-ssdp-listener" flag.')
             sys.exit(1)
 
         self.run_process(target=stream_server.run)
@@ -290,7 +284,8 @@ class Application(object):
             else:
                 logger.error(
                     'Your device config could not be found at any of the '
-                    'locations "{}"'.format(','.join(self.DEVICE_CONFIG_PATHS)))
+                    'locations "{}"'.format(
+                        ','.join(self.DEVICE_CONFIG_PATHS)))
                 sys.exit(1)
         else:
             new_config = obj_to_dict(holder.renderers)
@@ -331,15 +326,12 @@ class Application(object):
                os.access(config_file, os.R_OK):
                 with open(config_file, 'r') as h:
                     json_text = h.read().decode(self.ENCODING)
-                    logger.debug(
-                        'Device configuration:\n{}'.format(
-                            json_text))
+                    logger.debug('Device configuration:\n{}'.format(json_text))
                     json_text = json_text.replace('\n', '')
                     try:
                         device_config = json.loads(json_text)
                         logger.info(
-                            'Loaded device config "{}"'.format(
-                                config_file))
+                            'Loaded device config "{}"'.format(config_file))
                         return device_config
                     except ValueError:
                         logger.error(

@@ -38,6 +38,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
  * __master__ - (_2016-02-05_)
     - Fixed a bug where SSDP some messages could not get parsed correctly
     - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
+    - Added the `--encoder-backend` option (new optional dependencies `ffmpeg` `libav-tools`)
 
  * __0.4.7__ - (_2015-11-18_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
@@ -322,7 +323,8 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
 ### CLI ###
 
     Usage:
-        pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders>] [--bit-rate=<rate>]
+        pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders> | --codec <codec>] [--bit-rate=<rate>]
+                        [--encoder-backend <encoder-backend>]
                         [--filter-device=<filter-device>]
                         [--renderer-urls <urls>]
                         [--request-timeout <timeout>]
@@ -347,8 +349,9 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
         --update-device-config                 Same as --create-device-config but preserves your existing config from being overwritten
            --host=<host>                       Set the server ip.
         -p --port=<port>                       Set the server port [default: 8080].
-        -e --encoder=<encoders>                Set the audio encoder.
-                                               Possible encoders are:
+        -e --encoder=<encoders>                Deprecated alias for --codec
+        -c --codec=<codecs>                    Set the audio codec.
+                                               Possible codecs are:
                                                  - mp3   MPEG Audio Layer III (MP3)
                                                  - ogg   Ogg Vorbis (OGG)
                                                  - flac  Free Lossless Audio Codec (FLAC)
@@ -356,6 +359,11 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                  - opus  Opus Interactive Audio Codec (OPUS)
                                                  - aac   Advanced Audio Coding (AAC)
                                                  - l16   Linear PCM (L16)
+        --encoder-backend=<encoder-backend>    Set the backend for all encoders.
+                                               Possible backends are:
+                                                 - generic (default)
+                                                 - ffmpeg
+                                                 - avconv
         -b --bit-rate=<rate>                   Set the audio encoder's bitrate.
         --filter-device=<filter-device>        Set a name filter for devices which should be added.
                                                Devices which get discovered, but won't match the
