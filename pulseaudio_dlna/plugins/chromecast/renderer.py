@@ -51,10 +51,11 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self.set_rules_from_config(config)
         else:
             self.codecs = [
+                pulseaudio_dlna.codecs.WavCodec(),
+                pulseaudio_dlna.codecs.FlacCodec(),
                 pulseaudio_dlna.codecs.Mp3Codec(),
                 pulseaudio_dlna.codecs.AacCodec(),
                 pulseaudio_dlna.codecs.OggCodec(),
-                pulseaudio_dlna.codecs.WavCodec(),
             ]
 
     def _get_media_player(self):
