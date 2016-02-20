@@ -34,6 +34,7 @@ class LameMp3Encoder(BitRateMixin, BaseEncoder):
         BaseEncoder.__init__(self)
         self.bit_rate = bit_rate or LameMp3Encoder.DEFAULT_BIT_RATE
 
+        self._writes_header = False
         self._binary = 'lame'
         self._command = ['-b', str(self.bit_rate), '-r', '-']
 
@@ -41,6 +42,8 @@ class LameMp3Encoder(BitRateMixin, BaseEncoder):
 class SoxWavEncoder(BaseEncoder):
     def __init__(self):
         BaseEncoder.__init__(self)
+
+        self._writes_header = True
         self._binary = 'sox'
         self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
                          '-r', '44100', '-',
@@ -56,6 +59,7 @@ class SoxL16Encoder(SamplerateChannelMixin, BaseEncoder):
         self.sample_rate = sample_rate or 44100
         self.channels = channels or 2
 
+        self._writes_header = True
         self._binary = 'sox'
         self._command = ['-t', 'raw', '-b', '16', '-e', 'signed', '-c', '2',
                          '-r', '44100', '-',
@@ -76,6 +80,7 @@ class FaacAacEncoder(BitRateMixin, BaseEncoder):
         BaseEncoder.__init__(self)
         self.bit_rate = bit_rate or FaacAacEncoder.DEFAULT_BIT_RATE
 
+        self._writes_header = None
         self._binary = 'faac'
         self._command = ['-b', str(self.bit_rate),
                          '-X', '-P', '-o', '-', '-']
@@ -90,6 +95,7 @@ class OggencOggEncoder(BitRateMixin, BaseEncoder):
         BaseEncoder.__init__(self)
         self.bit_rate = bit_rate or OggencOggEncoder.DEFAULT_BIT_RATE
 
+        self._writes_header = True
         self._binary = 'oggenc'
         self._command = ['-b', str(self.bit_rate),
                          '-Q', '-r', '--ignorelength', '-']
@@ -99,6 +105,8 @@ class FlacFlacEncoder(BaseEncoder):
 
     def __init__(self, bit_rate=None):
         BaseEncoder.__init__(self)
+
+        self._writes_header = True
         self._binary = 'flac'
         self._command = ['-', '-c', '--channels', '2', '--bps', '16',
                          '--sample-rate', '44100',
@@ -113,6 +121,7 @@ class OpusencOpusEncoder(BitRateMixin, BaseEncoder):
         BaseEncoder.__init__(self)
         self.bit_rate = bit_rate or OpusencOpusEncoder.DEFAULT_BIT_RATE
 
+        self._writes_header = True
         self._binary = 'opusenc'
         self._command = ['--bitrate', str(self.bit_rate),
                          '--padding', '0', '--max-delay', '0',
