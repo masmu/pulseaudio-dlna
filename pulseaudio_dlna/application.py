@@ -131,10 +131,10 @@ class Application(object):
             logger.warning(
                 'The option "--encoder" is deprecated. '
                 'Please use "--codec" instead.')
-        codecs = (options['--encoder'] or options['--codec']).split(',')
+        codecs = (options['--encoder'] or options['--codec'])
         if codecs:
             try:
-                pulseaudio_dlna.codecs.set_codecs(codecs)
+                pulseaudio_dlna.codecs.set_codecs(codecs.split(','))
             except pulseaudio_dlna.codecs.UnknownCodecException as e:
                 logger.error(e)
                 sys.exit(1)
