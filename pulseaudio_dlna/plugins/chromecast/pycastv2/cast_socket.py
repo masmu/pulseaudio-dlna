@@ -36,10 +36,10 @@ class NoResponseException(Exception):
 
 
 class BaseChromecastSocket(object):
-    def __init__(self, ip):
+    def __init__(self, ip, port):
         self.sock = socket.socket()
         self.sock = ssl.wrap_socket(self.sock)
-        self.sock.connect((ip, 8009))
+        self.sock.connect((ip, port))
         self.agent = 'chromecast_v2'
 
     def _generate_message(self,
@@ -94,8 +94,8 @@ class BaseChromecastSocket(object):
 
 
 class CastSocket(BaseChromecastSocket):
-    def __init__(self, ip):
-        BaseChromecastSocket.__init__(self, ip)
+    def __init__(self, ip, port):
+        BaseChromecastSocket.__init__(self, ip, port)
         self.read_listeners = []
         self.send_listeners = []
         self.response_cache = {}

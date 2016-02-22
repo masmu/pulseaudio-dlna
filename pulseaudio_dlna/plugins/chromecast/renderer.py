@@ -36,13 +36,13 @@ CHROMECAST_MODEL_NAMES = ['Eureka Dongle', 'Chromecast Audio', 'Freebox Player M
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
-    def __init__(self, name, ip, udn, model_name, model_number, manufacturer):
+    def __init__(self, name, ip, port, udn, model_name, model_number, manufacturer):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
             self, udn, model_name, model_number, manufacturer)
         self.flavour = 'Chromecast'
         self.name = name
         self.ip = ip
-        self.port = 8009
+        self.port = port or 8009
         self.state = self.IDLE
         self.codecs = []
 
@@ -60,7 +60,8 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def _get_media_player(self):
         try:
-            return pycastv2.MediaPlayerController(self.ip, self.REQUEST_TIMEOUT)
+            return pycastv2.MediaPlayerController(
+                self.ip, self.port, self.REQUEST_TIMEOUT)
         except socket.error as e:
             if e.errno == 111:
                 logger.info(
@@ -164,6 +165,7 @@ class ChromecastRendererFactory(object):
             cast_device = type_(
                 soup.root.device.friendlyname.text,
                 ip,
+                None,
                 soup.root.device.udn.text,
                 soup.root.device.modelname.text,
                 None,

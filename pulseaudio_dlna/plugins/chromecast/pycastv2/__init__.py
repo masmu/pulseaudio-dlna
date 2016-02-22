@@ -117,9 +117,9 @@ class ChromecastController():
     APP_BACKDROP = 'E8C28D3C'
     WAIT_INTERVAL = 0.1
 
-    def __init__(self, ip, timeout=10):
+    def __init__(self, ip, port, timeout=10):
         self.timeout = timeout
-        self.socket = cast_socket.CastSocket(ip)
+        self.socket = cast_socket.CastSocket(ip, port)
         self.channel_controller = ChannelController(self.socket)
 
     def is_app_running(self, app_id):
@@ -216,8 +216,8 @@ class MediaPlayerController(ChromecastController):
     PLAYER_STATE_PAUSED = 'PAUSED'
     PLAYER_STATE_IDLE = 'IDLE'
 
-    def __init__(self, ip, timeout=10):
-        ChromecastController.__init__(self, ip, timeout)
+    def __init__(self, ip, port, timeout=10):
+        ChromecastController.__init__(self, ip, port, timeout)
         self.media_session_id = None
         self.current_time = None
         self.media = None
