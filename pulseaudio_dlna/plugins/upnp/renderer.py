@@ -417,7 +417,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 'Connection timeout.'.format(url=url))
             return 408
         finally:
-         	self._debug('stop', url, headers, data, response)
+            self._debug('stop', url, headers, data, response)
             self._after_stop()
 
     def pause(self):
