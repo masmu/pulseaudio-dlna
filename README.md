@@ -340,7 +340,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                         [--cover-mode <mode>]
                         [--debug]
                         [--fake-http10-content-length] [--fake-http-content-length]
-                        [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop]
+                        [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop] [--disable-workarounds]
         pulseaudio-dlna [--host <host>] [--create-device-config] [--update-device-config]
                         [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
         pulseaudio-dlna [-h | --help | --version]
