@@ -21,6 +21,7 @@ import cgi
 import requests
 import urlparse
 import logging
+import time
 import pkg_resources
 import BeautifulSoup
 
@@ -186,6 +187,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             'stop': 'xml/stop.xml',
             'pause': 'xml/pause.xml',
             'get_protocol_info': 'xml/get_protocol_info.xml',
+            'get_transport_info': 'xml/get_transport_info.xml',
         }
         for ident, path in self.xml_files.items():
             file_name = pkg_resources.resource_filename(
@@ -195,6 +197,8 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         return content
 
     def _debug(self, action, url, headers, data, response):
+        response_code = response.status_code if response else 'none'
+        response_text = response.text if response else 'none'
         logger.debug(
             'sending {action} to {url}:\n'
             ' - headers:\n{headers}\n'
@@ -204,10 +208,26 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 url=url,
                 headers=headers,
                 data=data,
-                status_code=response.status_code,
-                result=response.text))
+                status_code=response_code,
+                result=response_text))
 
-    def register(self, stream_url, codec=None, artist=None, title=None, thumb=None):
+    def _update_current_state(self):
+        start_time = time.time()
+        while time.time() - start_time <= self.REQUEST_TIMEOUT:
+            state = self.get_transport_info()
+            if state is None:
+                return False
+            elif state == 'PLAYING':
+                self.state = self.PLAYING
+                return True
+            elif state == 'STOPPED':
+                self.state = self.STOP
+                return True
+            time.sleep(1)
+        return False
+
+    def register(
+            self, stream_url, codec=None, artist=None, title=None, thumb=None):
         self._before_register()
         url = self.service_transport.control_url
         codec = codec or self.codec
@@ -244,10 +264,10 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             service_type=self.service_transport.service_type,
         )
         try:
+            response = None
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
-            self._debug('register', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
@@ -255,7 +275,43 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 'Connection timeout.'.format(url=url))
             return 408
         finally:
+            self._debug('register', url, headers, data, response)
             self._after_register()
+
+    def get_transport_info(self):
+        url = self.service_transport.control_url
+        headers = {
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
+            'SOAPAction': '"{service_type}#GetTransportInfo"'.format(
+                service_type=self.service_transport.service_type),
+        }
+        data = self.xml['get_transport_info'].format(
+            encoding=self.ENCODING,
+            service_type=self.service_transport.service_type,
+        )
+        try:
+            response = None
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
+            if response.status_code == 200:
+                soup = BeautifulSoup.BeautifulSoup(response.content)
+                try:
+                    return soup('currenttransportstate')[0].text
+                except IndexError:
+                    logger.error(
+                        'IndexError: No valid XML returned from {url}.'.format(
+                            url=url))
+                    return None
+        except requests.exceptions.Timeout:
+            logger.error(
+                'TRANSPORT_INFO command - Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return None
+        finally:
+            self._debug('get_transport_info', url, headers, data, response)
 
     def get_protocol_info(self):
         url = self.service_connection.control_url
@@ -271,6 +327,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             service_type=self.service_connection.service_type,
         )
         try:
+            response = None
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
@@ -287,18 +344,19 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                             self.add_mime_type(attributes[2])
                     self.check_for_codec_rules()
                     self.prioritize_codecs()
+                    return response.status_code
                 except IndexError:
                     logger.error(
                         'IndexError: No valid XML returned from {url}.'.format(
                             url=url))
+                    return 400
         except requests.exceptions.Timeout:
             logger.error(
                 'PROTOCOL_INFO command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
-
-        self._debug('get_protocol_info', url, headers, data, response)
-        return response.status_code
+        finally:
+            self._debug('get_protocol_info', url, headers, data, response)
 
     def play(self):
         self._before_play()
@@ -315,12 +373,12 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             service_type=self.service_transport.service_type,
         )
         try:
+            response = None
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
                 self.state = self.PLAYING
-            self._debug('play', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
@@ -328,6 +386,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 'Connection timeout.'.format(url=url))
             return 408
         finally:
+            self._debug('play', url, headers, data, response)
             self._after_play()
 
     def stop(self):
@@ -345,12 +404,12 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             service_type=self.service_transport.service_type,
         )
         try:
+            response = None
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
                 self.state = self.IDLE
-            self._debug('stop', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
@@ -358,6 +417,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 'Connection timeout.'.format(url=url))
             return 408
         finally:
+         	self._debug('stop', url, headers, data, response)
             self._after_stop()
 
     def pause(self):
@@ -374,22 +434,25 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             service_type=self.service_transport.service_type,
         )
         try:
+            response = None
             response = requests.post(
                 url, data=data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
                 self.state = self.PAUSE
-            self._debug('pause', url, headers, data, response)
             return response.status_code
         except requests.exceptions.Timeout:
             logger.error(
                 'PAUSE command - Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return 408
+        finally:
+            self._debug('pause', url, headers, data, response)
 
 
 class CoinedUpnpMediaRenderer(
-        pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, UpnpMediaRenderer):
+        pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin,
+        UpnpMediaRenderer):
 
     def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
         try:
@@ -398,7 +461,21 @@ class CoinedUpnpMediaRenderer(
                 self, stream_url, codec,
                 artist=artist, title=title, thumb=thumb)
             if return_code == 200:
-                return UpnpMediaRenderer.play(self)
+                if self._update_current_state():
+                    if self.state == self.STOP:
+                        logger.info(
+                            'Device state is stopped. Sending play command.')
+                        return UpnpMediaRenderer.play(self)
+                    elif self.state == self.PLAYING:
+                        logger.info(
+                            'Device state is playing. No need '
+                            'to send play command.')
+                        return return_code
+                else:
+                    logger.warning(
+                        'Updating device state unsuccessful! '
+                        'Sending play command.')
+                    return UpnpMediaRenderer.play(self)
             else:
                 logger.error('"{}" registering failed!'.format(self.name))
                 return return_code

@@ -29,6 +29,19 @@ logger = logging.getLogger('pulseaudio_dlna.covermodes')
 MODES = {}
 
 
+class UnknownCoverModeException(Exception):
+    def __init__(self, cover_mode):
+        Exception.__init__(
+            self,
+            'You specified an unknown cover mode "{}"!'.format(cover_mode)
+        )
+
+
+def validate(cover_mode):
+    if cover_mode not in MODES:
+        raise UnknownCoverModeException(cover_mode)
+
+
 class BaseCoverMode(object):
 
     IDENTIFIER = None

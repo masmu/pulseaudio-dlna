@@ -41,6 +41,8 @@ Depends: python2.7,
 Suggests: python-cairo (>=1.8.8),
           python-rsvg (>=2.32.0),
           python-gtk2 (>=2.24.0),
+          ffmpeg (>=2.5.10),
+          libav-tools (>=9.18),
 Homepage: https://github.com/masmu/pulseaudio-dlna
 Description: Stream audio to DLNA devices and Chromecasts
  Creates Pulseaudio sinks for DLNA devices or Chromecasts in your network
