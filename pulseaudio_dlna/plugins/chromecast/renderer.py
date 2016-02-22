@@ -31,7 +31,12 @@ import pulseaudio_dlna.codecs
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 
-CHROMECAST_MODEL_NAMES = ['Eureka Dongle', 'Chromecast Audio', 'Freebox Player Mini', 'Nexus Player']
+CHROMECAST_MODEL_NAMES = [
+    'Eureka Dongle',
+    'Chromecast Audio',
+    'Nexus Player',
+    'Freebox Player Mini',
+]
 
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
