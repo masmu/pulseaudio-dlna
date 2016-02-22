@@ -43,6 +43,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Increased the default http timeout to 15 seconds
     - Fixed a bug where manually added renderer could appear twice
     - Added device state polling for devices which start playing on their own
+    - Added the flac encoder for _Google Chromecast_
 
  * __0.4.7__ - (_2015-11-18_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
