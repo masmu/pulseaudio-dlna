@@ -60,6 +60,7 @@ setuptools.setup(
         "futures >= 2.1.6",
         "chardet >= 2.0.1",
         "netifaces >= 0.8",
+        "lxml >= 3",
     ],
     entry_points={
         "console_scripts": [

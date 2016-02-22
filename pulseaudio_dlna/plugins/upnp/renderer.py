@@ -27,6 +27,7 @@ import BeautifulSoup
 
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
+import pulseaudio_dlna.workarounds
 import pulseaudio_dlna.plugins.renderer
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.renderer')
@@ -227,6 +228,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def register(
             self, stream_url, codec=None, artist=None, title=None, thumb=None):
+        self._before_register()
         url = self.service_transport.control_url
         codec = codec or self.codec
         headers = {
@@ -274,6 +276,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return 408
         finally:
             self._debug('register', url, headers, data, response)
+            self._after_register()
 
     def get_transport_info(self):
         url = self.service_transport.control_url
@@ -356,6 +359,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self._debug('get_protocol_info', url, headers, data, response)
 
     def play(self):
+        self._before_play()
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
@@ -383,8 +387,10 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return 408
         finally:
             self._debug('play', url, headers, data, response)
+            self._after_play()
 
     def stop(self):
+        self._before_stop()
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
@@ -412,6 +418,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return 408
         finally:
             self._debug('stop', url, headers, data, response)
+            self._after_stop()
 
     def pause(self):
         url = self.service_transport.control_url
@@ -531,6 +538,13 @@ class UpnpMediaRendererFactory(object):
                     device.modelnumber.text if device.modelnumber else None,
                     device.manufacturer.text if device.manufacturer else None,
                     services)
+
+                if device.manufacturer and \
+                   device.manufacturer.text.lower() == 'yamaha corporation':
+                    upnp_device.workarounds.append(
+                        pulseaudio_dlna.workarounds.YamahaWorkaround(
+                            response.content))
+
                 return upnp_device
         except AttributeError:
             logger.error(

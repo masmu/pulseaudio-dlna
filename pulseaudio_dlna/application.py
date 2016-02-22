@@ -38,6 +38,7 @@ import pulseaudio_dlna.utils.network
 import pulseaudio_dlna.rules
 import pulseaudio_dlna.renderers
 import pulseaudio_dlna.discover
+import pulseaudio_dlna.workarounds
 
 logger = logging.getLogger('pulseaudio_dlna.application')
 
@@ -88,6 +89,9 @@ class Application(object):
 
         logger.info('Using localhost: {host}:{port}'.format(
             host=host, port=port))
+
+        if options['--disable-workarounds']:
+            pulseaudio_dlna.workarounds.BaseWorkaround.ENABLED = False
 
         if options['--ssdp-ttl']:
             ssdp_ttl = int(options['--ssdp-ttl'])

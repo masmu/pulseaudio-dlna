@@ -65,7 +65,8 @@ class RendererHolder(object):
             self.lock.acquire()
             for plugin in self.registered.values():
                 for device in plugin.lookup(locations):
-                    self._add_renderer(device.udn, device)
+                    if device.udn not in self.renderers:
+                        self._add_renderer(device.udn, device)
         finally:
             self.lock.release()
 

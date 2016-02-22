@@ -71,6 +71,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return None
 
     def play(self, url, artist=None, title=None, thumb=None):
+        self._before_play()
         cast = self._get_media_player()
         if cast is None:
             logger.error('No device was found!')
@@ -93,9 +94,11 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                          'Connection timeout.'.format(device=self.label))
             return 408
         finally:
+            self._after_play()
             cast.cleanup()
 
     def stop(self):
+        self._before_stop()
         cast = self._get_media_player()
         if cast is None:
             logger.error('No device was found!')
@@ -113,6 +116,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                          'Connection timeout.'.format(device=self.label))
             return 408
         finally:
+            self._after_stop()
             cast.cleanup()
 
     def pause(self):
