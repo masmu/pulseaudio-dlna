@@ -490,6 +490,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                 headers['contentFeatures.dlna.org'] = str(content_features)
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
+                headers['Content-Disposition'] = 'inline;'
 
         logger.debug('Sending header ({response_code}):\n{header}'.format(
             response_code=response_code,
@@ -573,7 +574,7 @@ class StreamServer(SocketServer.TCPServer):
     def run(self):
         self.allow_reuse_address = True
         SocketServer.TCPServer.__init__(
-            self, ('', self.port), StreamRequestHandler)
+            self, (self.ip or '', self.port), StreamRequestHandler)
 
         setproctitle.setproctitle('stream_server')
         self.serve_forever()
