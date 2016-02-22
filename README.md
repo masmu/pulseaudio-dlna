@@ -37,13 +37,13 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
  * __master__ - (_2016-02-22_)
     - Set Yamaha devices to the appropriate mode before playing (thanks to [hlchau](https://github.com/hlchau)) (new dependency: `python-lxml`)
-    - Fixed a bug where SSDP some messages could not get parsed correctly
+    - Fixed a bug where some SSDP messages could not get parsed correctly
     - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
     - Added the `--disable-workarounds` flag
-    - Added the `--encoder-backend` option (new optional dependencies `ffmpeg` `libav-tools`)
+    - Added the `--encoder-backend` option (new optional dependencies `ffmpeg`, `libav-tools`)
     - Removed shared encoder processes
-    - Increased the default http timeout to 15 seconds
-    - Fixed a bug where manually added renderer could appear twice
+    - Increased the default HTTP timeout to 15 seconds
+    - Fixed a bug where manually added renderers could appear twice
     - Added device state polling for devices which start playing on their own
     - Added the flac encoder for _Google Chromecast_
 
