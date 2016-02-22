@@ -21,6 +21,8 @@ import re
 import logging
 import threading
 
+import pulseaudio_dlna.plugins.chromecast.renderer
+
 logger = logging.getLogger('pulseaudio_dlna.renderers')
 
 
@@ -59,6 +61,19 @@ class RendererHolder(object):
             if match:
                 return match.group(1)
         return None
+
+    def process_cast_group(self, device_info):
+        device = pulseaudio_dlna.plugins.chromecast.renderer.CoinedChromecastRenderer(
+            name=device_info['name'],
+            ip=device_info['ip'],
+            port=device_info['port'],
+            udn=device_info['udn'],
+            model_name='Google Cast Group',
+            model_number=None,
+            manufacturer='Google Inc'
+        )
+        if device_info['udn'] not in self.renderers:
+            self._add_renderer(device_info['udn'], device)
 
     def process_locations(self, locations):
         try:

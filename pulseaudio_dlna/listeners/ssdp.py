@@ -30,7 +30,7 @@ import chardet
 
 import pulseaudio_dlna.discover
 
-logger = logging.getLogger('pulseaudio_dlna.listener')
+logger = logging.getLogger('pulseaudio_dlna.listeners.ssdp')
 
 
 class SSDPRequestHandler(SocketServer.BaseRequestHandler):

@@ -27,7 +27,8 @@ import json
 import os
 
 import pulseaudio_dlna
-import pulseaudio_dlna.listener
+import pulseaudio_dlna.listeners.ssdp
+import pulseaudio_dlna.listeners.mdns
 import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.plugins.chromecast
 import pulseaudio_dlna.encoders
@@ -96,7 +97,7 @@ class Application(object):
         if options['--ssdp-ttl']:
             ssdp_ttl = int(options['--ssdp-ttl'])
             pulseaudio_dlna.discover.RendererDiscover.SSDP_TTL = ssdp_ttl
-            pulseaudio_dlna.listener.SSDPListener.SSDP_TTL = ssdp_ttl
+            pulseaudio_dlna.listeners.ssdp.SSDPListener.SSDP_TTL = ssdp_ttl
 
         if options['--ssdp-mx']:
             ssdp_mx = int(options['--ssdp-mx'])
@@ -240,7 +241,7 @@ class Application(object):
             holder.process_locations(locations)
 
         try:
-            ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
+            ssdp_listener = pulseaudio_dlna.listeners.ssdp.ThreadedSSDPListener(
                 holder,
                 disable_ssdp_listener=disable_ssdp_listener,
                 disable_ssdp_search=disable_ssdp_search
@@ -253,9 +254,14 @@ class Application(object):
                 'this application with the "--disable-ssdp-listener" flag.')
             sys.exit(1)
 
+        mdns_listener = pulseaudio_dlna.listeners.mdns.MDNSListener(
+            holder,
+        )
+
         self.run_process(target=stream_server.run)
         self.run_process(target=pulse.run)
         self.run_process(target=ssdp_listener.run)
+        self.run_process(target=mdns_listener.run)
 
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
