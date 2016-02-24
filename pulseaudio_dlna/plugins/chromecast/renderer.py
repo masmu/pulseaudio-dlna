@@ -144,7 +144,7 @@ class CoinedChromecastRenderer(
 class ChromecastRendererFactory(object):
 
     @classmethod
-    def from_url(self, url, type_=ChromecastRenderer):
+    def from_url(cls, url, type_=ChromecastRenderer):
         try:
             response = requests.get(url)
             logger.debug('Response from chromecast device ({url})\n'
@@ -182,6 +182,40 @@ class ChromecastRendererFactory(object):
             return None
 
     @classmethod
-    def from_header(self, header, type_=ChromecastRenderer):
+    def from_header(cls, header, type_=ChromecastRenderer):
         if header.get('location', None):
-            return self.from_url(header['location'], type_)
+            return cls.from_url(header['location'], type_)
+
+    @classmethod
+    def from_mdns_info(cls, info, type_=ChromecastRenderer):
+
+        def _bytes2string(bytes):
+            ip = []
+            for b in bytes:
+                subnet = int(b.encode('hex'), 16)
+                ip.append(str(subnet))
+            return '.'.join(ip)
+
+        def _get_device_info(info):
+            try:
+                return {
+                    'udn': '{}:{}'.format('uuid', info.properties['id']),
+                    'type': info.properties['md'].decode('utf-8'),
+                    'name': info.properties['fn'].decode('utf-8'),
+                    'ip': _bytes2string(info.address),
+                    'port': int(info.port),
+                }
+            except (KeyError, AttributeError):
+                pass
+
+        device_info = _get_device_info(info)
+        device = type_(
+            name=device_info['name'],
+            ip=device_info['ip'],
+            port=device_info['port'],
+            udn=device_info['udn'],
+            model_name=device_info['type'],
+            model_number=None,
+            manufacturer='Google Inc.'
+        )
+        return device
