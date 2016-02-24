@@ -205,17 +205,18 @@ class ChromecastRendererFactory(object):
                     'ip': _bytes2string(info.address),
                     'port': int(info.port),
                 }
-            except (KeyError, AttributeError):
-                pass
+            except (KeyError, AttributeError, TypeError):
+                return None
 
         device_info = _get_device_info(info)
-        device = type_(
-            name=device_info['name'],
-            ip=device_info['ip'],
-            port=device_info['port'],
-            udn=device_info['udn'],
-            model_name=device_info['type'],
-            model_number=None,
-            manufacturer='Google Inc.'
-        )
-        return device
+        if device_info:
+            return type_(
+                name=device_info['name'],
+                ip=device_info['ip'],
+                port=device_info['port'],
+                udn=device_info['udn'],
+                model_name=device_info['type'],
+                model_number=None,
+                manufacturer='Google Inc.'
+            )
+        return None
