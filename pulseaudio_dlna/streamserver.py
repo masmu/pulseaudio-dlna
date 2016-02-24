@@ -410,10 +410,10 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         time_log('StreamRequestHandler.log_message', 1)
         args = [unicode(arg) for arg in args]
         time_log('StreamRequestHandler.log_message', 2)
-        logger.info('Got request from {host} - {args}' .format(
-            host=self.address_string(),
-            time=self.log_date_time_string(),
-            args=','.join(args)))
+        # logger.info('Got request from {host} - {args}' .format(
+        #     host=self.address_string(),
+        #     time=self.log_date_time_string(),
+        #     args=','.join(args)))
         args = time_log('StreamRequestHandler.log_message', 3)
 
 
