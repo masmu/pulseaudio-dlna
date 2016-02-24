@@ -80,7 +80,7 @@ class YamahaWorkaround(BaseWorkaround):
     YRC_CMD_GETPARAM = 'GetParam'
     YRC_BASEPATH_CONFIG = 'Config'
     YRC_BASEPATH_BASICSTATUS = 'Basic_Status'
-    YRC_BASEPATH_FEAURES = 'Feature_Existence'
+    YRC_BASEPATH_FEATURES = 'Feature_Existence'
     YRC_BASEPATH_INPUTNAMES = 'Name/Input'
     YRC_BASEPATH_POWER = 'Power_Control/Power'
     YRC_BASEPATH_SOURCE = 'Input/Input_Sel'
@@ -292,7 +292,7 @@ class YamahaWorkaround(BaseWorkaround):
         if (xml_response is None):
             return None, None
 
-        xml_features = xml_response.find(self.YRC_BASEPATH_FEAURES)
+        xml_features = xml_response.find(self.YRC_BASEPATH_FEATURES)
         if (xml_features is None):
             logger.debug('Failed to find feature description')
             return None, None
@@ -305,7 +305,7 @@ class YamahaWorkaround(BaseWorkaround):
         #    all input sources
         # 2. Each feature is enclosed by a tag along with context information
         #    depending on the XML path:
-        #    - YRC_BASEPATH_FEAURES: availability and/or support
+        #    - YRC_BASEPATH_FEATURES: availability and/or support
         #      (0 == not supported, 1 == supported)
         #    - YRC_BASEPATH_INPUTNAMES: input/source name
         #    Every feature is a input source, if it does not contain the
