@@ -151,7 +151,7 @@ class BaseRenderer(object):
 
         missing_encoders = []
         for codec in self.codecs:
-            for encoder_type in codec.ENCODERS:
+            for identifier, encoder_type in codec.ENCODERS.items():
                 encoder = encoder_type()
                 if encoder.binary not in missing_encoders:
                     missing_encoders.append(encoder.binary)
