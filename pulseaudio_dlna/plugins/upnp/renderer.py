@@ -23,7 +23,7 @@ import urlparse
 import logging
 import time
 import pkg_resources
-import BeautifulSoup
+import lxml
 
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
@@ -297,13 +297,12 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 url, data=data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
-                soup = BeautifulSoup.BeautifulSoup(response.content)
                 try:
-                    return soup('currenttransportstate')[0].text
-                except IndexError:
+                    xml_root = lxml.etree.fromstring(response.content)
+                    return xml_root.find('.//{*}CurrentTransportState').text
+                except:
                     logger.error(
-                        'IndexError: No valid XML returned from {url}.'.format(
-                            url=url))
+                        'No valid XML returned from {url}.'.format(url=url))
                     return None
         except requests.exceptions.Timeout:
             logger.error(
@@ -332,10 +331,10 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 url, data=data.encode(self.ENCODING),
                 headers=headers, timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
-                soup = BeautifulSoup.BeautifulSoup(response.content)
                 try:
+                    xml_root = lxml.etree.fromstring(response.content)
                     self.codecs = []
-                    sinks = soup('sink')[0].text
+                    sinks = xml_root.find('.//{*}Sink').text
                     logger.debug('Got the following mime types: "{}"'.format(
                         sinks))
                     for sink in sinks.split(','):
@@ -345,10 +344,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                     self.check_for_codec_rules()
                     self.prioritize_codecs()
                     return response.status_code
-                except IndexError:
+                except:
                     logger.error(
-                        'IndexError: No valid XML returned from {url}.'.format(
-                            url=url))
+                        'No valid XML returned from {url}.'.format(url=url))
                     return 400
         except requests.exceptions.Timeout:
             logger.error(
@@ -510,46 +508,54 @@ class UpnpMediaRendererFactory(object):
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
-        soup = BeautifulSoup.BeautifulSoup(
-            response.content,
-            convertEntities=BeautifulSoup.BeautifulSoup.HTML_ENTITIES)
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
-        services = []
         try:
-            for device in soup.root.findAll('device'):
-                if device.devicetype.text not in self.ST_HEADERS:
+            xml_root = lxml.etree.fromstring(response.content)
+            services = []
+            for device in xml_root.findall('.//{*}device'):
+                device_type = device.find('{*}deviceType')
+                device_friendlyname = device.find('{*}friendlyName')
+                device_udn = device.find('{*}UDN')
+                device_modelname = device.find('{*}modelName')
+                device_modelnumber = device.find('{*}modelNumber')
+                device_manufacturer = device.find('{*}manufacturer')
+
+                if device_type.text not in self.ST_HEADERS:
                     continue
-                for service in device.findAll('service'):
+
+                for service in device.findall('.//{*}service'):
                     service = {
-                        'service_type': service.servicetype.text,
-                        'service_id': service.serviceid.text,
-                        'scpd_url': service.scpdurl.text,
-                        'control_url': service.controlurl.text,
-                        'eventsub_url': service.eventsuburl.text,
+                        'service_type': service.find('{*}serviceType').text,
+                        'service_id': service.find('{*}serviceId').text,
+                        'scpd_url': service.find('{*}SCPDURL').text,
+                        'control_url': service.find('{*}controlURL').text,
+                        'eventsub_url': service.find('{*}eventSubURL').text,
                     }
                     services.append(service)
+
                 upnp_device = type_(
-                    device.friendlyname.text,
+                    device_friendlyname.text,
                     ip,
                     port,
-                    device.udn.text,
-                    device.modelname.text if device.modelname else None,
-                    device.modelnumber.text if device.modelnumber else None,
-                    device.manufacturer.text if device.manufacturer else None,
+                    device_udn.text,
+                    device_modelname.text if (
+                        device_modelname is not None) else None,
+                    device_modelnumber.text if (
+                        device_modelnumber is not None) else None,
+                    device_manufacturer.text if (
+                        device_manufacturer is not None) else None,
                     services)
 
-                if device.manufacturer and \
-                   device.manufacturer.text.lower() == 'yamaha corporation':
+                if device_manufacturer is not None and \
+                   device_manufacturer.text.lower() == 'yamaha corporation':
                     upnp_device.workarounds.append(
                         pulseaudio_dlna.workarounds.YamahaWorkaround(
                             response.content))
 
                 return upnp_device
-        except AttributeError:
-            logger.error(
-                'No valid XML returned from {url}.'.format(url=url))
-            logger.info(response.content)
+        except:
+            logger.error('No valid XML returned from {url}.'.format(url=url))
             return None
 
     @classmethod
