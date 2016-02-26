@@ -21,7 +21,7 @@ import logging
 import threading
 import requests
 
-logger = logging.getLogger('pulseaudio_dlna.renderers')
+logger = logging.getLogger('pulseaudio_dlna.holder')
 
 
 class Holder(object):

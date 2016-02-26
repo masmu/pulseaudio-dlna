@@ -40,8 +40,6 @@ import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.utils.network
 import pulseaudio_dlna.rules
-import pulseaudio_dlna.renderers
-import pulseaudio_dlna.discover
 import pulseaudio_dlna.workarounds
 
 logger = logging.getLogger('pulseaudio_dlna.application')
