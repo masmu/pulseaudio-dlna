@@ -31,7 +31,7 @@ import pulseaudio_dlna.rules
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 
 
-class NoSuitableEncoderFoundException():
+class NoEncoderFoundException():
     pass
 
 
@@ -166,7 +166,7 @@ class BaseRenderer(object):
                     [codec.mime_type for codec in self.codecs]),
                 encoders=','.join(missing_encoders),
             ))
-        raise NoSuitableEncoderFoundException()
+        raise NoEncoderFoundException()
 
     @property
     def flavour(self):

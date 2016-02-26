@@ -40,14 +40,9 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
     def __init__(self, *args):
         pulseaudio_dlna.plugins.BasePlugin.__init__(self, *args)
 
-    def lookup(self, locations):
-        devices = []
-        for url in locations:
-            device = UpnpMediaRendererFactory.from_url(
-                url, CoinedUpnpMediaRenderer)
-            if device is not None:
-                devices.append(device)
-        return devices
+    def lookup(self, url, xml):
+        return UpnpMediaRendererFactory.from_xml(
+            url, xml, CoinedUpnpMediaRenderer)
 
     def discover(self, holder, ttl=None):
         self.holder = holder

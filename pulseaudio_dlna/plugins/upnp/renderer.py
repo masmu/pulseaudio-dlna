@@ -480,7 +480,7 @@ class CoinedUpnpMediaRenderer(
         except requests.exceptions.ConnectionError:
             logger.error('The device refused the connection!')
             return 404
-        except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
+        except pulseaudio_dlna.plugins.renderer.NoEncoderFoundException:
             logger.error('Could not find a suitable encoder!')
             return 500
 
@@ -499,19 +499,23 @@ class UpnpMediaRendererFactory(object):
             logger.debug('Response from UPNP device ({url})\n'
                          '{response}'.format(url=url, response=response.text))
         except requests.exceptions.Timeout:
-            logger.info(
+            logger.warning(
                 'Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return None
         except requests.exceptions.ConnectionError:
-            logger.info(
+            logger.warning(
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
+        return cls.from_xml(url, response.content, type_)
+
+    @classmethod
+    def from_xml(cls, url, xml, type_=UpnpMediaRenderer):
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
-            xml_root = lxml.etree.fromstring(response.content)
+            xml_root = lxml.etree.fromstring(xml)
             services = []
             for device in xml_root.findall('.//{*}device'):
                 device_type = device.find('{*}deviceType')
@@ -535,23 +539,23 @@ class UpnpMediaRendererFactory(object):
                     services.append(service)
 
                 upnp_device = type_(
-                    device_friendlyname.text,
-                    ip,
+                    unicode(device_friendlyname.text),
+                    unicode(ip),
                     port,
-                    device_udn.text,
-                    device_modelname.text if (
+                    unicode(device_udn.text),
+                    unicode(device_modelname.text) if (
                         device_modelname is not None) else None,
-                    device_modelnumber.text if (
+                    unicode(device_modelnumber.text) if (
                         device_modelnumber is not None) else None,
-                    device_manufacturer.text if (
+                    unicode(device_manufacturer.text) if (
                         device_manufacturer is not None) else None,
-                    services)
+                    services,
+                )
 
                 if device_manufacturer is not None and \
                    device_manufacturer.text.lower() == 'yamaha corporation':
                     upnp_device.workarounds.append(
-                        pulseaudio_dlna.workarounds.YamahaWorkaround(
-                            response.content))
+                        pulseaudio_dlna.workarounds.YamahaWorkaround(xml))
 
                 return upnp_device
         except:

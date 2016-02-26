@@ -31,17 +31,10 @@ import pulseaudio_dlna.codecs
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 
-CHROMECAST_MODEL_NAMES = [
-    'Eureka Dongle',
-    'Chromecast Audio',
-    'Nexus Player',
-    'Freebox Player Mini',
-]
-
-
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
-    def __init__(self, name, ip, port, udn, model_name, model_number, manufacturer):
+    def __init__(
+            self, name, ip, port, udn, model_name, model_number, manufacturer):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
             self, udn, model_name, model_number, manufacturer)
         self.flavour = 'Chromecast'
@@ -130,20 +123,30 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
 
 class CoinedChromecastRenderer(
-        pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin, ChromecastRenderer):
+        pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin,
+        ChromecastRenderer):
 
     def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
         try:
             stream_url = url or self.get_stream_url()
             return ChromecastRenderer.play(
                 self, stream_url, artist=artist, title=title, thumb=thumb)
-        except pulseaudio_dlna.plugins.renderer.NoSuitableEncoderFoundException:
+        except pulseaudio_dlna.plugins.renderer.NoEncoderFoundException:
             return 500
 
 
 class ChromecastRendererFactory(object):
 
-    NOTIFICATION_TYPES = ['urn:dial-multiscreen-org:device:dial:1']
+    NOTIFICATION_TYPES = [
+        'urn:dial-multiscreen-org:device:dial:1',
+    ]
+
+    CHROMECAST_MODELS = [
+        'Eureka Dongle',
+        'Chromecast Audio',
+        'Nexus Player',
+        'Freebox Player Mini',
+    ]
 
     @classmethod
     def from_url(cls, url, type_=ChromecastRenderer):
@@ -152,19 +155,23 @@ class ChromecastRendererFactory(object):
             logger.debug('Response from chromecast device ({url})\n'
                          '{response}'.format(url=url, response=response.text))
         except requests.exceptions.Timeout:
-            logger.info(
+            logger.warning(
                 'Could no connect to {url}. '
                 'Connection timeout.'.format(url=url))
             return None
         except requests.exceptions.ConnectionError:
-            logger.info(
+            logger.warning(
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
+        return cls.from_xml(url, response.content, type_)
+
+    @classmethod
+    def from_xml(cls, url, xml, type_=ChromecastRenderer):
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
-            xml_root = lxml.etree.fromstring(response.content)
+            xml_root = lxml.etree.fromstring(xml)
             for device in xml_root.findall('.//{*}device'):
                 device_type = device.find('{*}deviceType')
                 device_friendlyname = device.find('{*}friendlyName')
@@ -175,7 +182,7 @@ class ChromecastRendererFactory(object):
                 if device_type.text not in cls.NOTIFICATION_TYPES:
                     continue
 
-                if device_modelname.text.strip() not in CHROMECAST_MODEL_NAMES:
+                if device_modelname.text.strip() not in cls.CHROMECAST_MODELS:
                     logger.info(
                         'The Chromecast seems not to be an original one. '
                         'Model name: "{}" Skipping device ...'.format(
@@ -183,13 +190,14 @@ class ChromecastRendererFactory(object):
                     return None
 
                 cast_device = type_(
-                    device_friendlyname.text,
-                    ip,
+                    unicode(device_friendlyname.text),
+                    unicode(ip),
                     None,
-                    device_udn.text,
-                    device_modelname.text,
+                    unicode(device_udn.text),
+                    unicode(device_modelname.text),
                     None,
-                    device_manufacturer.text)
+                    unicode(device_manufacturer.text),
+                )
                 return cast_device
         except:
             logger.error('No valid XML returned from {url}.'.format(url=url))

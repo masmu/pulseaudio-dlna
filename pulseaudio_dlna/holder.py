@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 
 import logging
 import threading
+import requests
 
 logger = logging.getLogger('pulseaudio_dlna.renderers')
 
@@ -52,8 +53,25 @@ class Holder(object):
         logger.info('Holder.search() quit')
 
     def lookup(self, locations):
+        xmls = {}
+        for url in locations:
+            try:
+                response = requests.get(url, timeout=5)
+                logger.debug('Response from device ({url})\n{response}'.format(
+                    url=url, response=response.text))
+                xmls[url] = response.content
+            except requests.exceptions.Timeout:
+                logger.warning(
+                    'Could no connect to {url}. '
+                    'Connection timeout.'.format(url=url))
+            except requests.exceptions.ConnectionError:
+                logger.warning(
+                    'Could no connect to {url}. '
+                    'Connection refused.'.format(url=url))
+
         for plugin in self.plugins:
-            for device in plugin.lookup(locations):
+            for url, xml in xmls.items():
+                device = plugin.lookup(url, xml)
                 self.add_device(device)
 
     def add_device(self, device):
