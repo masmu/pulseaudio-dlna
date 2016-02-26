@@ -352,11 +352,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         return {}
 
     def log_message(self, format, *args):
-        args = [unicode(arg) for arg in args]
-        logger.info('Got request from {host} - {args}' .format(
-            host=self.address_string(),
-            time=self.log_date_time_string(),
-            args=','.join(args)))
+        pass
 
 
 class StreamServer(SocketServer.TCPServer):

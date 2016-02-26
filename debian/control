@@ -19,7 +19,6 @@ Architecture: all
 Depends: python2.7,
          python-dbus (>=1.2.0),
          python-setuptools (>=3.3),
-         python-beautifulsoup (>=3.2.1),
          python-docopt (>=0.6.1),
          python-requests (>=2.2.1),
          python-setproctitle (>=1.0.1),
