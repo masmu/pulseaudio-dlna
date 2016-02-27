@@ -34,6 +34,10 @@ class TimeoutException(Exception):
     pass
 
 
+class LaunchErrorException(Exception):
+    pass
+
+
 class ChannelController(object):
     def __init__(self, socket):
         self.request_id = 1
@@ -88,6 +92,8 @@ class ChannelController(object):
                 self.socket.send(commands.PongCommand())
             elif response_type == 'CLOSE':
                 raise ChannelClosedException()
+            elif response_type == 'LAUNCH_ERROR':
+                raise LaunchErrorException()
 
     def is_channel_connected(self, destination_id):
         return destination_id in self.channels
@@ -156,7 +162,10 @@ class ChromecastController():
             self.socket.send(commands.CloseCommand(destination_id=False))
             start_time = time.time()
             while not self.is_app_running(None):
-                self.socket.send_and_wait(commands.StatusCommand())
+                try:
+                    self.socket.send_and_wait(commands.StatusCommand())
+                except cast_socket.ConnectionTerminatedException:
+                    break
                 current_time = time.time()
                 if current_time - start_time > self.timeout:
                     raise TimeoutException()

@@ -84,6 +84,11 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 thumb=thumb)
             self.state = self.PLAYING
             return 200
+        except pycastv2.LaunchErrorException:
+            logger.info('The media player could not be launched. '
+                        'Maybe the chromecast is still closing a running '
+                        'player instance. Try again in 30 seconds.')
+            return 503
         except pycastv2.ChannelClosedException:
             logger.info('Connection was closed. I guess another '
                         'client is attached to it.')
