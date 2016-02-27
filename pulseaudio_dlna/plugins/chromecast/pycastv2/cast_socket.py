@@ -35,6 +35,10 @@ class NoResponseException(Exception):
     pass
 
 
+class ConnectionTerminatedException(Exception):
+    pass
+
+
 class BaseChromecastSocket(object):
     def __init__(self, ip, port):
         self.sock = socket.socket()
@@ -69,11 +73,16 @@ class BaseChromecastSocket(object):
         formatted_message = size + message.SerializeToString()
         self.sock.sendall(formatted_message)
 
-    def read(self):
+    def read(self, timeout=10):
         try:
+            start_time = time.time()
             data = str('')
             while len(data) < 4:
+                if time.time() - start_time > timeout:
+                    raise NoResponseException()
                 part = self.sock.recv(1)
+                if len(part) == 0:
+                    raise ConnectionTerminatedException()
                 data += part
             length = struct.unpack('>I', data)[0]
             data = str('')
@@ -194,9 +203,11 @@ class CastSocket(BaseChromecastSocket):
 
     def _is_socket_readable(self):
         try:
-            r, w, e = select.select([self.sock], [], [], 0)
+            r, w, e = select.select([self.sock], [], [self.sock], 0)
             for sock in r:
                 return True
+            for sock in e:
+                raise NoResponseException()
         except socket.error:
-            pass
+            raise NoResponseException()
         return False
