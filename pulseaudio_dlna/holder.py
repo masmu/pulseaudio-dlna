@@ -79,26 +79,33 @@ class Holder(object):
             return
         try:
             self.lock.acquire()
-            if device.udn not in self.devices and device.validate():
-                config = self.device_config.get(device.udn, None)
-                device.activate(config)
-                if self.stream_ip and self.stream_port:
-                    device.set_server_location(
-                        self.stream_ip, self.stream_port)
-                if device.name not in self.device_filter:
-                    if config:
-                        logger.info(
-                            'Using device configuration:\n{}'.format(
-                                device.__str__(True)))
-                    self.devices[device.udn] = device
-                    if self.message_queue:
-                        self.message_queue.put({
-                            'type': 'add_device',
-                            'device': device
-                        })
-                else:
-                    logger.info('Skipped the device "{name}" ...'.format(
-                        name=device.label))
+            if device.udn not in self.devices:
+                if device.validate():
+                    config = self.device_config.get(device.udn, None)
+                    device.activate(config)
+                    if self.stream_ip and self.stream_port:
+                        device.set_server_location(
+                            self.stream_ip, self.stream_port)
+                    if device.name not in self.device_filter:
+                        if config:
+                            logger.info(
+                                'Using device configuration:\n{}'.format(
+                                    device.__str__(True)))
+                        self.devices[device.udn] = device
+                        if self.message_queue:
+                            self.message_queue.put({
+                                'type': 'add_device',
+                                'device': device
+                            })
+                    else:
+                        logger.info('Skipped the device "{name}" ...'.format(
+                            name=device.label))
+            else:
+                if device.validate():
+                    self.message_queue.put({
+                        'type': 'update_device',
+                        'device': device
+                    })
         finally:
             self.lock.release()
 

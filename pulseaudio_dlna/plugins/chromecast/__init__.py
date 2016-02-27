@@ -49,9 +49,11 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
 
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
     def _on_device_added(self, mdns_info):
-        return ChromecastRendererFactory.from_mdns_info(
-            mdns_info, CoinedChromecastRenderer)
+        if mdns_info:
+            return ChromecastRendererFactory.from_mdns_info(
+                mdns_info, CoinedChromecastRenderer)
+        return None
 
     @pulseaudio_dlna.plugins.BasePlugin.remove_device_after
-    def _on_device_removed(self, device_info):
+    def _on_device_removed(self, mdns_info):
         return None

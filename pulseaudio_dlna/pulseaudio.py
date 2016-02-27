@@ -750,3 +750,17 @@ class PulseWatcher(PulseAudio):
             self.share_bridges()
             logger.info('Removed the device "{name}".'.format(
                 name=device.name))
+
+    def update_device(self, device):
+        for bridge in self.bridges:
+            if bridge.device == device:
+                if bridge.device.ip != device.ip or \
+                   bridge.device.port != device.port:
+                    bridge.device.ip = device.ip
+                    bridge.device.port = device.port
+                    logger.info(
+                        'Updated device "{}" - New settings: {}:{}'.format(
+                            device.label, device.ip, device.port))
+                    self.update()
+                    self.share_bridges()
+                    break
