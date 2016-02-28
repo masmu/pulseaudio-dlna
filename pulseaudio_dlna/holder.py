@@ -92,20 +92,13 @@ class Holder(object):
                                 'Using device configuration:\n{}'.format(
                                     device.__str__(True)))
                         self.devices[device.udn] = device
-                        if self.message_queue:
-                            self.message_queue.put({
-                                'type': 'add_device',
-                                'device': device
-                            })
+                        self._send_message('add_device', device)
                     else:
                         logger.info('Skipped the device "{name}" ...'.format(
                             name=device.label))
             else:
                 if device.validate():
-                    self.message_queue.put({
-                        'type': 'update_device',
-                        'device': device
-                    })
+                    self._send_message('update_device', device)
         finally:
             self.lock.release()
 
@@ -115,11 +108,14 @@ class Holder(object):
         try:
             self.lock.acquire()
             device = self.devices[device_id]
-            if self.message_queue:
-                self.message_queue.put({
-                    'type': 'remove_device',
-                    'device': device
-                })
+            self._send_message('remove_device', device)
             del self.devices[device_id]
         finally:
             self.lock.release()
+
+    def _send_message(self, _type, device):
+        if self.message_queue:
+            self.message_queue.put({
+                'type': _type,
+                'device': device
+            })
