@@ -575,7 +575,7 @@ class PulseWatcher(PulseAudio):
     def switch_back(self, bridge, reason):
         title = 'Device "{label}"'.format(label=bridge.device.label)
         if self.fallback_sink:
-            message = ('{reason}. Your streams were switched '
+            message = ('{reason} Your streams were switched '
                        'back to <b>{name}</b>'.format(
                            reason=reason,
                            name=pulseaudio_dlna.utils.encoding.encode_default(
@@ -684,15 +684,20 @@ class PulseWatcher(PulseAudio):
                     logger.info(
                         'Instructing the device "{}" to stop ...'.format(
                             bridge.device.label))
-                    return_code = bridge.device.stop()
+                    return_code, message = bridge.device.stop()
                     if return_code == 200:
-                        logger.info('The device "{}" was stopped.'.format(
-                            bridge.device.label))
+                        logger.info(
+                            'The device "{}" was stopped.'.format(
+                                bridge.device.label))
                     else:
+                        if not message:
+                            message = 'Unknown reason.'
                         logger.error(
-                            'The device "{}" failed to stop! ({})'.format(
+                            'The device "{}" failed to stop! ({}) - {}'.format(
                                 bridge.device.label,
-                                return_code))
+                                return_code,
+                                message))
+                        self.switch_back(bridge, message)
                     continue
             if bridge.sink.object_path == sink_path:
                 if bridge.device.state == bridge.device.IDLE or \
@@ -701,20 +706,21 @@ class PulseWatcher(PulseAudio):
                         'Instructing the device "{}" to play ...'.format(
                             bridge.device.label))
                     artist, title, thumb = self.cover_mode.get(bridge)
-                    return_code = bridge.device.play(
+                    return_code, message = bridge.device.play(
                         artist=artist, title=title, thumb=thumb)
                     if return_code == 200:
-                        logger.info('The device "{}" is playing.'.format(
-                            bridge.device.label))
+                        logger.info(
+                            'The device "{}" is playing.'.format(
+                                bridge.device.label))
                     else:
+                        if not message:
+                            message = 'Unknown reason.'
                         logger.error(
-                            'The device "{}" failed to play! ({})'.format(
+                            'The device "{}" failed to play! ({}) - {}'.format(
                                 bridge.device.label,
-                                return_code))
-                        self.switch_back(
-                            bridge,
-                            'The device failed to start playing. ({})'.format(
-                                return_code))
+                                return_code,
+                                message))
+                        self.switch_back(bridge, message)
         return False
 
     def add_device(self, device):

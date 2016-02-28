@@ -58,7 +58,7 @@ class RadioLauncher():
     def _stop(self, name, flavour=None):
         device = self._get_device(name, flavour)
         if device:
-            return_code = device.stop()
+            return_code, message = device.stop()
             if return_code == 200:
                 logger.info(
                     'The device "{name}" was instructed to stop'.format(
@@ -80,7 +80,7 @@ class RadioLauncher():
         codec = self._get_codec(url)
         device = self._get_device(name, flavour)
         if device:
-            return_code = device.play(url, codec, artist, title, thumb)
+            return_code, message = device.play(url, codec, artist, title, thumb)
             if return_code == 200:
                 logger.info(
                     'The device "{name}" was instructed to play'.format(

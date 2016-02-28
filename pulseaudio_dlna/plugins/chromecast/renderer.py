@@ -56,26 +56,11 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pulseaudio_dlna.codecs.FlacCodec(),
             ]
 
-    def _get_media_player(self):
-        try:
-            return pycastv2.MediaPlayerController(
-                self.ip, self.port, self.REQUEST_TIMEOUT)
-        except socket.error as e:
-            if e.errno == 111:
-                logger.info(
-                    'The chromecast refused the connection. Perhaps it '
-                    'does not support the castv2 protocol.')
-            else:
-                traceback.print_exc()
-            return None
-
     def play(self, url, artist=None, title=None, thumb=None):
         self._before_play()
-        cast = self._get_media_player()
-        if cast is None:
-            logger.error('No device was found!')
-            return 500
         try:
+            cast = pycastv2.MediaPlayerController(
+                self.ip, self.port, self.REQUEST_TIMEOUT)
             cast.load(
                 url,
                 mime_type=self.codec.mime_type,
@@ -83,42 +68,58 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 title=title,
                 thumb=thumb)
             self.state = self.PLAYING
-            return 200
+            return 200, None
         except pycastv2.LaunchErrorException:
-            logger.info('The media player could not be launched. '
-                        'Maybe the chromecast is still closing a running '
-                        'player instance. Try again in 30 seconds.')
-            return 503
+            message = 'The media player could not be launched. ' \
+                      'Maybe the chromecast is still closing a ' \
+                      'running player instance. Try again in 30 seconds.'
+            return 503, message
         except pycastv2.ChannelClosedException:
-            logger.info('Connection was closed. I guess another '
-                        'client is attached to it.')
-            return 423
+            message = 'Connection was closed. I guess another ' \
+                      'client is attached to it.'
+            return 423, message
         except pycastv2.TimeoutException:
-            logger.error('PLAY command - Could no connect to "{device}". '
-                         'Connection timeout.'.format(device=self.label))
-            return 408
+            message = 'PLAY command - Could no connect to "{device}". ' \
+                      'Connection timeout.'.format(device=self.label)
+            return 408, message
+        except socket.error as e:
+            if e.errno == 111:
+                message = 'The chromecast refused the connection. ' \
+                          'Perhaps it does not support the castv2 ' \
+                          'protocol.'
+                return 403, message
+            else:
+                traceback.print_exc()
+            return 500, None
         finally:
             self._after_play()
             cast.cleanup()
 
     def stop(self):
         self._before_stop()
-        cast = self._get_media_player()
-        if cast is None:
-            logger.error('No device was found!')
-            return 500
         try:
+            cast = pycastv2.MediaPlayerController(
+                self.ip, self.port, self.REQUEST_TIMEOUT)
             self.state = self.IDLE
             cast.disconnect_application()
-            return 200
+            return 200, None
         except pycastv2.ChannelClosedException:
-            logger.info('Connection was closed. I guess another '
-                        'client is attached to it.')
-            return 423
+            message = 'Connection was closed. I guess another ' \
+                      'client is attached to it.'
+            return 423, message
         except pycastv2.TimeoutException:
-            logger.error('STOP command - Could no connect to "{device}". '
-                         'Connection timeout.'.format(device=self.label))
-            return 408
+            message = 'STOP command - Could no connect to "{device}". ' \
+                      'Connection timeout.'.format(device=self.label)
+            return 408, message
+        except socket.error as e:
+            if e.errno == 111:
+                message = 'The chromecast refused the connection. ' \
+                          'Perhaps it does not support the castv2 ' \
+                          'protocol.'
+                return 403, message
+            else:
+                traceback.print_exc()
+            return 500, None
         finally:
             self._after_stop()
             cast.cleanup()
@@ -137,7 +138,7 @@ class CoinedChromecastRenderer(
             return ChromecastRenderer.play(
                 self, stream_url, artist=artist, title=title, thumb=thumb)
         except pulseaudio_dlna.plugins.renderer.NoEncoderFoundException:
-            return 500
+            return 500, 'Could not find a suitable encoder!'
 
 
 class ChromecastRendererFactory(object):
