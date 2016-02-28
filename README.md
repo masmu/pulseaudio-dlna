@@ -35,7 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2016-02-22_)
+ * __master__ - (_2016-02-28_)
     - Set Yamaha devices to the appropriate mode before playing (thanks to [hlchau](https://github.com/hlchau)) (new dependency: `python-lxml`)
     - Fixed a bug where some SSDP messages could not get parsed correctly
     - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
@@ -46,6 +46,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where manually added renderers could appear twice
     - Added device state polling for devices which start playing on their own
     - Added the flac encoder for _Google Chromecast_
+    - Added support for _Google Cast Groups_ (new dependency `python-zeroconf`)
     - Removed dependency `python-beautifulsoup`
 
  * __0.4.7__ - (_2015-11-18_)
@@ -231,6 +232,7 @@ will get installed if you install it via the PPA.
 - python-chardet
 - python-netifaces
 - python-lxml
+- python-zeroconf
 - vorbis-tools
 - sox
 - lame
@@ -240,7 +242,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
