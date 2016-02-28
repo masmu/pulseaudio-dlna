@@ -480,7 +480,6 @@ class PulseWatcher(PulseAudio):
 
         self.bridges = []
         self.bridges_shared = bridges_shared
-        self.devices = []
 
         self.message_queue = message_queue
         self.blocked_devices = []
@@ -551,13 +550,6 @@ class PulseWatcher(PulseAudio):
         bridges_copy = [bridge for bridge in copy.deepcopy(self.bridges)]
         del self.bridges_shared[:]
         self.bridges_shared.extend(bridges_copy)
-
-    def update_bridges(self):
-        for device in self.devices:
-            if device not in self.bridges:
-                sink = self.create_null_sink(
-                    device.short_name, device.label)
-                self.bridges.append(PulseBridge(sink, device))
 
     def cleanup(self):
         for bridge in self.bridges:
@@ -726,7 +718,6 @@ class PulseWatcher(PulseAudio):
         return False
 
     def add_device(self, device):
-        self.devices.append(device)
         sink = self.create_null_sink(
             device.short_name, device.label)
         self.bridges.append(PulseBridge(sink, device))
@@ -736,7 +727,6 @@ class PulseWatcher(PulseAudio):
             name=device.name, flavour=device.flavour))
 
     def remove_device(self, device):
-        self.devices.remove(device)
         bridge_index_to_remove = None
         for index, bridge in enumerate(self.bridges):
             if bridge.device == device:
