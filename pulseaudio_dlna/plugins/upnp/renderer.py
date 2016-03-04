@@ -29,7 +29,6 @@ import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.workarounds
 import pulseaudio_dlna.plugins.renderer
-import pulseaudio_dlna.utils.encoding
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.renderer')
 
@@ -511,8 +510,6 @@ class UpnpMediaRendererFactory(object):
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
-        hex = pulseaudio_dlna.utils.encoding._bytes2hex(response.content)
-        logger.info(hex)
         soup = BeautifulSoup.BeautifulSoup(
             response.content,
             convertEntities=BeautifulSoup.BeautifulSoup.HTML_ENTITIES)
