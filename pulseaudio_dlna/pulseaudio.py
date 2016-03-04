@@ -410,7 +410,7 @@ class PulseStreamFactory(object):
                 client=PulseClientFactory.new(bus, client_path),
             )
         except dbus.exceptions.DBusException:
-            logger.error('PulseStreamFactory - Could not get "{object_path}" from dbus.'.format(
+            logger.debug('PulseStreamFactory - Could not get "{object_path}" from dbus.'.format(
                 object_path=stream_path))
             return None
 
