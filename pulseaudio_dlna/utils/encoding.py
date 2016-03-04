@@ -20,25 +20,39 @@ from __future__ import unicode_literals
 import logging
 import sys
 import locale
+import chardet
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.utils.encoding')
 
 
-def encode_default(bytes):
+class NotBytesException(Exception):
+    def __init__(self, var):
+        Exception.__init__(
+            self,
+            'The specified variable is {}". '
+            'Must be bytes.'.format(type(var))
+        )
+
+
+def decode_default(bytes):
+    if type(bytes) is not str:
+        raise NotBytesException(bytes)
+    guess = chardet.detect(bytes)
     encodings = {
         'sys.stdout.encoding': sys.stdout.encoding,
         'locale.getpreferredencoding': locale.getpreferredencoding(),
+        'chardet.detect': guess['encoding'],
         'utf-8': 'utf-8',
         'latin1': 'latin1',
     }
     for encoding in encodings.values():
         if encoding and encoding != 'ascii':
             try:
-                return bytes.encode(encoding)
+                return bytes.decode(encoding)
             except UnicodeDecodeError:
                 continue
     try:
-        return bytes.encode('ascii', errors='replace')
+        return bytes.decode('ascii', errors='replace')
     except UnicodeDecodeError:
         logger.error(
             'Decoding failed using the following encodings: "{}"'.format(
@@ -49,6 +63,8 @@ def encode_default(bytes):
 
 
 def _bytes2hex(bytes, seperator=':'):
+    if type(bytes) is not str:
+        raise NotBytesException(bytes)
     return seperator.join('{:02x}'.format(ord(b)) for b in bytes)
 
 

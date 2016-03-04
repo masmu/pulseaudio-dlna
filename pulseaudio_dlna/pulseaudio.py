@@ -18,7 +18,6 @@
 from __future__ import unicode_literals
 
 import sys
-import locale
 import dbus
 import dbus.mainloop.glib
 import os
@@ -194,7 +193,7 @@ class PulseBaseFactory(object):
         for i, b in enumerate(byte_array):
             if not (i == len(byte_array) - 1 and int(b) == 0):
                 name += struct.pack('<B', b)
-        return pulseaudio_dlna.utils.encoding.encode_default(name)
+        return pulseaudio_dlna.utils.encoding.decode_default(name)
 
 
 class PulseClientFactory(PulseBaseFactory):
