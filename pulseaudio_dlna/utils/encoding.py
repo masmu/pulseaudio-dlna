@@ -17,16 +17,32 @@
 
 from __future__ import unicode_literals
 
+import logging
 import sys
 import locale
 
+logger = logging.getLogger('pulseaudio_dlna.plugins.utils.encoding')
+
 
 def encode_default(bytes):
+    encodings = [
+        sys.stdout.encoding,
+        locale.getpreferredencoding(),
+        'utf-8',
+        'latin1',
+    ]
+    for encoding in encodings:
+        if encoding and encoding != 'ascii':
+            try:
+                return bytes.encode(encoding)
+            except UnicodeDecodeError:
+                continue
     try:
-        return bytes.encode(
-            sys.stdout.encoding or locale.getpreferredencoding() or 'ascii',
-            errors='replace')
+        return bytes.encode('ascii', errors='replace')
     except UnicodeDecodeError:
+        logger.error(
+            'Decoding failed using the following encodings: "{}"'.format(
+                ','.join(encodings)))
         return 'Unknown'
 
 
