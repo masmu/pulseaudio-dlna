@@ -25,3 +25,11 @@ def encode_default(bytes):
     return bytes.encode(
         sys.stdout.encoding or locale.getpreferredencoding() or 'ascii',
         errors='replace')
+
+
+def _bytes2hex(bytes, seperator=':'):
+    return seperator.join('{:02x}'.format(ord(b)) for b in bytes)
+
+
+def _hex2bytes(hex, seperator=':'):
+    return b''.join(chr(int(h, 16)) for h in hex.split(seperator))
