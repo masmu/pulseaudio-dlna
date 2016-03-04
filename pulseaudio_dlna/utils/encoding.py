@@ -25,13 +25,13 @@ logger = logging.getLogger('pulseaudio_dlna.plugins.utils.encoding')
 
 
 def encode_default(bytes):
-    encodings = [
-        sys.stdout.encoding,
-        locale.getpreferredencoding(),
-        'utf-8',
-        'latin1',
-    ]
-    for encoding in encodings:
+    encodings = {
+        'sys.stdout.encoding': sys.stdout.encoding,
+        'locale.getpreferredencoding': locale.getpreferredencoding(),
+        'utf-8': 'utf-8',
+        'latin1': 'latin1',
+    }
+    for encoding in encodings.values():
         if encoding and encoding != 'ascii':
             try:
                 return bytes.encode(encoding)
@@ -42,7 +42,9 @@ def encode_default(bytes):
     except UnicodeDecodeError:
         logger.error(
             'Decoding failed using the following encodings: "{}"'.format(
-                ','.join(encodings)))
+                ','.join(
+                    ['{}:{}'.format(f, e) for f, e in encodings.items()]
+                )))
         return 'Unknown'
 
 
