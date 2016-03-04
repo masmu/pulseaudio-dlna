@@ -72,7 +72,7 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
         for thread in threads:
             thread.join()
 
-        logger.info('DLNAPlugin.discover() quit')
+        logger.debug('DLNAPlugin.discover() quit')
 
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
     def _on_device_response(self, header, address):

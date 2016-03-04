@@ -50,7 +50,7 @@ class Holder(object):
         for thread in threads:
             thread.join()
 
-        logger.info('Holder.search() quit')
+        logger.debug('Holder.search() quit')
 
     def lookup(self, locations):
         xmls = {}

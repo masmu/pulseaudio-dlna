@@ -69,8 +69,8 @@ class MDNSListener(object):
             except KeyboardInterrupt:
                 break
         self.zeroconf.close()
-        logger.info('MDNSListener.run() quit')
+        logger.debug('MDNSListener.run() quit')
 
     def shutdown(self):
-        logger.info('MDNSListener.shutdown()')
+        logger.debug('MDNSListener.shutdown()')
         self.__running = False

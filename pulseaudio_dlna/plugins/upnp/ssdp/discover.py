@@ -72,7 +72,7 @@ class SSDPDiscover(object):
                 thread.start()
             for thread in threads:
                 thread.join()
-        logger.info('SSDPDiscover.search() quit')
+        logger.debug('SSDPDiscover.search() quit')
 
     def _search(self, host, ssdp_ttl, ssdp_mx, ssdp_amount):
         sock = socket.socket(
