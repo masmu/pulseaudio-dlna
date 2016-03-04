@@ -22,9 +22,12 @@ import locale
 
 
 def encode_default(bytes):
-    return bytes.encode(
-        sys.stdout.encoding or locale.getpreferredencoding() or 'ascii',
-        errors='replace')
+    try:
+        return bytes.encode(
+            sys.stdout.encoding or locale.getpreferredencoding() or 'ascii',
+            errors='replace')
+    except UnicodeDecodeError:
+        return 'Unknown'
 
 
 def _bytes2hex(bytes, seperator=':'):
