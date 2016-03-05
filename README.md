@@ -47,6 +47,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added device state polling for devices which start playing on their own
     - Added the flac encoder for _Google Chromecast_
     - Removed dependency `python-beautifulsoup`
+    - Fixed a bug where bytes were not decoded properly to unicode
 
  * __0.4.7__ - (_2015-11-18_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
