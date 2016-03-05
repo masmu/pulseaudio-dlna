@@ -18,7 +18,6 @@
 from __future__ import unicode_literals
 
 import sys
-import locale
 import dbus
 import dbus.mainloop.glib
 import os
@@ -194,7 +193,7 @@ class PulseBaseFactory(object):
         for i, b in enumerate(byte_array):
             if not (i == len(byte_array) - 1 and int(b) == 0):
                 name += struct.pack('<B', b)
-        return name.decode(locale.getpreferredencoding())
+        return pulseaudio_dlna.utils.encoding.decode_default(name)
 
 
 class PulseClientFactory(PulseBaseFactory):
@@ -586,8 +585,7 @@ class PulseWatcher(PulseAudio):
             message = ('{reason}. Your streams were switched '
                        'back to <b>{name}</b>'.format(
                            reason=reason,
-                           name=pulseaudio_dlna.utils.encoding.encode_default(
-                               self.fallback_sink.label)))
+                           name=self.fallback_sink.label))
             pulseaudio_dlna.notification.show(title, message)
 
             self._block_device_handling(bridge.sink.object_path)
