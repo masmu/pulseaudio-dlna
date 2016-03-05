@@ -46,6 +46,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where manually added renderers could appear twice
     - Added device state polling for devices which start playing on their own
     - Added the flac encoder for _Google Chromecast_
+    - Fixed a bug where bytes were not decoded properly to unicode
 
  * __0.4.7__ - (_2015-11-18_)
     - The application can now co-exist with other applications which are using the port 1900/udp (thanks to [klaernie](https://github.com/klaernie))
