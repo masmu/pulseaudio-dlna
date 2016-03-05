@@ -35,7 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2016-02-22_)
+ * __master__ - (_2016-02-28_)
     - Set Yamaha devices to the appropriate mode before playing (thanks to [hlchau](https://github.com/hlchau)) (new dependency: `python-lxml`)
     - Fixed a bug where some SSDP messages could not get parsed correctly
     - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
@@ -46,6 +46,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where manually added renderers could appear twice
     - Added device state polling for devices which start playing on their own
     - Added the flac encoder for _Google Chromecast_
+    - Added support for _Google Cast Groups_ (new dependency `python-zeroconf`)
     - Removed dependency `python-beautifulsoup`
     - Fixed a bug where bytes were not decoded properly to unicode
 
@@ -232,6 +233,7 @@ will get installed if you install it via the PPA.
 - python-chardet
 - python-netifaces
 - python-lxml
+- python-zeroconf
 - vorbis-tools
 - sox
 - lame
@@ -241,7 +243,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -657,9 +659,11 @@ Panasonic TX-50CX680W                                                           
 Yamaha CRX-N560D <sup>4</sup>                                                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 RaidSonic IB-MP401Air                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Medion P85055                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Onkyo TX-NR727 <sup>7</sup>                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR509                                                                  | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :no_entry_sign:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Onkyo TX-NR616                                                                  | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Onkyo TX-NR616 <sup>7</sup>                                                     | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR646                                                                  | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Onkyo TX-8050                                                                   | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :white_check_mark:
 Denon AVR-3808                                                                  | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Denon AVR-X4000                                                                 | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:
 DAMAI Airmusic                                                                  | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
@@ -678,6 +682,8 @@ Freebox Player Mini                                                             
 <sup>5</sup>) Was reported to buffer really long. Approximately 45 seconds
 
 <sup>6</sup>) Was reported to have issues being discovered. Make sure you run the latest firmware
+
+<sup>7</sup>) Reported to need a `--request-timeout` of 15 seconds to work. Since _0.5.0_ the timeout is set to that value.
 
 ## Supported encoders ##
 

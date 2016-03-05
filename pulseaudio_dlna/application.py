@@ -22,22 +22,23 @@ import signal
 import setproctitle
 import logging
 import sys
-import socket
 import json
 import os
 
 import pulseaudio_dlna
-import pulseaudio_dlna.listener
+import pulseaudio_dlna.holder
 import pulseaudio_dlna.plugins.upnp
+import pulseaudio_dlna.plugins.upnp.ssdp
+import pulseaudio_dlna.plugins.upnp.ssdp.listener
+import pulseaudio_dlna.plugins.upnp.ssdp.discover
 import pulseaudio_dlna.plugins.chromecast
+import pulseaudio_dlna.plugins.chromecast.mdns
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.covermodes
 import pulseaudio_dlna.streamserver
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.utils.network
 import pulseaudio_dlna.rules
-import pulseaudio_dlna.renderers
-import pulseaudio_dlna.discover
 import pulseaudio_dlna.workarounds
 
 logger = logging.getLogger('pulseaudio_dlna.application')
@@ -66,8 +67,9 @@ class Application(object):
                 process.terminate()
         sys.exit(0)
 
-    def run_process(self, target):
-        process = multiprocessing.Process(target=target)
+    def run_process(self, target, *args, **kwargs):
+        process = multiprocessing.Process(
+            target=target, args=args, kwargs=kwargs)
         self.processes.append(process)
         process.start()
 
@@ -93,23 +95,31 @@ class Application(object):
         if options['--disable-workarounds']:
             pulseaudio_dlna.workarounds.BaseWorkaround.ENABLED = False
 
+        if options['--disable-ssdp-listener']:
+            pulseaudio_dlna.plugins.upnp.ssdp.listener.\
+                SSDPListener.DISABLE_SSDP_LISTENER = True
+
         if options['--ssdp-ttl']:
             ssdp_ttl = int(options['--ssdp-ttl'])
-            pulseaudio_dlna.discover.RendererDiscover.SSDP_TTL = ssdp_ttl
-            pulseaudio_dlna.listener.SSDPListener.SSDP_TTL = ssdp_ttl
+            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+                SSDPDiscover.SSDP_TTL = ssdp_ttl
+            pulseaudio_dlna.plugins.upnp.ssdp.listener.\
+                SSDPListener.SSDP_TTL = ssdp_ttl
 
         if options['--ssdp-mx']:
             ssdp_mx = int(options['--ssdp-mx'])
-            pulseaudio_dlna.discover.RendererDiscover.SSDP_MX = ssdp_mx
+            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+                SSDPDiscover.SSDP_MX = ssdp_mx
 
         if options['--ssdp-amount']:
             ssdp_amount = int(options['--ssdp-amount'])
-            pulseaudio_dlna.discover.RendererDiscover.SSDP_AMOUNT = ssdp_amount
+            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+                SSDPDiscover.SSDP_AMOUNT = ssdp_amount
 
         msearch_port = options.get('--msearch-port', None)
         if msearch_port != 'random':
-            pulseaudio_dlna.discover.RendererDiscover.MSEARCH_PORT = \
-                int(msearch_port)
+            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+                SSDPDiscover.MSEARCH_PORT = int(msearch_port)
 
         if options['--create-device-config']:
             self.create_device_config()
@@ -189,25 +199,14 @@ class Application(object):
         if options['--disable-switchback']:
             disable_switchback = True
 
-        disable_ssdp_listener = False
-        if options['--disable-ssdp-listener']:
-            disable_ssdp_listener = True
-
         disable_device_stop = False
         if options['--disable-device-stop']:
             disable_device_stop = True
 
-        try:
-            stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
-                host, port, bridges, message_queue,
-                fake_http_content_length=fake_http_content_length,
-            )
-        except socket.error:
-            logger.error(
-                'The streaming server could not bind to your specified port '
-                '({port}). Perhaps this is already in use? Application '
-                'terminates.'.format(port=port))
-            sys.exit(1)
+        stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
+            host, port, bridges, message_queue,
+            fake_http_content_length=fake_http_content_length,
+        )
 
         pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
             bridges, message_queue,
@@ -221,10 +220,8 @@ class Application(object):
             device_filter = options['--filter-device'].split(',')
 
         locations = None
-        disable_ssdp_search = False
         if options['--renderer-urls']:
             locations = options['--renderer-urls'].split(',')
-            disable_ssdp_search = True
 
         if options['--request-timeout']:
             request_timeout = float(options['--request-timeout'])
@@ -232,30 +229,21 @@ class Application(object):
                 pulseaudio_dlna.plugins.renderer.BaseRenderer.REQUEST_TIMEOUT = \
                     request_timeout
 
-        holder = pulseaudio_dlna.renderers.RendererHolder(
-            self.PLUGINS, stream_server.ip, stream_server.port, message_queue,
-            device_filter, device_config)
+        holder = pulseaudio_dlna.holder.Holder(
+            plugins=self.PLUGINS,
+            stream_ip=stream_server.ip,
+            stream_port=stream_server.port,
+            message_queue=message_queue,
+            device_filter=device_filter,
+            device_config=device_config
+        )
 
+        self.run_process(stream_server.run)
+        self.run_process(pulse.run)
         if locations:
-            holder.process_locations(locations)
-
-        try:
-            ssdp_listener = pulseaudio_dlna.listener.ThreadedSSDPListener(
-                holder,
-                disable_ssdp_listener=disable_ssdp_listener,
-                disable_ssdp_search=disable_ssdp_search
-            )
-        except socket.error:
-            logger.error(
-                'The SSDP listener could not bind to the port 1900/UDP. '
-                'Probably the port is in use by another application. '
-                'Terminate the application which is using the port or run '
-                'this application with the "--disable-ssdp-listener" flag.')
-            sys.exit(1)
-
-        self.run_process(target=stream_server.run)
-        self.run_process(target=pulse.run)
-        self.run_process(target=ssdp_listener.run)
+            self.run_process(holder.lookup, locations)
+        else:
+            self.run_process(holder.search)
 
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
@@ -266,9 +254,10 @@ class Application(object):
             process.join()
 
     def create_device_config(self, update=False):
-        holder = pulseaudio_dlna.renderers.RendererHolder(self.PLUGINS)
-        discover = pulseaudio_dlna.discover.RendererDiscover(holder)
-        discover.search()
+        logger.info('Starting discovery ...')
+        holder = pulseaudio_dlna.holder.Holder(plugins=self.PLUGINS)
+        holder.search(ttl=5)
+        logger.info('Discovery complete.')
 
         def device_filter(obj):
             if hasattr(obj, 'to_json'):
@@ -283,7 +272,7 @@ class Application(object):
         if update:
             existing_config = self.read_device_config()
             if existing_config:
-                new_config = obj_to_dict(holder.renderers)
+                new_config = obj_to_dict(holder.devices)
                 new_config.update(existing_config)
             else:
                 logger.error(
@@ -292,7 +281,7 @@ class Application(object):
                         ','.join(self.DEVICE_CONFIG_PATHS)))
                 sys.exit(1)
         else:
-            new_config = obj_to_dict(holder.renderers)
+            new_config = obj_to_dict(holder.devices)
         json_text = json.dumps(new_config, indent=4)
 
         for config_path in reversed(self.DEVICE_CONFIG_PATHS):
@@ -306,7 +295,7 @@ class Application(object):
                 with open(config_file, 'w') as h:
                     h.write(json_text.encode(self.ENCODING))
                     logger.info('Found the following devices:')
-                    for device in holder.renderers.values():
+                    for device in holder.devices.values():
                         logger.info('{name} ({flavour})'.format(
                             name=device.name, flavour=device.flavour))
                         for codec in device.codecs:

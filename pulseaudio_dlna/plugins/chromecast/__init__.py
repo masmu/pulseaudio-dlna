@@ -17,25 +17,43 @@
 
 from __future__ import unicode_literals
 
+import logging
+
 import pulseaudio_dlna.plugins
-import pulseaudio_dlna.plugins.chromecast.renderer
+import pulseaudio_dlna.plugins.chromecast.mdns
+from pulseaudio_dlna.plugins.chromecast.renderer import (
+    CoinedChromecastRenderer, ChromecastRendererFactory)
+
+logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast')
 
 
 class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
+
+    GOOGLE_MDNS_DOMAIN = '_googlecast._tcp.local.'
+
     def __init__(self, *args):
         pulseaudio_dlna.plugins.BasePlugin.__init__(self, *args)
-        self.st_headers = ['urn:dial-multiscreen-org:service:dial:1']
 
-    def lookup(self, locations):
-        renderers = []
-        for url in locations:
-            renderer = pulseaudio_dlna.plugins.chromecast.renderer.ChromecastRendererFactory.from_url(
-                url, pulseaudio_dlna.plugins.chromecast.renderer.CoinedChromecastRenderer)
-            if renderer is not None:
-                renderers.append(renderer)
-        return renderers
+    def lookup(self, url, xml):
+        return ChromecastRendererFactory.from_xml(
+            url, xml, CoinedChromecastRenderer)
 
-    def create_device(self, header):
-        return pulseaudio_dlna.plugins.chromecast.renderer.ChromecastRendererFactory.from_header(
-            header,
-            pulseaudio_dlna.plugins.chromecast.renderer.CoinedChromecastRenderer)
+    def discover(self, holder, ttl=None):
+        self.holder = holder
+        mdns = pulseaudio_dlna.plugins.chromecast.mdns.MDNSListener(
+            domain=self.GOOGLE_MDNS_DOMAIN,
+            cb_on_device_added=self._on_device_added,
+            cb_on_device_removed=self._on_device_removed
+        )
+        mdns.run(ttl)
+
+    @pulseaudio_dlna.plugins.BasePlugin.add_device_after
+    def _on_device_added(self, mdns_info):
+        if mdns_info:
+            return ChromecastRendererFactory.from_mdns_info(
+                mdns_info, CoinedChromecastRenderer)
+        return None
+
+    @pulseaudio_dlna.plugins.BasePlugin.remove_device_after
+    def _on_device_removed(self, mdns_info):
+        return None

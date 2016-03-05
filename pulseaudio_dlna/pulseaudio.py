@@ -99,8 +99,10 @@ class PulseAudio(object):
                 server_address = self._get_bus_address()
                 return dbus.connection.Connection(server_address)
             except dbus.exceptions.DBusException:
-                logger.error('PulseAudio seems not to be running or PulseAudio'
-                             ' dbus module could not be loaded.')
+                logger.critical(
+                    'PulseAudio seems not to be running or PulseAudio '
+                    'dbus module could not be loaded. The application '
+                    'cannot work properly!')
                 sys.exit(1)
 
     def update(self):
@@ -479,7 +481,6 @@ class PulseWatcher(PulseAudio):
 
         self.bridges = []
         self.bridges_shared = bridges_shared
-        self.devices = []
 
         self.message_queue = message_queue
         self.blocked_devices = []
@@ -551,13 +552,6 @@ class PulseWatcher(PulseAudio):
         del self.bridges_shared[:]
         self.bridges_shared.extend(bridges_copy)
 
-    def update_bridges(self):
-        for device in self.devices:
-            if device not in self.bridges:
-                sink = self.create_null_sink(
-                    device.short_name, device.label)
-                self.bridges.append(PulseBridge(sink, device))
-
     def cleanup(self):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
@@ -582,7 +576,7 @@ class PulseWatcher(PulseAudio):
     def switch_back(self, bridge, reason):
         title = 'Device "{label}"'.format(label=bridge.device.label)
         if self.fallback_sink:
-            message = ('{reason}. Your streams were switched '
+            message = ('{reason} Your streams were switched '
                        'back to <b>{name}</b>'.format(
                            reason=reason,
                            name=self.fallback_sink.label))
@@ -690,15 +684,20 @@ class PulseWatcher(PulseAudio):
                     logger.info(
                         'Instructing the device "{}" to stop ...'.format(
                             bridge.device.label))
-                    return_code = bridge.device.stop()
+                    return_code, message = bridge.device.stop()
                     if return_code == 200:
-                        logger.info('The device "{}" was stopped.'.format(
-                            bridge.device.label))
+                        logger.info(
+                            'The device "{}" was stopped.'.format(
+                                bridge.device.label))
                     else:
+                        if not message:
+                            message = 'Unknown reason.'
                         logger.error(
-                            'The device "{}" failed to stop! ({})'.format(
+                            'The device "{}" failed to stop! ({}) - {}'.format(
                                 bridge.device.label,
-                                return_code))
+                                return_code,
+                                message))
+                        self.switch_back(bridge, message)
                     continue
             if bridge.sink.object_path == sink_path:
                 if bridge.device.state == bridge.device.IDLE or \
@@ -707,24 +706,24 @@ class PulseWatcher(PulseAudio):
                         'Instructing the device "{}" to play ...'.format(
                             bridge.device.label))
                     artist, title, thumb = self.cover_mode.get(bridge)
-                    return_code = bridge.device.play(
+                    return_code, message = bridge.device.play(
                         artist=artist, title=title, thumb=thumb)
                     if return_code == 200:
-                        logger.info('The device "{}" is playing.'.format(
-                            bridge.device.label))
+                        logger.info(
+                            'The device "{}" is playing.'.format(
+                                bridge.device.label))
                     else:
+                        if not message:
+                            message = 'Unknown reason.'
                         logger.error(
-                            'The device "{}" failed to play! ({})'.format(
+                            'The device "{}" failed to play! ({}) - {}'.format(
                                 bridge.device.label,
-                                return_code))
-                        self.switch_back(
-                            bridge,
-                            'The device failed to start playing. ({})'.format(
-                                return_code))
+                                return_code,
+                                message))
+                        self.switch_back(bridge, message)
         return False
 
     def add_device(self, device):
-        self.devices.append(device)
         sink = self.create_null_sink(
             device.short_name, device.label)
         self.bridges.append(PulseBridge(sink, device))
@@ -734,7 +733,6 @@ class PulseWatcher(PulseAudio):
             name=device.name, flavour=device.flavour))
 
     def remove_device(self, device):
-        self.devices.remove(device)
         bridge_index_to_remove = None
         for index, bridge in enumerate(self.bridges):
             if bridge.device == device:
@@ -748,3 +746,17 @@ class PulseWatcher(PulseAudio):
             self.share_bridges()
             logger.info('Removed the device "{name}".'.format(
                 name=device.name))
+
+    def update_device(self, device):
+        for bridge in self.bridges:
+            if bridge.device == device:
+                if bridge.device.ip != device.ip or \
+                   bridge.device.port != device.port:
+                    bridge.device.ip = device.ip
+                    bridge.device.port = device.port
+                    logger.info(
+                        'Updated device "{}" - New settings: {}:{}'.format(
+                            device.label, device.ip, device.port))
+                    self.update()
+                    self.share_bridges()
+                    break

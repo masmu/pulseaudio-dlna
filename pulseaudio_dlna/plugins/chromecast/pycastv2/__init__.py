@@ -34,6 +34,10 @@ class TimeoutException(Exception):
     pass
 
 
+class LaunchErrorException(Exception):
+    pass
+
+
 class ChannelController(object):
     def __init__(self, socket):
         self.request_id = 1
@@ -88,6 +92,8 @@ class ChannelController(object):
                 self.socket.send(commands.PongCommand())
             elif response_type == 'CLOSE':
                 raise ChannelClosedException()
+            elif response_type == 'LAUNCH_ERROR':
+                raise LaunchErrorException()
 
     def is_channel_connected(self, destination_id):
         return destination_id in self.channels
@@ -117,9 +123,9 @@ class ChromecastController():
     APP_BACKDROP = 'E8C28D3C'
     WAIT_INTERVAL = 0.1
 
-    def __init__(self, ip, timeout=10):
+    def __init__(self, ip, port, timeout=10):
         self.timeout = timeout
-        self.socket = cast_socket.CastSocket(ip)
+        self.socket = cast_socket.CastSocket(ip, port)
         self.channel_controller = ChannelController(self.socket)
 
     def is_app_running(self, app_id):
@@ -156,7 +162,10 @@ class ChromecastController():
             self.socket.send(commands.CloseCommand(destination_id=False))
             start_time = time.time()
             while not self.is_app_running(None):
-                self.socket.send_and_wait(commands.StatusCommand())
+                try:
+                    self.socket.send_and_wait(commands.StatusCommand())
+                except cast_socket.ConnectionTerminatedException:
+                    break
                 current_time = time.time()
                 if current_time - start_time > self.timeout:
                     raise TimeoutException()
@@ -216,8 +225,8 @@ class MediaPlayerController(ChromecastController):
     PLAYER_STATE_PAUSED = 'PAUSED'
     PLAYER_STATE_IDLE = 'IDLE'
 
-    def __init__(self, ip, timeout=10):
-        ChromecastController.__init__(self, ip, timeout)
+    def __init__(self, ip, port, timeout=10):
+        ChromecastController.__init__(self, ip, port, timeout)
         self.media_session_id = None
         self.current_time = None
         self.media = None

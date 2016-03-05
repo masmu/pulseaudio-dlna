@@ -17,16 +17,38 @@
 
 from __future__ import unicode_literals
 
+import functools
+
 
 class BasePlugin(object):
     def __init__(self):
         self.st_header = None
-
-    def discover(self):
-        raise NotImplementedError()
+        self.holder = None
 
     def lookup(self, locations):
         raise NotImplementedError()
 
-    def create_device(self, header):
+    def discover(self, ttl):
         raise NotImplementedError()
+
+    @staticmethod
+    def add_device_after(f, *args):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            device = f(*args, **kwargs)
+            self = args[0]
+            if self.holder:
+                self.holder.add_device(device)
+            return device
+        return wrapper
+
+    @staticmethod
+    def remove_device_after(f, *args):
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            device_id = f(*args, **kwargs)
+            self = args[0]
+            if self.holder:
+                self.holder.remove_device(device_id)
+            return device_id
+        return wrapper

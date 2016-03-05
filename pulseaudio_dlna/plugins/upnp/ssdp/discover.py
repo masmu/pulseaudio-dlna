@@ -23,6 +23,7 @@ import chardet
 import threading
 
 import pulseaudio_dlna.utils.network
+import pulseaudio_dlna.plugins.upnp.ssdp
 
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
@@ -47,6 +48,9 @@ class SSDPDiscover(object):
     BUFFER_SIZE = 1024
     USE_SINGLE_SOCKET = True
 
+    def __init__(self, cb_on_device_response):
+        self.cb_on_device_response = cb_on_device_response
+
     def search(self, ssdp_ttl=None, ssdp_mx=None, ssdp_amount=None):
         ssdp_mx = ssdp_mx or self.SSDP_MX
         ssdp_ttl = ssdp_ttl or self.SSDP_TTL
@@ -68,11 +72,12 @@ class SSDPDiscover(object):
                 thread.start()
             for thread in threads:
                 thread.join()
+        logger.debug('SSDPDiscover.search() quit')
 
     def _search(self, host, ssdp_ttl, ssdp_mx, ssdp_amount):
         sock = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
-        sock.settimeout(ssdp_mx + 2)
+        sock.settimeout(ssdp_mx)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.setsockopt(
             socket.IPPROTO_IP,
@@ -88,9 +93,12 @@ class SSDPDiscover(object):
         while True:
             try:
                 header, address = sock.recvfrom(self.BUFFER_SIZE)
-                guess = chardet.detect(header)
-                self._header_received(
-                    header.decode(guess['encoding']), address)
+                if self.cb_on_device_response:
+                    guess = chardet.detect(header)
+                    header = header.decode(guess['encoding'])
+                    header = pulseaudio_dlna.plugins.upnp.ssdp._get_header_map(
+                        header)
+                    self.cb_on_device_response(header, address)
             except socket.timeout:
                 break
         sock.close()
@@ -99,22 +107,3 @@ class SSDPDiscover(object):
         msg = self.MSEARCH_MSG.format(
             host=self.SSDP_ADDRESS, port=self.SSDP_PORT, mx=ssdp_mx)
         sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
-
-    def _header_received(self, header, address):
-        pass
-
-
-class RendererDiscover(SSDPDiscover):
-
-    def __init__(self, renderer_holder):
-        SSDPDiscover.__init__(self)
-        self.renderer_holder = renderer_holder
-
-    def search(self, *args, **kwargs):
-        self.renderers = []
-        SSDPDiscover.search(self, *args, **kwargs)
-
-    def _header_received(self, header, address):
-        logger.debug('Recieved the following SSDP header: \n{header}'.format(
-            header=header))
-        self.renderer_holder.process_msearch_request(header)

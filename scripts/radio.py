@@ -34,8 +34,7 @@ logging.basicConfig(
 logger = logging.getLogger('radio')
 
 import pulseaudio_dlna
-import pulseaudio_dlna.renderers
-import pulseaudio_dlna.discover
+import pulseaudio_dlna.holder
 import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.plugins.chromecast
 import pulseaudio_dlna.codecs
@@ -59,7 +58,7 @@ class RadioLauncher():
     def _stop(self, name, flavour=None):
         device = self._get_device(name, flavour)
         if device:
-            return_code = device.stop()
+            return_code, message = device.stop()
             if return_code == 200:
                 logger.info(
                     'The device "{name}" was instructed to stop'.format(
@@ -81,7 +80,7 @@ class RadioLauncher():
         codec = self._get_codec(url)
         device = self._get_device(name, flavour)
         if device:
-            return_code = device.play(url, codec, artist, title, thumb)
+            return_code, message = device.play(url, codec, artist, title, thumb)
             if return_code == 200:
                 logger.info(
                     'The device "{name}" was instructed to play'.format(
@@ -116,14 +115,13 @@ class RadioLauncher():
         return None
 
     def _discover_devices(self):
-        holder = pulseaudio_dlna.renderers.RendererHolder(self.PLUGINS)
-        discover = pulseaudio_dlna.discover.RendererDiscover(holder)
-        discover.search()
+        holder = pulseaudio_dlna.holder.Holder(self.PLUGINS)
+        holder.search(ttl=5)
         logger.info('Found the following devices:')
-        for udn, device in holder.renderers.iteritems():
+        for udn, device in holder.devices.items():
             logger.info('  - "{name}" ({flavour})'.format(
                 name=device.name, flavour=device.flavour))
-        return holder.renderers.values()
+        return holder.devices.values()
 
 # Local pulseaudio-dlna installations running in a virutalenv should run this
 #   script as module:
@@ -136,9 +134,7 @@ if len(args) > 0 and args[0] == '--list':
     sys.exit(0)
 
 devices = [
-    ('Wohnzimmer', 'Chromecast'),
-    ('Küche', 'Chromecast'),
-    ('Schlafzimmer', 'Chromecast'),
+    ('Alle', 'Chromecast'),
 ]
 
 for device in devices:

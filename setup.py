@@ -60,6 +60,7 @@ setuptools.setup(
         "chardet >= 2.0.1",
         "netifaces >= 0.8",
         "lxml >= 3",
+        "zeroconf >= 0.17",
     ],
     entry_points={
         "console_scripts": [
