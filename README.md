@@ -206,6 +206,8 @@ _Keep in mind that since i am not using those, i can hardly support them!_
     [http://packman.links2linux.de/package/pulseaudio-dlna](http://packman.links2linux.de/package/pulseaudio-dlna)
 - Fedora - RHEL - CentOS - EPEL
     [https://copr.fedoraproject.org/coprs/cygn/pulseaudio-dlna/](https://copr.fedoraproject.org/coprs/cygn/pulseaudio-dlna/)
+- Debian
+    [https://packages.debian.org/sid/pulseaudio-dlna](https://packages.debian.org/sid/pulseaudio-dlna)
 
 ## Installation via git ##
 
