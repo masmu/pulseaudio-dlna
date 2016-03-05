@@ -22,7 +22,6 @@ import signal
 import setproctitle
 import logging
 import sys
-import socket
 import json
 import os
 
@@ -204,17 +203,10 @@ class Application(object):
         if options['--disable-device-stop']:
             disable_device_stop = True
 
-        try:
-            stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
-                host, port, bridges, message_queue,
-                fake_http_content_length=fake_http_content_length,
-            )
-        except socket.error:
-            logger.error(
-                'The streaming server could not bind to your specified port '
-                '({port}). Perhaps this is already in use? Application '
-                'terminates.'.format(port=port))
-            sys.exit(1)
+        stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
+            host, port, bridges, message_queue,
+            fake_http_content_length=fake_http_content_length,
+        )
 
         pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
             bridges, message_queue,

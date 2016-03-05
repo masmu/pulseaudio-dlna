@@ -369,8 +369,15 @@ class StreamServer(SocketServer.TCPServer):
 
     def run(self):
         self.allow_reuse_address = True
-        SocketServer.TCPServer.__init__(
-            self, (self.ip or '', self.port), StreamRequestHandler)
+        try:
+            SocketServer.TCPServer.__init__(
+                self, (self.ip or '', self.port), StreamRequestHandler)
+        except socket.error:
+            logger.critical(
+                'The streaming server could not bind to your specified port '
+                '({port}). Perhaps this is already in use? The application '
+                'cannot work properly!'.format(port=self.port))
+            sys.exit(1)
 
         setproctitle.setproctitle('stream_server')
         self.serve_forever()

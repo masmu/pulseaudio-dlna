@@ -100,8 +100,10 @@ class PulseAudio(object):
                 server_address = self._get_bus_address()
                 return dbus.connection.Connection(server_address)
             except dbus.exceptions.DBusException:
-                logger.error('PulseAudio seems not to be running or PulseAudio'
-                             ' dbus module could not be loaded.')
+                logger.critical(
+                    'PulseAudio seems not to be running or PulseAudio '
+                    'dbus module could not be loaded. The application '
+                    'cannot work properly!')
                 sys.exit(1)
 
     def update(self):
