@@ -605,16 +605,23 @@ class PulseWatcher(PulseAudio):
         stopped_bridge.device.state = \
             pulseaudio_dlna.plugins.renderer.BaseRenderer.IDLE
 
-        if not self.disable_switchback:
-            reason = 'The device disconnected'
-            if len(stopped_bridge.sink.streams) > 1:
+        auto_reconnect = True
+
+        reason = 'The device disconnected'
+        if len(stopped_bridge.sink.streams) > 1:
+            if auto_reconnect:
+                self._handle_sink_update(stopped_bridge.sink.object_path)
+            elif not self.disable_switchback:
                 self.switch_back(stopped_bridge, reason)
-            elif len(stopped_bridge.sink.streams) == 1:
-                stream = stopped_bridge.sink.streams[0]
-                if not self._was_stream_moved(stream, stopped_bridge.sink):
+        elif len(stopped_bridge.sink.streams) == 1:
+            stream = stopped_bridge.sink.streams[0]
+            if not self._was_stream_moved(stream, stopped_bridge.sink):
+                if auto_reconnect:
+                    self._handle_sink_update(stopped_bridge.sink.object_path)
+                elif not self.disable_switchback:
                     self.switch_back(stopped_bridge, reason)
-            elif len(stopped_bridge.sink.streams) == 0:
-                pass
+        elif len(stopped_bridge.sink.streams) == 0:
+            pass
 
     def on_device_updated(self, sink_path):
         logger.info('on_device_updated "{path}"'.format(
