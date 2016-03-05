@@ -50,7 +50,6 @@ setuptools.setup(
     py_modules=[],
     packages=setuptools.find_packages(),
     install_requires=[
-        "BeautifulSoup >= 3.2.1",
         "docopt >= 0.6.1",
         "requests >= 2.2.1",
         "setproctitle >= 1.0.1",

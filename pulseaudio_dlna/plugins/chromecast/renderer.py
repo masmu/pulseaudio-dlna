@@ -22,7 +22,7 @@ import logging
 import urlparse
 import socket
 import traceback
-import BeautifulSoup
+import lxml
 
 import pycastv2
 import pulseaudio_dlna.plugins.renderer
@@ -137,41 +137,55 @@ class CoinedChromecastRenderer(
 
 class ChromecastRendererFactory(object):
 
+    ST_HEADERS = ['urn:dial-multiscreen-org:device:dial:1']
+
     @classmethod
     def from_url(self, url, type_=ChromecastRenderer):
         try:
-            response = requests.get(url)
+            response = requests.get(url, timeout=5)
             logger.debug('Response from chromecast device ({url})\n'
                          '{response}'.format(url=url, response=response.text))
+        except requests.exceptions.Timeout:
+            logger.info(
+                'Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return None
         except requests.exceptions.ConnectionError:
             logger.info(
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
-        soup = BeautifulSoup.BeautifulSoup(
-            response.content.decode('utf-8'),
-            convertEntities=BeautifulSoup.BeautifulSoup.HTML_ENTITIES)
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
-            model_name = soup.root.device.modelname.text
-            if model_name.strip() not in CHROMECAST_MODEL_NAMES:
-                logger.info(
-                    'The Chromecast seems not to be an original Chromecast! '
-                    'Model name: "{model_name}" Skipping device ...'.format(
-                        model_name=model_name))
-                return None
-            cast_device = type_(
-                soup.root.device.friendlyname.text,
-                ip,
-                soup.root.device.udn.text,
-                soup.root.device.modelname.text,
-                None,
-                soup.root.device.manufacturer.text)
-            return cast_device
-        except AttributeError:
-            logger.error(
-                'No valid XML returned from {url}.'.format(url=url))
+            xml_root = lxml.etree.fromstring(response.content)
+            for device in xml_root.findall('.//{*}device'):
+                device_type = device.find('{*}deviceType')
+                device_friendlyname = device.find('{*}friendlyName')
+                device_udn = device.find('{*}UDN')
+                device_modelname = device.find('{*}modelName')
+                device_manufacturer = device.find('{*}manufacturer')
+
+                if device_type.text not in self.ST_HEADERS:
+                    continue
+
+                if device_modelname.text.strip() not in CHROMECAST_MODEL_NAMES:
+                    logger.info(
+                        'The Chromecast seems not to be an original one. '
+                        'Model name: "{}" Skipping device ...'.format(
+                            device_modelname.text))
+                    return None
+
+                cast_device = type_(
+                    device_friendlyname.text,
+                    ip,
+                    device_udn.text,
+                    device_modelname.text,
+                    None,
+                    device_manufacturer.text)
+                return cast_device
+        except:
+            logger.error('No valid XML returned from {url}.'.format(url=url))
             return None
 
     @classmethod

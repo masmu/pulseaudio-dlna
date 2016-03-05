@@ -46,6 +46,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where manually added renderers could appear twice
     - Added device state polling for devices which start playing on their own
     - Added the flac encoder for _Google Chromecast_
+    - Removed dependency `python-beautifulsoup`
     - Fixed a bug where bytes were not decoded properly to unicode
 
  * __0.4.7__ - (_2015-11-18_)
@@ -220,7 +221,6 @@ will get installed if you install it via the PPA.
 - python-pip
 - python-setuptools
 - python-dbus
-- python-beautifulsoup
 - python-docopt
 - python-requests
 - python-setproctitle
@@ -241,7 +241,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-beautifulsoup python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
