@@ -513,6 +513,8 @@ class UpnpMediaRendererFactory(object):
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
+	    # Pioneer sc-lx76 returns unvalid namespace in description.xml, converting it to valid	
+	    xml = xml.replace('xmlns:ms=" urn:microsoft-com', 'xmlns:ms="urn:microsoft-com')
             xml_root = lxml.etree.fromstring(xml)
             services = []
             for device in xml_root.findall('.//{*}device'):
