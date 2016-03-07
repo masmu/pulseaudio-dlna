@@ -307,7 +307,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                     return xml_root.find('.//{*}CurrentTransportState').text
                 except:
                     logger.error(
-                        'No2 valid XML returned from {url}.'.format(url=url))
+                        'No valid XML returned from {url}.'.format(url=url))
                     return None
         except requests.exceptions.Timeout:
             logger.error(
@@ -349,7 +349,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                     return mime_types
                 except:
                     logger.error(
-                        'No1 valid XML returned from {url}.'.format(url=url))
+                        'No valid XML returned from {url}.'.format(url=url))
                     return None
         except requests.exceptions.Timeout:
             logger.error(
