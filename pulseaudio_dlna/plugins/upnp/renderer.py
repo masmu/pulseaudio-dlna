@@ -29,6 +29,7 @@ import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.workarounds
 import pulseaudio_dlna.plugins.renderer
+import pulseaudio_dlna.plugins.upnp.byto
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.renderer')
 
@@ -510,6 +511,7 @@ class UpnpMediaRendererFactory(object):
 
     @classmethod
     def from_xml(cls, url, xml, type_=UpnpMediaRenderer):
+        xml = pulseaudio_dlna.plugins.upnp.byto.repair_xml(xml)
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
