@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import logging
 import threading
 import requests
+import traceback
 
 logger = logging.getLogger('pulseaudio_dlna.holder')
 
@@ -45,10 +46,13 @@ class Holder(object):
                 target=plugin.discover, args=[self, ttl])
             thread.daemon = True
             threads.append(thread)
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+        try:
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+        except:
+            traceback.print_exc()
 
         logger.debug('Holder.search() quit')
 

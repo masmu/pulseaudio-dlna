@@ -21,6 +21,7 @@ import socket
 import logging
 import chardet
 import threading
+import traceback
 
 import pulseaudio_dlna.utils.network
 import pulseaudio_dlna.plugins.upnp.ssdp
@@ -68,10 +69,13 @@ class SSDPDiscover(object):
                     target=self._search,
                     args=[ip, ssdp_ttl, ssdp_mx, ssdp_amount])
                 threads.append(thread)
-            for thread in threads:
-                thread.start()
-            for thread in threads:
-                thread.join()
+            try:
+                for thread in threads:
+                    thread.start()
+                for thread in threads:
+                    thread.join()
+            except:
+                traceback.print_exc()
         logger.debug('SSDPDiscover.search() quit')
 
     def _search(self, host, ssdp_ttl, ssdp_mx, ssdp_amount):

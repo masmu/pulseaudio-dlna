@@ -19,6 +19,7 @@ from __future__ import unicode_literals
 
 import logging
 import threading
+import traceback
 
 import pulseaudio_dlna.plugins
 import pulseaudio_dlna.plugins.upnp.ssdp
@@ -67,10 +68,13 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
             thread = threading.Thread(target=func)
             thread.daemon = True
             threads.append(thread)
-        for thread in threads:
-            thread.start()
-        for thread in threads:
-            thread.join()
+        try:
+            for thread in threads:
+                thread.start()
+            for thread in threads:
+                thread.join()
+        except:
+            traceback.print_exc()
 
         logger.debug('DLNAPlugin.discover() quit')
 
