@@ -567,7 +567,8 @@ class UpnpMediaRendererFactory(object):
                 xml_root = lxml.etree.fromstring(xml)
                 return process_xml(url, xml_root, xml, type_)
             except:
-                logger.error('No valid XML returned from {url}.'.format(url=url))
+                logger.error('No valid XML returned from {url}.'.format(
+                    url=url))
                 return None
 
     @classmethod
