@@ -343,6 +343,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                         [--request-timeout <timeout>]
                         [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
                         [--cover-mode <mode>]
+                        [--auto-reconnect]
                         [--debug]
                         [--fake-http10-content-length] [--fake-http-content-length]
                         [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop] [--disable-workarounds]
@@ -394,6 +395,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                  - distribution   The icon of your distribution is shown
                                                  - application    The audio application's icon is shown
         --debug                                enables detailed debug messages.
+        --auto-reconnect                       If set, the application tries to reconnect devices in case the stream collapsed
         --fake-http-content-length             If set, the content-length of HTTP requests will be set to 100 GB.
         --disable-switchback                   If set, streams won't switched back to the default sink if a device disconnects.
         --disable-ssdp-listener                If set, the application won't bind to the port 1900 and therefore the automatic discovery of new devices won't work.
