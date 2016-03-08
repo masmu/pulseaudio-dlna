@@ -563,7 +563,7 @@ class UpnpMediaRendererFactory(object):
             xml_root = lxml.etree.fromstring(xml)
             return cls.process_xml(url, xml_root, xml, type_)
         except:
-            logger.info('Got broken xml, trying to fix it.')
+            logger.debug('Got broken xml, trying to fix it.')
             xml = pulseaudio_dlna.plugins.upnp.byto.repair_xml(xml)
             try:
                 xml_root = lxml.etree.fromstring(xml)
