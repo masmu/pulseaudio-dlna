@@ -510,70 +510,65 @@ class UpnpMediaRendererFactory(object):
         return cls.from_xml(url, response.content, type_)
 
     @classmethod
-    def process_xml(cls, url, xml_root, xml, type_):
-        url_object = urlparse.urlparse(url)
-        ip, port = url_object.netloc.split(':')
-        services = []
-        for device in xml_root.findall('.//{*}device'):
-            device_type = device.find('{*}deviceType')
-            device_friendlyname = device.find('{*}friendlyName')
-            device_udn = device.find('{*}UDN')
-            device_modelname = device.find('{*}modelName')
-            device_modelnumber = device.find('{*}modelNumber')
-            device_manufacturer = device.find('{*}manufacturer')
-
-            if device_type.text not in cls.NOTIFICATION_TYPES:
-                continue
-
-            for service in device.findall('.//{*}service'):
-                service = {
-                    'service_type': service.find('{*}serviceType').text,
-                    'service_id': service.find('{*}serviceId').text,
-                    'scpd_url': service.find('{*}SCPDURL').text,
-                    'control_url': service.find('{*}controlURL').text,
-                    'eventsub_url': service.find('{*}eventSubURL').text,
-                }
-                services.append(service)
-
-            upnp_device = type_(
-                unicode(device_friendlyname.text),
-                unicode(ip),
-                port,
-                unicode(device_udn.text),
-                unicode(device_modelname.text) if (
-                    device_modelname is not None) else None,
-                unicode(device_modelnumber.text) if (
-                    device_modelnumber is not None) else None,
-                unicode(device_manufacturer.text) if (
-                    device_manufacturer is not None) else None,
-                services,
-            )
-
-            if device_manufacturer is not None and \
-               device_manufacturer.text.lower() == 'yamaha corporation':
-                upnp_device.workarounds.append(
-                    pulseaudio_dlna.workarounds.YamahaWorkaround(xml))
-
-            return upnp_device
-
-
-    @classmethod
     def from_xml(cls, url, xml, type_=UpnpMediaRenderer):
+
+        def process_xml(url, xml_root, xml, type_):
+            url_object = urlparse.urlparse(url)
+            ip, port = url_object.netloc.split(':')
+            services = []
+            for device in xml_root.findall('.//{*}device'):
+                device_type = device.find('{*}deviceType')
+                device_friendlyname = device.find('{*}friendlyName')
+                device_udn = device.find('{*}UDN')
+                device_modelname = device.find('{*}modelName')
+                device_modelnumber = device.find('{*}modelNumber')
+                device_manufacturer = device.find('{*}manufacturer')
+
+                if device_type.text not in cls.NOTIFICATION_TYPES:
+                    continue
+
+                for service in device.findall('.//{*}service'):
+                    service = {
+                        'service_type': service.find('{*}serviceType').text,
+                        'service_id': service.find('{*}serviceId').text,
+                        'scpd_url': service.find('{*}SCPDURL').text,
+                        'control_url': service.find('{*}controlURL').text,
+                        'eventsub_url': service.find('{*}eventSubURL').text,
+                    }
+                    services.append(service)
+
+                upnp_device = type_(
+                    unicode(device_friendlyname.text),
+                    unicode(ip),
+                    port,
+                    unicode(device_udn.text),
+                    unicode(device_modelname.text) if (
+                        device_modelname is not None) else None,
+                    unicode(device_modelnumber.text) if (
+                        device_modelnumber is not None) else None,
+                    unicode(device_manufacturer.text) if (
+                        device_manufacturer is not None) else None,
+                    services,
+                )
+
+                if device_manufacturer is not None and \
+                   device_manufacturer.text.lower() == 'yamaha corporation':
+                    upnp_device.workarounds.append(
+                        pulseaudio_dlna.workarounds.YamahaWorkaround(xml))
+
+                return upnp_device
         try:
             xml_root = lxml.etree.fromstring(xml)
-            return cls.process_xml(url, xml_root, xml, type_)
+            return process_xml(url, xml_root, xml, type_)
         except:
             logger.debug('Got broken xml, trying to fix it.')
             xml = pulseaudio_dlna.plugins.upnp.byto.repair_xml(xml)
             try:
                 xml_root = lxml.etree.fromstring(xml)
-                return cls.process_xml(url, xml_root, xml, type_)
+                return process_xml(url, xml_root, xml, type_)
             except:
                 logger.error('No valid XML returned from {url}.'.format(url=url))
                 return None
-
-
-
 
     @classmethod
     def from_header(cls, header, type_=UpnpMediaRenderer):
