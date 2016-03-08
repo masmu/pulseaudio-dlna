@@ -123,8 +123,8 @@ class PulseAudio(object):
                         sink.streams.append(stream)
         else:
             logger.error(
-                'Could not update sinks and streams. This normally indicates a '
-                'problem with pulseaudio\'s dbus module. Try restarting '
+                'Could not update sinks and streams. This normally indicates '
+                'a problem with pulseaudio\'s dbus module. Try restarting '
                 'pulseaudio if the problem persists.')
 
     def update_playback_streams(self):
@@ -216,8 +216,9 @@ class PulseClientFactory(PulseBaseFactory):
                 binary=self._convert_bytes_to_unicode(binary_bytes),
             )
         except dbus.exceptions.DBusException:
-            logger.error('PulseClientFactory - Could not get "{object_path}" from dbus.'.format(
-                object_path=client_path))
+            logger.error(
+                'PulseClientFactory - Could not get "{object_path}" '
+                'from dbus.'.format(object_path=client_path))
             return None
 
 
@@ -244,13 +245,14 @@ class PulseClient(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        return '<PulseClient path="{}" index="{}" name="{}" icon="{}" binary={}>\n'.format(
-            self.object_path,
-            self.index,
-            self.name,
-            self.icon,
-            self.binary,
-        )
+        return '<PulseClient path="{}" index="{}" name="{}" icon="{}" ' \
+               'binary="{}">\n'.format(
+                   self.object_path,
+                   self.index,
+                   self.name,
+                   self.icon,
+                   self.binary
+                   )
 
 
 class PulseModuleFactory(PulseBaseFactory):
@@ -265,8 +267,9 @@ class PulseModuleFactory(PulseBaseFactory):
                 name=unicode(obj.Get('org.PulseAudio.Core1.Module', 'Name')),
             )
         except dbus.exceptions.DBusException:
-            logger.error('PulseModuleFactory - Could not get "{object_path}" from dbus.'.format(
-                object_path=module_path))
+            logger.error(
+                'PulseModuleFactory - Could not get "{object_path}" '
+                'from dbus.'.format(object_path=module_path))
             return None
 
 
@@ -318,8 +321,9 @@ class PulseSinkFactory(PulseBaseFactory):
                 module=PulseModuleFactory.new(bus, module_path),
             )
         except dbus.exceptions.DBusException:
-            logger.error('PulseSinkFactory - Could not get "{object_path}" from dbus.'.format(
-                object_path=object_path))
+            logger.error(
+                'PulseSinkFactory - Could not get "{object_path}" '
+                'from dbus.'.format(object_path=object_path))
             return None
 
 
@@ -403,16 +407,20 @@ class PulseStreamFactory(object):
     def new(self, bus, stream_path):
         try:
             obj = bus.get_object(object_path=stream_path)
-            client_path = unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Client'))
+            client_path = unicode(
+                obj.Get('org.PulseAudio.Core1.Stream', 'Client'))
             return PulseStream(
                 object_path=unicode(stream_path),
-                index=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Index')),
-                device=unicode(obj.Get('org.PulseAudio.Core1.Stream', 'Device')),
+                index=unicode(obj.Get(
+                    'org.PulseAudio.Core1.Stream', 'Index')),
+                device=unicode(obj.Get(
+                    'org.PulseAudio.Core1.Stream', 'Device')),
                 client=PulseClientFactory.new(bus, client_path),
             )
         except dbus.exceptions.DBusException:
-            logger.debug('PulseStreamFactory - Could not get "{object_path}" from dbus.'.format(
-                object_path=stream_path))
+            logger.debug(
+                'PulseStreamFactory - Could not get "{object_path}" '
+                'from dbus.'.format(object_path=stream_path))
             return None
 
 
@@ -447,12 +455,13 @@ class PulseStream(object):
         return self.object_path > other.object_path
 
     def __str__(self):
-        return '<PulseStream path="{}" device="{}" index="{}" client="{}">'.format(
-            self.object_path,
-            self.device,
-            self.index,
-            self.client.index if self.client else None,
-        )
+        return '<PulseStream path="{}" device="{}" index="{}" ' \
+               'client="{}">'.format(
+                   self.object_path,
+                   self.device,
+                   self.index,
+                   self.client.index if self.client else None,
+               )
 
 
 class PulseBridge(object):
@@ -468,7 +477,7 @@ class PulseBridge(object):
             return self.device == other
 
     def __str__(self):
-        return "<Bridge>\n    {}\n    {}\n".format(self.sink, self.device)
+        return '<Bridge>\n    {}\n    {}\n'.format(self.sink, self.device)
 
 
 class PulseWatcher(PulseAudio):
