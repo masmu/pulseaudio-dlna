@@ -203,6 +203,10 @@ class Application(object):
         if options['--disable-device-stop']:
             disable_device_stop = True
 
+        disable_auto_reconnect = True
+        if options['--auto-reconnect']:
+            disable_auto_reconnect = False
+
         stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
             host, port, bridges, message_queue,
             fake_http_content_length=fake_http_content_length,
@@ -212,6 +216,7 @@ class Application(object):
             bridges, message_queue,
             disable_switchback=disable_switchback,
             disable_device_stop=disable_device_stop,
+            disable_auto_reconnect=disable_auto_reconnect,
             cover_mode=cover_mode,
         )
 
