@@ -511,11 +511,10 @@ class UpnpMediaRendererFactory(object):
 
     @classmethod
     def from_xml(cls, url, xml, type_=UpnpMediaRenderer):
-        xml = pulseaudio_dlna.plugins.upnp.byto.repair_xml(xml)
-        url_object = urlparse.urlparse(url)
-        ip, port = url_object.netloc.split(':')
-        try:
-            xml_root = lxml.etree.fromstring(xml)
+
+        def process_xml(url, xml_root, xml, type_):
+            url_object = urlparse.urlparse(url)
+            ip, port = url_object.netloc.split(':')
             services = []
             for device in xml_root.findall('.//{*}device'):
                 device_type = device.find('{*}deviceType')
@@ -558,9 +557,18 @@ class UpnpMediaRendererFactory(object):
                         pulseaudio_dlna.workarounds.YamahaWorkaround(xml))
 
                 return upnp_device
+        try:
+            xml_root = lxml.etree.fromstring(xml)
+            return process_xml(url, xml_root, xml, type_)
         except:
-            logger.error('No valid XML returned from {url}.'.format(url=url))
-            return None
+            logger.debug('Got broken xml, trying to fix it.')
+            xml = pulseaudio_dlna.plugins.upnp.byto.repair_xml(xml)
+            try:
+                xml_root = lxml.etree.fromstring(xml)
+                return process_xml(url, xml_root, xml, type_)
+            except:
+                logger.error('No valid XML returned from {url}.'.format(url=url))
+                return None
 
     @classmethod
     def from_header(cls, header, type_=UpnpMediaRenderer):
