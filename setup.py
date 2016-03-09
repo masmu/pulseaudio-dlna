@@ -15,20 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
-import re
 import setuptools
 
-
-def get_version():
-    path = os.path.abspath(os.path.dirname(__file__))
-    path = os.path.join(path, "debian", "changelog")
-    ex = r"pulseaudio-dlna \((\d+\.\d+\.\d+(\.\d+)?)\) .*$"
-    with open(path) as f:
-        releases = f.readlines()
-        releases = [re.match(ex, i) for i in releases]
-        releases = [i.group(1) for i in releases if i]
-    return releases[0]
 
 setuptools.setup(
     name="pulseaudio-dlna",
@@ -46,7 +34,7 @@ setuptools.setup(
         "Topic :: Multimedia :: Sound/Audio",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
-    version=get_version(),
+    version='0.5.0',
     py_modules=[],
     packages=setuptools.find_packages(),
     install_requires=[

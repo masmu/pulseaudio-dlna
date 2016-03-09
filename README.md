@@ -35,7 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2016-03-08_)
+ * __0.5.0__ - (_2016-03-09_)
     - Set Yamaha devices to the appropriate mode before playing (thanks to [hlchau](https://github.com/hlchau)) (new dependency: `python-lxml`)
     - Fixed a bug where some SSDP messages could not get parsed correctly
     - Also support media renderers identifying as `urn:schemas-upnp-org:device:MediaRenderer:2`
