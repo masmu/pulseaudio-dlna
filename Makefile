@@ -43,11 +43,11 @@ release: manpage
 	lintian --pedantic dist/*.deb dist/*.dsc dist/*.changes
 	sudo chown -R $(user) dist/
 
-manpage: debian/pulseaudio-dlna.1
+manpage: man/pulseaudio-dlna.1
 
-debian/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
+man/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
 	export USE_PKG_VERSION=1; help2man -n "Stream audio to DLNA devices and Chromecasts" "bin/pulseaudio-dlna" > /tmp/pulseaudio-dlna.1
-	mv /tmp/pulseaudio-dlna.1 debian/pulseaudio-dlna.1
+	mv /tmp/pulseaudio-dlna.1 man/pulseaudio-dlna.1
 
 clean:
 	rm -rf build dist $(shell find pulseaudio_dlna -name "__pycache__")

@@ -34,7 +34,7 @@ setuptools.setup(
         "Topic :: Multimedia :: Sound/Audio",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
-    version='0.5.0',
+    version='0.5.0.1',
     py_modules=[],
     packages=setuptools.find_packages(),
     install_requires=[
@@ -56,7 +56,7 @@ setuptools.setup(
         ]
     },
     data_files=[
-        ("share/man/man1", ["debian/pulseaudio-dlna.1"]),
+        ("share/man/man1", ["man/pulseaudio-dlna.1"]),
     ],
     package_data={
         "pulseaudio_dlna.plugins.upnp": ["xml/*.xml"],
