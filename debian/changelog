@@ -1,3 +1,9 @@
+pulseaudio-dlna (0.5.0.1) trusty; urgency=medium
+
+  * Readded manpage to setup.py
+
+ -- Massimo Mund <mo@lancode.de>  Wed, 09 Mar 2016 22:50:05 +0100
+
 pulseaudio-dlna (0.5.0) trusty; urgency=medium
 
     * Set Yamaha devices to the appropriate mode before playing
