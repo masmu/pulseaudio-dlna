@@ -1,0 +1,9 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Contact: Massimo Mund <mo@lancode.de>
+Source: https://github.com/masmu/pulseaudio-dlna
+
+Files: *
+Copyright:
+ Copyright (C) 2014 Massimo Mund <mo@lancode.de>
+License: GPL-3+
+ /usr/share/common-licenses/GPL-3
