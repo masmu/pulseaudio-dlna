@@ -654,6 +654,7 @@ Onkyo TX-NR509                                                                  
 Onkyo TX-NR616 <sup>7</sup>                                                     | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR646                                                                  | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR727 <sup>7</sup>                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Onkyo CR-N755                                                                   | :white_check_mark:<sup>8</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:<sup>9</sup>       | :no_entry_sign:                   | :white_check_mark:
 [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Panasonic TX-50CX680W                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Panasonic TX-50CX680W                                                           | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
@@ -695,6 +696,10 @@ Yamaha RX-V573 (AV Receiver) <sup>6</sup>                                       
 <sup>6</sup>) Was reported to have issues being discovered. Make sure you run the latest firmware
 
 <sup>7</sup>) Reported to need a `--request-timeout` of 15 seconds to work. Since _0.5.0_ the timeout is set to that value.
+
+<sup>8</sup>) Stuttering at 256kbit/s and pretty unstable at 320kbit/s
+
+<sup>9</sup>) The manual states it is supported. No success yet, neither with --fake-http-content-length nor with increased timeout values
 
 ## Supported encoders ##
 
