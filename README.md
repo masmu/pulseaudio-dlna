@@ -35,6 +35,9 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.5.1__ - (_2016-03-21_)
+    - Fixed the `--filter-device` option
+
  * __0.5.0.1__ - (_2016-03-09_)
     - Readded manpage
 
