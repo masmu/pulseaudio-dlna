@@ -35,6 +35,10 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __0.5.1__ - (_2016-04-01_)
+    - Fixed the `--filter-device` option
+    - Prioritize _mp3_ over _flac_ for Chromecasts
+
  * __0.5.0.1__ - (_2016-03-09_)
     - Readded manpage
 
@@ -634,6 +638,7 @@ codec information available.
 
 Device                                                                          | mp3                               | wav                               | ogg                               | flac                              | aac                               | opus                              | l16
 ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
+[AVM FritzRepeater N/G](http://avm.de/service/fritzwlan/fritzwlan-repeater-ng/uebersicht/)                                                           | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 BubbleUPnP (Android App)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:
 [Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)                      | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 D-Link DCH-M225/E                                                               | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
@@ -654,6 +659,7 @@ Onkyo TX-NR509                                                                  
 Onkyo TX-NR616 <sup>7</sup>                                                     | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR646                                                                  | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR727 <sup>7</sup>                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Onkyo CR-N755                                                                   | :white_check_mark:<sup>8</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:<sup>9</sup>       | :no_entry_sign:                   | :white_check_mark:
 [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Panasonic TX-50CX680W                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Panasonic TX-50CX680W                                                           | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
@@ -662,6 +668,7 @@ Philips NP2900                                                                  
 Pioneer SC-LX76 (AV Receiver)                                                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:
 Pioneer VSX-824 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Pure Jongo S3                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Raumfeld One M](http://raumfeld.com)                                       | :white_check_mark:                   | :white_check_mark:                   | :no_entry_sign:                   | :white_check_mark:                   | :grey_question:                   | :no_entry_sign:                   | :no_entry_sign:
 [Raumfeld Speaker M](http://raumfeld.com)                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Raumfeld Speaker S](http://raumfeld.com)                                       | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:
 [ROCKI](http://www.myrocki.com/)                                                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
@@ -673,11 +680,12 @@ Samsung Smart TV LED48 (UE48JU6560)                                             
 Samsung Smart TV LED60 (UE60F6300)                                              | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Sonos PLAY:1                                                                    | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
 Sonos PLAY:3                                                                    | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
+Sony SRS-X77                                                                    | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:<sup>1</sup>
 Sony STR-DN1050 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Volumio](http://volumio.org)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Xbmc / Kodi                                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_circle:<sup>2</sup>        | :white_circle:<sup>2</sup>        | :white_check_mark:
 Xbox 360                                                                        | :white_check_mark:<sup>5</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:                   | :no_entry_sign:                   | :white_check_mark:
-Yamaha CRX-N560D <sup>4</sup>                                                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Yamaha CRX-N560D <sup>4</sup>                                                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:
 Yamaha RX-475 (AV Receiver)                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Yamaha RX-V573 (AV Receiver) <sup>6</sup>                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 
@@ -694,6 +702,10 @@ Yamaha RX-V573 (AV Receiver) <sup>6</sup>                                       
 <sup>6</sup>) Was reported to have issues being discovered. Make sure you run the latest firmware
 
 <sup>7</sup>) Reported to need a `--request-timeout` of 15 seconds to work. Since _0.5.0_ the timeout is set to that value.
+
+<sup>8</sup>) Stuttering at 256kbit/s and pretty unstable at 320kbit/s
+
+<sup>9</sup>) The manual states it is supported. No success yet, neither with --fake-http-content-length nor with increased timeout values
 
 ## Supported encoders ##
 

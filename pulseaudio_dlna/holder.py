@@ -33,7 +33,7 @@ class Holder(object):
         self.plugins = plugins
         self.stream_ip = stream_ip
         self.stream_port = stream_port
-        self.device_filter = device_filter or []
+        self.device_filter = device_filter or None
         self.device_config = device_config or {}
         self.message_queue = message_queue
         self.devices = {}
@@ -90,7 +90,8 @@ class Holder(object):
                     if self.stream_ip and self.stream_port:
                         device.set_server_location(
                             self.stream_ip, self.stream_port)
-                    if device.name not in self.device_filter:
+                    if not self.device_filter or \
+                       device.name in self.device_filter:
                         if config:
                             logger.info(
                                 'Using device configuration:\n{}'.format(
