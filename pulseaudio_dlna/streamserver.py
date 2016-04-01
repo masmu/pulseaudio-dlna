@@ -75,11 +75,19 @@ class ProcessStream(object):
                     'Processes of {path} initialized ...'.format(
                         path=self.path))
             if not self.do_processes_respond():
-                self.terminate_processes()
-                self.create_processes()
-                logger.info(
-                    'Processes of {path} reinitialized ...'.format(
-                        path=self.path))
+                if self.reinitialize_count < 3:
+                    self.reinitialize_count += 1
+                    self.terminate_processes()
+                    self.create_processes()
+                    logger.info(
+                        'Processes of {path} reinitialized ...'.format(
+                            path=self.path))
+                else:
+                    logger.error(
+                        'There were more than {} attempts to reinitialize '
+                        'the record process. Aborting.'.format(
+                            self.reinitialize_count))
+                    break
 
             data = self.encoder_process.stdout.read(self.chunk_size)
             r, w, e = select.select([self.sock], [self.sock], [], 0)
@@ -136,24 +144,17 @@ class ProcessStream(object):
         _kill_process(self.recorder_process)
 
     def create_processes(self):
-        if self.reinitialize_count < 3:
-            self.reinitialize_count += 1
-            logger.info('Starting processes "{recorder} | {encoder}"'.format(
-                recorder=' '.join(self.recorder.command),
-                encoder=' '.join(self.encoder.command)))
-            self.recorder_process = subprocess.Popen(
-                self.recorder.command,
-                stdout=subprocess.PIPE)
-            self.encoder_process = subprocess.Popen(
-                self.encoder.command,
-                stdin=self.recorder_process.stdout,
-                stdout=subprocess.PIPE)
-            self.recorder_process.stdout.close()
-        else:
-            self.update_thread.pause()
-            logger.error('There were more than {} attempts to reinitialize '
-                         'the record process. Aborting.'.format(
-                             self.reinitialize_count))
+        logger.info('Starting processes "{recorder} | {encoder}"'.format(
+            recorder=' '.join(self.recorder.command),
+            encoder=' '.join(self.encoder.command)))
+        self.recorder_process = subprocess.Popen(
+            self.recorder.command,
+            stdout=subprocess.PIPE)
+        self.encoder_process = subprocess.Popen(
+            self.encoder.command,
+            stdin=self.recorder_process.stdout,
+            stdout=subprocess.PIPE)
+        self.recorder_process.stdout.close()
 
     def __str__(self):
         return '<{} id="{}">\n'.format(
