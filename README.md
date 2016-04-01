@@ -37,6 +37,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
  * __master__ - (_2016-03-21_)
     - Fixed the `--filter-device` option
+    - Prioritize _mp3_ over _flac_ for Chromecasts
 
  * __0.5.0.1__ - (_2016-03-09_)
     - Readded manpage
