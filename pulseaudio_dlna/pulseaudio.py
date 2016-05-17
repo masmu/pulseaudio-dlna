@@ -764,10 +764,21 @@ class PulseWatcher(PulseAudio):
                 name=device.name))
 
     def update_device(self, device):
+
+        number_of_identical_devices = 0
+
+        for bridge in self.bridges:
+            if bridge.device == device and bridge.device.ip == device.ip and bridge.device.port == device.port:
+                number_of_identical_devices = number_of_identical_devices + 1
+
         for bridge in self.bridges:
             if bridge.device == device:
                 if bridge.device.ip != device.ip or \
                    bridge.device.port != device.port:
+                    
+                    if number_of_identical_devices >= 1:
+                        continue
+                    
                     bridge.device.ip = device.ip
                     bridge.device.port = device.port
                     logger.info(
