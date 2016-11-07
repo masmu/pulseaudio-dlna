@@ -9,6 +9,8 @@ __pycache__/
 .Python
 env/
 build/
+share/python-wheels/
+material/
 develop-eggs/
 dist/
 downloads/
@@ -31,6 +33,7 @@ var/
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt
+pip-selfcheck.json
 
 # Unit test / coverage reports
 htmlcov/
