@@ -56,7 +56,8 @@ def set_backend(backend):
 
 
 def set_codecs(identifiers):
-    priority = 30
+    step = 3
+    priority = (len(CODECS) + 1) * step
     for identifier, _type in CODECS.iteritems():
         _type.ENABLED = False
         _type.PRIORITY = 0
@@ -64,9 +65,17 @@ def set_codecs(identifiers):
         try:
             CODECS[identifier].ENABLED = True
             CODECS[identifier].PRIORITY = priority
-            priority = priority - 3
+            priority = priority - step
         except KeyError:
             raise UnknownCodecException(identifier)
+
+
+def enabled_codecs():
+    codecs = []
+    for identifier, _type in CODECS.iteritems():
+        if _type.ENABLED:
+            codecs.append(_type())
+    return codecs
 
 
 @functools.total_ordering

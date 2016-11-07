@@ -55,6 +55,11 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pulseaudio_dlna.codecs.OggCodec(),
                 pulseaudio_dlna.codecs.AacCodec(),
             ]
+            if pulseaudio_dlna.plugins.renderer.DISABLE_MIMETYPE_CHECK:
+                for codec in pulseaudio_dlna.codecs.enabled_codecs():
+                    if codec not in self.codecs:
+                        self.codecs.append(codec)
+                self.prioritize_codecs()
 
     def play(self, url, artist=None, title=None, thumb=None):
         self._before_play()

@@ -356,7 +356,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                         [--auto-reconnect]
                         [--debug]
                         [--fake-http10-content-length] [--fake-http-content-length]
-                        [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop] [--disable-workarounds]
+                        [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop] [--disable-workarounds] [--disable-mimetype-check]
         pulseaudio-dlna [--host <host>] [--create-device-config] [--update-device-config]
                         [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
         pulseaudio-dlna [-h | --help | --version]
@@ -411,6 +411,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
         --disable-ssdp-listener                If set, the application won't bind to the port 1900 and therefore the automatic discovery of new devices won't work.
         --disable-device-stop                  If set, the application won't send any stop commands to renderers at all
         --disable-workarounds                  If set, the application won't apply any device workarounds
+        --disable-mimetype-check               If set, the application won't check the device's mime type capabilities
         -v --version                           Show the version.
         -h --help                              Show the help.
 

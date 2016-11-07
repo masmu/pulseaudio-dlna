@@ -28,6 +28,7 @@ import lxml
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.workarounds
+import pulseaudio_dlna.codecs
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.plugins.upnp.byto
 
@@ -164,8 +165,12 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             if mime_types:
                 for mime_type in mime_types:
                     self.add_mime_type(mime_type)
-                self.check_for_codec_rules()
-                self.prioritize_codecs()
+            if pulseaudio_dlna.plugins.renderer.DISABLE_MIMETYPE_CHECK:
+                for codec in pulseaudio_dlna.codecs.enabled_codecs():
+                    if codec not in self.codecs:
+                        self.codecs.append(codec)
+            self.check_for_codec_rules()
+            self.prioritize_codecs()
 
     def validate(self):
         if self.service_transport is None:

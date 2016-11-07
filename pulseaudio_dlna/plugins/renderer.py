@@ -30,6 +30,8 @@ import pulseaudio_dlna.rules
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 
+DISABLE_MIMETYPE_CHECK = False
+
 
 class NoEncoderFoundException():
     pass
@@ -160,12 +162,16 @@ class BaseRenderer(object):
         logger.info(
             'There was no suitable codec found for "{name}". '
             'The device can play "{codecs}". Install one of following '
-            'encoders: "{encoders}".'.format(
+            'encoders: "{encoders}". '.format(
                 name=self.label,
                 codecs=','.join(
                     [codec.mime_type for codec in self.codecs]),
                 encoders=','.join(missing_encoders),
-            ))
+            ) +
+            'You can also try to disable the mime type check with the '
+            '"--disable-mimetype-check" flag. But be warned: In that way you '
+            'can use codecs your device does not support officially and this '
+            'could lead to distortions or in rare cases to speaker damage!')
         raise NoEncoderFoundException()
 
     @property
