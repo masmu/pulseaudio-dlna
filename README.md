@@ -188,7 +188,8 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 ## Installation via PPA ##
 
 Supported Ubuntu releases:
-- 15.10 (Wily Werewolf)
+- 16.10 (Yakkety Yak)
+- 16.04 (Xenial Xerus)
 - 14.04.2 LTS (Trusty Tahr)
 
 Ubuntu users can install _pulseaudio-dlna_ via the following [repository](https://launchpad.net/~qos/+archive/ubuntu/pulseaudio-dlna).
