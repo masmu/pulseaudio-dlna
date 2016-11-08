@@ -501,6 +501,16 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self._debug('set_mute', url, headers, data, response)
 
     def play(self):
+        status_code, reason = self._play()
+        if pulseaudio_dlna.plugins.renderer.MANAGE_DEVICE_VOLUME:
+            if status_code == 200:
+                self.volume = UpnpMediaRenderer.get_volume(self)
+                logger.info(
+                    'Saved device volume {}.'.format(self.volume))
+                UpnpMediaRenderer.set_volume(self, 100)
+        return status_code, reason
+
+    def _play(self):
         self._before_play()
         url = self.service_transport.control_url
         headers = {
@@ -531,6 +541,16 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self._after_play()
 
     def stop(self):
+        if pulseaudio_dlna.plugins.renderer.MANAGE_DEVICE_VOLUME:
+            if self.volume:
+                logger.info(
+                    'Restoring device volume {}.'.format(self.volume))
+                self.set_volume(self.volume)
+            else:
+                logger.info('No volume value to restore.')
+        return self._stop()
+
+    def _stop(self):
         self._before_stop()
         url = self.service_transport.control_url
         headers = {

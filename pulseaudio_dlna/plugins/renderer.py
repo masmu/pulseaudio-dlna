@@ -31,6 +31,9 @@ import pulseaudio_dlna.rules
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 
 
+MANAGE_DEVICE_VOLUME = True
+
+
 class NoEncoderFoundException():
     pass
 
