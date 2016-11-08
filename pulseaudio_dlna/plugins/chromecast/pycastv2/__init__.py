@@ -227,12 +227,12 @@ class MediaPlayerController(ChromecastController):
 
     def __init__(self, ip, port, timeout=10):
         ChromecastController.__init__(self, ip, port, timeout)
-        self.media_session_id = None
-        self.current_time = None
-        self.media = None
-        self.playback_rate = None
-        self.volume = None
-        self.player_state = None
+        self._media_session_id = None
+        self._current_time = None
+        self._media = None
+        self._playback_rate = None
+        self._volume = None
+        self._player_state = None
 
         self.socket.add_read_listener(self._handle_response)
 
@@ -253,6 +253,12 @@ class MediaPlayerController(ChromecastController):
         except (cast_socket.NoResponseException, LoadFailedException):
             return False
 
+    def set_volume(self, volume):
+        self.socket.send_and_wait(commands.SetVolumeCommand(volume))
+
+    def set_mute(self, muted):
+        self.socket.send_and_wait(commands.SetVolumeMuteCommand(muted))
+
     def _update_attribute(self, name, value):
         if value is not None:
             setattr(self, name, value)
@@ -263,35 +269,43 @@ class MediaPlayerController(ChromecastController):
                 logger.debug('Recieved media status ...')
                 status = response['status'][0]
                 self._update_attribute(
-                    'media_session_id', status.get('mediaSessionId', None))
+                    '_media_session_id', status.get('mediaSessionId', None))
                 self._update_attribute(
-                    'current_time', status.get('currentTime', None))
+                    '_current_time', status.get('currentTime', None))
                 self._update_attribute(
-                    'media', status.get('media', None))
+                    '_media', status.get('media', None))
                 self._update_attribute(
-                    'playback_rate', status.get('playbackRate', None))
+                    '_playback_rate', status.get('playbackRate', None))
                 self._update_attribute(
-                    'volume', status.get('volume', None))
+                    '_volume', status.get('volume', None))
                 self._update_attribute(
-                    'player_state', status.get('playerState', None))
+                    '_player_state', status.get('playerState', None))
             elif response['type'] == 'LOAD_FAILED':
                 raise LoadFailedException()
 
     @property
     def player_state(self):
-        return self.player_state
+        return self._player_state
 
     @property
     def is_playing(self):
-        return (self.player_state is not None and
-                self.player_state == self.PLAYER_STATE_PLAYING)
+        return (self._player_state is not None and
+                self._player_state == self.PLAYER_STATE_PLAYING)
 
     @property
     def is_paused(self):
-        return (self.player_state is not None and
-                self.player_state == self.PLAYER_STATE_PAUSED)
+        return (self._player_state is not None and
+                self._player_state == self.PLAYER_STATE_PAUSED)
 
     @property
     def is_idle(self):
-        return (self.player_state is not None and
-                self.player_state == self.PLAYER_STATE_IDLE)
+        return (self._player_state is not None and
+                self._player_state == self.PLAYER_STATE_IDLE)
+
+    @property
+    def volume(self):
+        return self._volume.get('level') if self._volume else None
+
+    @property
+    def is_muted(self):
+        return self._volume.get('muted') if self._volume else None
