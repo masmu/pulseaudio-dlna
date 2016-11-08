@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
+<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+    <s:Body>
+        <u:GetMute xmlns:u="{service_type}">
+            <Channel>{channel}</Channel>
+            <InstanceID>0</InstanceID>
+        </u:GetMute>
+    </s:Body>
+</s:Envelope>
