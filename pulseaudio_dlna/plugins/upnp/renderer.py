@@ -459,6 +459,7 @@ class CoinedUpnpMediaRenderer(
             return_code, message = UpnpMediaRenderer.register(
                 self, stream_url, codec,
                 artist=artist, title=title, thumb=thumb)
+            return return_code, message
             if return_code == 200:
                 if self._update_current_state():
                     if self.state == self.STOP:
