@@ -17,6 +17,8 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import sys
 import dbus
 import dbus.mainloop.glib
@@ -25,7 +27,6 @@ import struct
 import subprocess
 import logging
 import setproctitle
-import gobject
 import functools
 import copy
 import signal
@@ -530,9 +531,9 @@ class PulseWatcher(PulseAudio):
 
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
-        mainloop = gobject.MainLoop()
-        gobject.io_add_watch(
-            self.message_queue._reader, gobject.IO_IN | gobject.IO_PRI,
+        mainloop = GObject.MainLoop()
+        GObject.io_add_watch(
+            self.message_queue._reader, GObject.IO_IN | GObject.IO_PRI,
             self._on_new_message)
         try:
             mainloop.run()
@@ -553,7 +554,7 @@ class PulseWatcher(PulseAudio):
 
     def _block_device_handling(self, object_path):
         self.blocked_devices.append(object_path)
-        gobject.timeout_add(1000, self._unblock_device_handling, object_path)
+        GObject.timeout_add(1000, self._unblock_device_handling, object_path)
 
     def _unblock_device_handling(self, object_path):
         self.blocked_devices.remove(object_path)
@@ -664,8 +665,8 @@ class PulseWatcher(PulseAudio):
 
     def _delayed_handle_sink_update(self, sink_path):
         if self.signal_timers.get(sink_path, None):
-            gobject.source_remove(self.signal_timers[sink_path])
-        self.signal_timers[sink_path] = gobject.timeout_add(
+            GObject.source_remove(self.signal_timers[sink_path])
+        self.signal_timers[sink_path] = GObject.timeout_add(
             1000, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):

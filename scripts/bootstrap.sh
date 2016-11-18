@@ -66,7 +66,7 @@ function install_dev() {
         python-docopt \
         python-requests \
         python-setproctitle \
-        python-gobject \
+        python-gi \
         python-protobuf \
         python-notify2 \
         python-psutil \

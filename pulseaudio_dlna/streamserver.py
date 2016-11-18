@@ -17,6 +17,8 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import re
 import subprocess
 import setproctitle
@@ -25,7 +27,6 @@ import time
 import socket
 import select
 import sys
-import gobject
 import base64
 import urllib
 import json
@@ -64,7 +65,7 @@ class ProcessStream(object):
         self.chunk_size = 1024 * 4
         self.reinitialize_count = 0
 
-        gobject.timeout_add(
+        GObject.timeout_add(
             10000, self._on_regenerate_reinitialize_count)
 
     def run(self):
@@ -194,8 +195,8 @@ class StreamManager(object):
         del self.streams[stream.path][stream.id]
 
         if stream.path in self.timeouts:
-            gobject.source_remove(self.timeouts[stream.path])
-        self.timeouts[stream.path] = gobject.timeout_add(
+            GObject.source_remove(self.timeouts[stream.path])
+        self.timeouts[stream.path] = GObject.timeout_add(
             2000, self._on_disconnect, stream)
 
     def _on_disconnect(self, stream):
@@ -387,10 +388,10 @@ class StreamServer(SocketServer.TCPServer):
 class GobjectMainLoopMixin:
 
     def serve_forever(self, poll_interval=0.5):
-        self.mainloop = gobject.MainLoop()
+        self.mainloop = GObject.MainLoop()
         if hasattr(self, 'socket'):
-            gobject.io_add_watch(
-                self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
+            GObject.io_add_watch(
+                self, GObject.IO_IN | GObject.IO_PRI, self._on_new_request)
         context = self.mainloop.get_context()
         while True:
             try:

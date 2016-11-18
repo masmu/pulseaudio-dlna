@@ -18,10 +18,11 @@
 from __future__ import absolute_import
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import subprocess
 import threading
 import os
-import gobject
 import sys
 import logging
 
@@ -70,8 +71,8 @@ class GobjectMainLoopMixin(object):
     def __init__(self, *args, **kwargs):
         super(GobjectMainLoopMixin, self).__init__(*args, **kwargs)
         for pipe in [self.stdout, self.stderr]:
-            gobject.io_add_watch(
-                pipe, gobject.IO_IN | gobject.IO_PRI, self._on_new_data)
+            GObject.io_add_watch(
+                pipe, GObject.IO_IN | GObject.IO_PRI, self._on_new_data)
 
     def _on_new_data(self, fd, condition):
         line = fd.readline()
