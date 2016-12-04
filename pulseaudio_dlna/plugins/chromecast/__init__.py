@@ -38,10 +38,11 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
         return ChromecastRendererFactory.from_xml(
             url, xml, CoinedChromecastRenderer)
 
-    def discover(self, holder, ttl=None):
+    def discover(self, holder, ttl=None, host=None):
         self.holder = holder
         mdns = pulseaudio_dlna.plugins.chromecast.mdns.MDNSListener(
             domain=self.GOOGLE_MDNS_DOMAIN,
+            host=host,
             cb_on_device_added=self._on_device_added,
             cb_on_device_removed=self._on_device_removed
         )

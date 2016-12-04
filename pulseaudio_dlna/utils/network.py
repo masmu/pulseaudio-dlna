@@ -20,6 +20,8 @@ from __future__ import unicode_literals
 import netifaces
 import traceback
 
+LOOPBACK_IP = '127.0.0.1'
+
 
 def default_ipv4():
     try:
@@ -30,11 +32,12 @@ def default_ipv4():
     return None
 
 
-def ipv4_addresses():
+def ipv4_addresses(include_loopback=False):
     ips = []
     for iface in netifaces.interfaces():
         for link in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
             ip = link.get('addr', None)
             if ip:
-                ips.append(ip)
+                if ip != LOOPBACK_IP or include_loopback is True:
+                    ips.append(ip)
     return ips

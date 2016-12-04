@@ -39,11 +39,12 @@ class Holder(object):
         self.devices = {}
         self.lock = threading.Lock()
 
-    def search(self, ttl=None):
+    def search(self, ttl=None, host=None):
         threads = []
         for plugin in self.plugins:
             thread = threading.Thread(
-                target=plugin.discover, args=[self, ttl])
+                target=plugin.discover, args=[self],
+                kwargs={'ttl': ttl, 'host': host})
             thread.daemon = True
             threads.append(thread)
         try:

@@ -248,7 +248,7 @@ class Application(object):
         if locations:
             self.run_process(holder.lookup, locations)
         else:
-            self.run_process(holder.search)
+            self.run_process(holder.search, host=host)
 
         setproctitle.setproctitle('pulseaudio-dlna')
         signal.signal(signal.SIGINT, self.shutdown)
