@@ -86,7 +86,7 @@ class Application(object):
         pulseaudio_dlna.streamserver.StreamServer.PORT = port
 
         logger.info('Binding to {host}:{port}'.format(
-            host=host or '', port=port))
+            host=host or '*', port=port))
 
         if options['--disable-workarounds']:
             pulseaudio_dlna.workarounds.BaseWorkaround.ENABLED = False
