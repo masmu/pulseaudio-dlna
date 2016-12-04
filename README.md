@@ -35,6 +35,15 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
+ * __master__ - (_2016-12-04_)
+    - Fixed a bug where the detection of DLNA devices failed when there were multiple network interfaces
+    - The application now binds to all interfaces by default
+    - When using multiple network interfaces the appropriate network address is being used for streaming (new dependency `python-netaddr`)
+    - Migrated to GI bindings (removed dependencies `python-gobject` `python-rsvg` `python-gtk2`, new dependency `python-gi`, new optional dependencies `gir1.2-rsvg-2.0`, `gir1.2-gtk-3.0`)
+    - Fixed a bug where devices with the same name could keep updating each other
+    - Fixed a bug where codec bit rates could not be set although those were supported
+    - Fixed a bug where a missing xml attribute prevented xml parsing
+
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
 
@@ -238,13 +247,14 @@ will get installed if you install it via the PPA.
 - python-docopt
 - python-requests
 - python-setproctitle
-- python-gobject
+- python-gi
 - python-protobuf
 - python-notify2
 - python-psutil
 - python-concurrent.futures
 - python-chardet
 - python-netifaces
+- python-netaddr
 - python-lxml
 - python-zeroconf
 - vorbis-tools
@@ -256,7 +266,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gi python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-netaddr python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 

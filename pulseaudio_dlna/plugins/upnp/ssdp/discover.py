@@ -49,8 +49,15 @@ class SSDPDiscover(object):
     BUFFER_SIZE = 1024
     USE_SINGLE_SOCKET = True
 
-    def __init__(self, cb_on_device_response):
+    def __init__(self, cb_on_device_response, host=None):
         self.cb_on_device_response = cb_on_device_response
+        self.host = host
+        self.addresses = []
+
+        self.refresh_addresses()
+
+    def refresh_addresses(self):
+        self.addresses = pulseaudio_dlna.utils.network.ipv4_addresses()
 
     def search(self, ssdp_ttl=None, ssdp_mx=None, ssdp_amount=None):
         ssdp_mx = ssdp_mx or self.SSDP_MX
@@ -58,27 +65,28 @@ class SSDPDiscover(object):
         ssdp_amount = ssdp_amount or self.SSDP_AMOUNT
 
         if self.USE_SINGLE_SOCKET:
-            logger.debug('Binding socket to "{}" ...'.format(''))
-            self._search('', ssdp_ttl, ssdp_mx, ssdp_amount)
+            self._search(self.host or '', ssdp_ttl, ssdp_mx, ssdp_amount)
         else:
-            ips = pulseaudio_dlna.utils.network.ipv4_addresses()
-            threads = []
-            for ip in ips:
-                logger.debug('Binding socket to "{}" ...'.format(ip))
-                thread = threading.Thread(
-                    target=self._search,
-                    args=[ip, ssdp_ttl, ssdp_mx, ssdp_amount])
-                threads.append(thread)
-            try:
-                for thread in threads:
-                    thread.start()
-                for thread in threads:
-                    thread.join()
-            except:
-                traceback.print_exc()
+            if self.host:
+                self._search(self.host, ssdp_ttl, ssdp_mx, ssdp_amount)
+            else:
+                threads = []
+                for addr in self.addresses:
+                    thread = threading.Thread(
+                        target=self._search,
+                        args=[addr, ssdp_ttl, ssdp_mx, ssdp_amount])
+                    threads.append(thread)
+                try:
+                    for thread in threads:
+                        thread.start()
+                    for thread in threads:
+                        thread.join()
+                except:
+                    traceback.print_exc()
         logger.debug('SSDPDiscover.search() quit')
 
     def _search(self, host, ssdp_ttl, ssdp_mx, ssdp_amount):
+        logger.debug('Binding socket to "{}" ...'.format(host or ''))
         sock = socket.socket(
             socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP)
         sock.settimeout(ssdp_mx)
@@ -110,4 +118,11 @@ class SSDPDiscover(object):
     def _send_discover(self, sock, ssdp_mx):
         msg = self.MSEARCH_MSG.format(
             host=self.SSDP_ADDRESS, port=self.SSDP_PORT, mx=ssdp_mx)
-        sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
+        if self.USE_SINGLE_SOCKET:
+            for addr in self.addresses:
+                sock.setsockopt(
+                    socket.SOL_IP, socket.IP_MULTICAST_IF,
+                    socket.inet_aton(addr))
+                sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))
+        else:
+            sock.sendto(msg, (self.SSDP_ADDRESS, self.SSDP_PORT))

@@ -640,8 +640,9 @@ class CoinedUpnpMediaRenderer(
                 return return_code, None
         except requests.exceptions.ConnectionError:
             return 403, 'The device refused the connection!'
-        except pulseaudio_dlna.plugins.renderer.NoEncoderFoundException:
-            return 500, 'Could not find a suitable encoder!'
+        except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
+            return 500, e
 
 
 class UpnpMediaRendererFactory(object):
@@ -711,8 +712,8 @@ class UpnpMediaRendererFactory(object):
                     services,
                 )
 
-                if device_manufacturer is not None and \
-                   device_manufacturer.text.lower() == 'yamaha corporation':
+                if upnp_device.manufacturer is not None and \
+                   upnp_device.manufacturer.lower() == 'yamaha corporation':
                     upnp_device.workarounds.append(
                         pulseaudio_dlna.workarounds.YamahaWorkaround(xml))
 
@@ -727,6 +728,8 @@ class UpnpMediaRendererFactory(object):
                 xml_root = lxml.etree.fromstring(xml)
                 return process_xml(url, xml_root, xml, type_)
             except:
+                import traceback
+                traceback.print_exc()
                 logger.error('No valid XML returned from {url}.'.format(
                     url=url))
                 return None

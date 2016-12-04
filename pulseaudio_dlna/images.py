@@ -20,6 +20,7 @@ from __future__ import with_statement
 
 import tempfile
 import logging
+import gi
 
 logger = logging.getLogger('pulseaudio_dlna.images')
 
@@ -59,11 +60,15 @@ class MissingDependencies(Exception):
 
 def get_icon_by_name(name, size=256):
     try:
-        import gtk
+        gi.require_version('Gtk', '3.0')
+        from gi.repository import Gtk
     except:
-        raise MissingDependencies('Unable to lookup system icons!', ['gtk'])
+        raise MissingDependencies(
+            'Unable to lookup system icons!',
+            ['gir1.2-gtk-3.0']
+        )
 
-    icon_theme = gtk.icon_theme_get_default()
+    icon_theme = Gtk.IconTheme.get_default()
     icon = icon_theme.lookup_icon(name, size, 0)
     if icon:
         file_path = icon.get_filename()
@@ -116,19 +121,28 @@ class PngImage(BaseImage):
 class SvgPngImage(BaseImage):
     def __init__(self, path, cached=True, size=256):
         try:
-            import cairo
-            import rsvg
+            gi.require_version('Rsvg', '2.0')
+            from gi.repository import Rsvg
         except:
             raise MissingDependencies(
-                'Unable to convert SVG image to PNG!', ['cairo', 'rsvg'])
+                'Unable to convert SVG image to PNG!', ['gir1.2-rsvg-2.0']
+            )
+        try:
+            import cairo
+        except:
+            raise MissingDependencies(
+                'Unable to convert SVG image to PNG!', ['cairo']
+            )
 
         tmp_file = tempfile.NamedTemporaryFile()
         image_surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, size, size)
-        rsvg_handle = rsvg.Handle(path)
+        rsvg_handle = Rsvg.Handle.new_from_file(path)
 
         context = cairo.Context(image_surface)
         context.scale(
-            size / rsvg_handle.props.height, size / rsvg_handle.props.width)
+            float(size) / rsvg_handle.props.height,
+            float(size) / rsvg_handle.props.width
+        )
         rsvg_handle.render_cairo(context)
         image_surface.write_to_png(tmp_file.name)
 

@@ -17,13 +17,14 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import SocketServer
 import logging
 import socket
 import struct
 import setproctitle
 import time
-import gobject
 import chardet
 
 import pulseaudio_dlna.plugins.upnp.ssdp
@@ -77,9 +78,11 @@ class SSDPListener(SocketServer.UDPServer):
 
     DISABLE_SSDP_LISTENER = False
 
-    def __init__(self, cb_on_device_alive=None, cb_on_device_byebye=None):
+    def __init__(self, cb_on_device_alive=None, cb_on_device_byebye=None,
+                 host=None):
         self.cb_on_device_alive = cb_on_device_alive
         self.cb_on_device_byebye = cb_on_device_byebye
+        self.host = host
 
     def run(self, ttl=None):
         if self.DISABLE_SSDP_LISTENER:
@@ -87,7 +90,7 @@ class SSDPListener(SocketServer.UDPServer):
 
         self.allow_reuse_address = True
         SocketServer.UDPServer.__init__(
-            self, ('', self.SSDP_PORT), SSDPHandler)
+            self, (self.host or '', self.SSDP_PORT), SSDPHandler)
         self.socket.setsockopt(
             socket.IPPROTO_IP,
             socket.IP_ADD_MEMBERSHIP,
@@ -98,7 +101,7 @@ class SSDPListener(SocketServer.UDPServer):
             self.SSDP_TTL)
 
         if ttl:
-            gobject.timeout_add(ttl * 1000, self.shutdown)
+            GObject.timeout_add(ttl * 1000, self.shutdown)
 
         setproctitle.setproctitle('ssdp_listener')
         self.serve_forever(self)
@@ -113,11 +116,11 @@ class GobjectMainLoopMixin:
 
     def serve_forever(self, poll_interval=0.5):
         self.__running = False
-        self.__mainloop = gobject.MainLoop()
+        self.__mainloop = GObject.MainLoop()
 
         if hasattr(self, 'socket'):
-            gobject.io_add_watch(
-                self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
+            GObject.io_add_watch(
+                self, GObject.IO_IN | GObject.IO_PRI, self._on_new_request)
 
         context = self.__mainloop.get_context()
         while not self.__running:

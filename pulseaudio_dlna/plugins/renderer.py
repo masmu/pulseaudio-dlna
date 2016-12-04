@@ -27,6 +27,8 @@ import base64
 
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.rules
+import pulseaudio_dlna.streamserver
+import pulseaudio_dlna.utils.network
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 
@@ -34,8 +36,20 @@ logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 MANAGE_DEVICE_VOLUME = True
 
 
-class NoEncoderFoundException():
-    pass
+class NoEncoderFoundException(Exception):
+    def __init__(self):
+        Exception.__init__(
+            self,
+            'Could not find a suitable encoder!'
+        )
+
+
+class NoSuitableHostFoundException(Exception):
+    def __init__(self, address):
+        Exception.__init__(
+            self,
+            'Could not find a suitable host address for "{}"!'.format(address)
+        )
 
 
 @functools.total_ordering
@@ -301,15 +315,15 @@ class BaseRenderer(object):
 
     def __eq__(self, other):
         if isinstance(other, BaseRenderer):
-            return self.short_name == other.short_name
+            return self.udn == other.udn
         if isinstance(other, pulseaudio_dlna.pulseaudio.PulseBridge):
-            return self.short_name == other.device.short_name
+            return self.udn == other.device.udn
 
     def __gt__(self, other):
         if isinstance(other, BaseRenderer):
-            return self.short_name > other.short_name
+            return self.udn > other.udn
         if isinstance(other, pulseaudio_dlna.pulseaudio.PulseBridge):
-            return self.short_name > other.device.short_name
+            return self.udn > other.device.udn
 
     def __str__(self, detailed=False):
         return (
@@ -343,17 +357,14 @@ class BaseRenderer(object):
 
 class CoinedBaseRendererMixin():
 
-    server_ip = None
-    server_port = None
-
-    def set_server_location(self, ip, port):
-        self.server_ip = ip
-        self.server_port = port
-
     def _encode_settings(self, settings, suffix=''):
+        server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
+        if not server_ip:
+            raise NoSuitableHostFoundException(self.ip)
+        server_port = pulseaudio_dlna.streamserver.StreamServer.PORT
         base_url = 'http://{ip}:{port}'.format(
-            ip=self.server_ip,
-            port=self.server_port,
+            ip=server_ip,
+            port=server_port,
         )
         data_string = ','.join(
             ['{}="{}"'.format(k, v) for k, v in settings.iteritems()])
