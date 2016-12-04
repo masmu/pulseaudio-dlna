@@ -253,7 +253,7 @@ class PulseClient(object):
                    self.name,
                    self.icon,
                    self.binary
-                   )
+               )
 
 
 class PulseModuleFactory(PulseBaseFactory):
@@ -417,6 +417,9 @@ class PulseStreamFactory(object):
                 device=unicode(obj.Get(
                     'org.PulseAudio.Core1.Stream', 'Device')),
                 client=PulseClientFactory.new(bus, client_path),
+                volumes=[
+                    int(volume) for volume in obj.Get(
+                        'org.PulseAudio.Core1.Stream', 'Volume')],
             )
         except dbus.exceptions.DBusException:
             logger.debug(
@@ -430,7 +433,7 @@ class PulseStream(object):
 
     __shared_state = {}
 
-    def __init__(self, object_path, index, device, client):
+    def __init__(self, object_path, index, device, client, volumes):
         if object_path not in self.__shared_state:
             self.__shared_state[object_path] = {}
         self.__dict__ = self.__shared_state[object_path]
@@ -439,6 +442,7 @@ class PulseStream(object):
         self.index = index
         self.device = device
         self.client = client
+        self.volumes = volumes
 
     def switch_to_source(self, index):
         cmd = [
@@ -446,6 +450,15 @@ class PulseStream(object):
             'move-sink-input',
             str(self.index),
             str(index),
+        ]
+        subprocess.check_output(cmd)
+
+    def set_volume(self, volume):
+        cmd = [
+            'pactl',
+            'set-sink-input-volume',
+            str(self.index),
+            str(volume),
         ]
         subprocess.check_output(cmd)
 
@@ -457,11 +470,12 @@ class PulseStream(object):
 
     def __str__(self):
         return '<PulseStream path="{}" device="{}" index="{}" ' \
-               'client="{}">'.format(
+               'client="{}" volumes="{}">'.format(
                    self.object_path,
                    self.device,
                    self.index,
                    self.client.index if self.client else None,
+                   ','.join([unicode(v) for v in self.volumes]),
                )
 
 
@@ -524,6 +538,8 @@ class PulseWatcher(PulseAudio):
                 self.on_fallback_sink_updated),
             ('DeviceUpdated', 'org.PulseAudio.Core1.Stream.{}',
                 self.on_device_updated),
+            ('VolumeUpdated', 'org.PulseAudio.Core1.Stream.{}',
+                self.on_volume_updated),
         )
         self._connect(signals)
         self.update()
@@ -638,6 +654,11 @@ class PulseWatcher(PulseAudio):
             path=sink_path))
         self.update()
         self._delayed_handle_sink_update(sink_path)
+
+    def on_volume_updated(self, volumes):
+        logger.info('on_volume_updated "{volumes}"'.format(
+            volumes=[int(v) for v in volumes]))
+        self.update()
 
     def on_fallback_sink_updated(self, sink_path):
         self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
