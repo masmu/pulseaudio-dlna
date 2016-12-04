@@ -312,15 +312,15 @@ class BaseRenderer(object):
 
     def __eq__(self, other):
         if isinstance(other, BaseRenderer):
-            return self.short_name == other.short_name
+            return self.udn == other.udn
         if isinstance(other, pulseaudio_dlna.pulseaudio.PulseBridge):
-            return self.short_name == other.device.short_name
+            return self.udn == other.device.udn
 
     def __gt__(self, other):
         if isinstance(other, BaseRenderer):
-            return self.short_name > other.short_name
+            return self.udn > other.udn
         if isinstance(other, pulseaudio_dlna.pulseaudio.PulseBridge):
-            return self.short_name > other.device.short_name
+            return self.udn > other.device.udn
 
     def __str__(self, detailed=False):
         return (
