@@ -17,9 +17,10 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import logging
 import zeroconf
-import gobject
 import time
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.mdns')
@@ -60,10 +61,10 @@ class MDNSListener(object):
         zeroconf.ServiceBrowser(self.zeroconf, self.domain, MDNSHandler(self))
 
         if ttl:
-            gobject.timeout_add(ttl * 1000, self.shutdown)
+            GObject.timeout_add(ttl * 1000, self.shutdown)
 
         self.__running = True
-        self.__mainloop = gobject.MainLoop()
+        self.__mainloop = GObject.MainLoop()
         context = self.__mainloop.get_context()
         while self.__running:
             try:

@@ -243,7 +243,7 @@ will get installed if you install it via the PPA.
 - python-docopt
 - python-requests
 - python-setproctitle
-- python-gobject
+- python-gi
 - python-protobuf
 - python-notify2
 - python-psutil
@@ -262,7 +262,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gobject python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-netaddr python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gi python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-netaddr python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 

@@ -17,12 +17,13 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import dbus
 import dbus.mainloop.glib
 import logging
 import os
 import sys
-import gobject
 import setproctitle
 import functools
 import signal
@@ -38,7 +39,7 @@ class Daemon(object):
     def __init__(self):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         setproctitle.setproctitle('pulseaudio-daemon')
-        self.mainloop = gobject.MainLoop()
+        self.mainloop = GObject.MainLoop()
         self.processes = []
         self.check_id = None
         self.is_checking = False
@@ -64,8 +65,8 @@ class Daemon(object):
     def on_name_owner_changed(self, name, new_owner, old_owner):
         if not self.is_checking:
             if self.check_id:
-                gobject.source_remove(self.check_id)
-            self.check_id = gobject.timeout_add(
+                GObject.source_remove(self.check_id)
+            self.check_id = GObject.timeout_add(
                 3000, self._check_processes)
 
     def _check_processes(self):
