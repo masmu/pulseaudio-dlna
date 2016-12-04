@@ -42,9 +42,6 @@ import pulseaudio_dlna.recorders
 import pulseaudio_dlna.rules
 import pulseaudio_dlna.images
 
-from pulseaudio_dlna.plugins.upnp.renderer import (
-    UpnpContentFeatures, UpnpContentFlags)
-
 logger = logging.getLogger('pulseaudio_dlna.streamserver')
 
 PROTOCOL_VERSION_V10 = 'HTTP/1.0'
@@ -282,6 +279,8 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             if isinstance(
                 bridge.device,
                     pulseaudio_dlna.plugins.upnp.renderer.UpnpMediaRenderer):
+                from pulseaudio_dlna.plugins.upnp.renderer import (
+                    UpnpContentFeatures, UpnpContentFlags)
                 content_features = UpnpContentFeatures(
                     flags=[
                         UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
@@ -359,11 +358,13 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class StreamServer(SocketServer.TCPServer):
 
+    PORT = None
+
     def __init__(
             self, ip, port, bridges, message_queue,
             fake_http_content_length=False, *args):
         self.ip = ip
-        self.port = port
+        self.port = port or self.PORT
         self.bridges = bridges
         self.message_queue = message_queue
         self.stream_manager = StreamManager(self)

@@ -46,13 +46,18 @@ class MDNSListener(object):
 
     def __init__(
             self, domain,
+            host=None,
             cb_on_device_added=None, cb_on_device_removed=None):
         self.domain = domain
+        self.host = host
         self.cb_on_device_added = cb_on_device_added
         self.cb_on_device_removed = cb_on_device_removed
 
     def run(self, ttl=None):
-        self.zeroconf = zeroconf.Zeroconf()
+        if self.host:
+            self.zeroconf = zeroconf.Zeroconf(interfaces=[self.host])
+        else:
+            self.zeroconf = zeroconf.Zeroconf()
         zeroconf.ServiceBrowser(self.zeroconf, self.domain, MDNSHandler(self))
 
         if ttl:
