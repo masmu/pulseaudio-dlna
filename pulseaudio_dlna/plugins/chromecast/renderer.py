@@ -142,8 +142,9 @@ class CoinedChromecastRenderer(
             stream_url = url or self.get_stream_url()
             return ChromecastRenderer.play(
                 self, stream_url, artist=artist, title=title, thumb=thumb)
-        except pulseaudio_dlna.plugins.renderer.NoEncoderFoundException:
-            return 500, 'Could not find a suitable encoder!'
+        except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
+            return 500, e
 
 
 class ChromecastRendererFactory(object):

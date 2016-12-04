@@ -80,7 +80,10 @@ class DefaultCoverMode(BaseCoverMode):
 
     @property
     def thumb(self):
-        return self.bridge.device.get_image_url('default.png')
+        try:
+            return self.bridge.device.get_image_url('default.png')
+        except:
+            return None
 
 
 class DistributionCoverMode(BaseCoverMode):
@@ -105,8 +108,11 @@ class DistributionCoverMode(BaseCoverMode):
             dist_icon = 'gentoo'
         else:
             dist_icon = 'unknown'
-        return self.bridge.device.get_image_url(
-            'distribution-{}.png'.format(dist_icon))
+        try:
+            return self.bridge.device.get_image_url(
+                'distribution-{}.png'.format(dist_icon))
+        except:
+            return None
 
 
 class ApplicationCoverMode(BaseCoverMode):
@@ -115,8 +121,11 @@ class ApplicationCoverMode(BaseCoverMode):
 
     @property
     def thumb(self):
-        return self.bridge.device.get_sys_icon_url(
-            self.bridge.sink.primary_application_name)
+        try:
+            return self.bridge.device.get_sys_icon_url(
+                self.bridge.sink.primary_application_name)
+        except:
+            return None
 
 
 def load_modes():
