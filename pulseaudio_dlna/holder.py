@@ -28,11 +28,8 @@ logger = logging.getLogger('pulseaudio_dlna.holder')
 class Holder(object):
     def __init__(
             self, plugins,
-            stream_ip=None, stream_port=None, message_queue=None,
-            device_filter=None, device_config=None):
+            message_queue=None, device_filter=None, device_config=None):
         self.plugins = plugins
-        self.stream_ip = stream_ip
-        self.stream_port = stream_port
         self.device_filter = device_filter or None
         self.device_config = device_config or {}
         self.message_queue = message_queue
@@ -88,9 +85,6 @@ class Holder(object):
                 if device.validate():
                     config = self.device_config.get(device.udn, None)
                     device.activate(config)
-                    if self.stream_ip and self.stream_port:
-                        device.set_server_location(
-                            self.stream_ip, self.stream_port)
                     if not self.device_filter or \
                        device.name in self.device_filter:
                         if config:

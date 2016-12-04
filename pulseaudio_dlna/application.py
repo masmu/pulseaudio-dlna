@@ -78,19 +78,15 @@ class Application(object):
         logger.info('Using version: {}'.format(pulseaudio_dlna.__version__))
 
         if not options['--host']:
-            host = pulseaudio_dlna.utils.network.default_ipv4()
-            if host is None:
-                logger.info(
-                    'I could not determine your host address. '
-                    'You must specify it yourself via the --host option!')
-                sys.exit(1)
+            host = None
         else:
             host = str(options['--host'])
 
         port = int(options['--port'])
+        pulseaudio_dlna.streamserver.StreamServer.PORT = port
 
         logger.info('Using localhost: {host}:{port}'.format(
-            host=host, port=port))
+            host=host or '', port=port))
 
         if options['--disable-workarounds']:
             pulseaudio_dlna.workarounds.BaseWorkaround.ENABLED = False
@@ -236,8 +232,6 @@ class Application(object):
 
         holder = pulseaudio_dlna.holder.Holder(
             plugins=self.PLUGINS,
-            stream_ip=stream_server.ip,
-            stream_port=stream_server.port,
             message_queue=message_queue,
             device_filter=device_filter,
             device_config=device_config

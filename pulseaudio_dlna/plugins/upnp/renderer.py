@@ -480,8 +480,9 @@ class CoinedUpnpMediaRenderer(
                 return return_code, None
         except requests.exceptions.ConnectionError:
             return 403, 'The device refused the connection!'
-        except pulseaudio_dlna.plugins.renderer.NoEncoderFoundException:
-            return 500, 'Could not find a suitable encoder!'
+        except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
+            return 500, e
 
 
 class UpnpMediaRendererFactory(object):

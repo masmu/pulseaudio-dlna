@@ -18,7 +18,11 @@
 from __future__ import unicode_literals
 
 import netifaces
+import netaddr
 import traceback
+import logging
+
+logger = logging.getLogger('pulseaudio_dlna.utils.network')
 
 LOOPBACK_IP = '127.0.0.1'
 
@@ -41,3 +45,18 @@ def ipv4_addresses(include_loopback=False):
                 if ip != LOOPBACK_IP or include_loopback is True:
                     ips.append(ip)
     return ips
+
+
+def get_host_by_ip(ip):
+    host = netaddr.IPAddress(ip)
+    for iface in netifaces.interfaces():
+        for link in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
+            addr = link.get('addr', None)
+            netmask = link.get('netmask', None)
+            if addr and netmask:
+                if host in netaddr.IPNetwork('{}/{}'.format(addr, netmask)):
+                    logger.debug(
+                        'Selecting host "{}" for IP "{}"'.format(addr, ip))
+                    return addr
+    logger.critical('No host found for IP {}!'.format(ip))
+    return None
