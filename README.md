@@ -40,6 +40,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - The application now binds to all interfaces by default
     - When using multiple network interfaces the appropriate network address is being used for streaming (new dependency `python-netaddr`)
     - Migrated to GI bindings (removed dependencies `python-gobject` `python-rsvg` `python-gtk2`, new dependency `python-gi`, new optional dependencies `gir1.2-rsvg-2.0`, `gir1.2-gtk-3.0`)
+    - Fixed a bug where devices with the same name could keep updating each other
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
