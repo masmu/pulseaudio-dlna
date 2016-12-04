@@ -60,8 +60,6 @@ def set_bit_rate(bit_rate):
            hasattr(_type, 'SUPPORTED_BIT_RATES'):
             if bit_rate in _type.SUPPORTED_BIT_RATES:
                 _type.DEFAULT_BIT_RATE = bit_rate
-            else:
-                raise UnsupportedBitrateException(bit_rate, _type)
 
 
 class BaseEncoder(object):
