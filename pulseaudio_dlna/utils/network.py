@@ -17,33 +17,16 @@
 
 from __future__ import unicode_literals
 
-import commands
-import re
 import netifaces
+import traceback
 
 
 def default_ipv4():
-    return _default_ipv4_cmd_ip() or _default_ipv4_cmd_networkctl()
-
-
-def _default_ipv4_cmd_ip():
-    status_code, result = commands.getstatusoutput(
-        'ip route get 255.255.255.255')
-    if status_code == 0:
-        match = re.findall(
-            r"(?<=src )(\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3})", result)
-        if match:
-            return match[0]
-    return None
-
-
-def _default_ipv4_cmd_networkctl():
-    status_code, result = commands.getstatusoutput('networkctl status')
-    if status_code == 0:
-        match = re.findall(
-            r"Address: (\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}) on", result)
-        if match:
-            return match[0]
+    try:
+        default_if = netifaces.gateways()['default'][netifaces.AF_INET][1]
+        return netifaces.ifaddresses(default_if)[netifaces.AF_INET][0]['addr']
+    except:
+        traceback.print_exc()
     return None
 
 
