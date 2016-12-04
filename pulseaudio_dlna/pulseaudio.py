@@ -374,6 +374,22 @@ class PulseSink(object):
         ]
         subprocess.check_output(cmd)
 
+    def remember_stream_volumes(self):
+        self.volumes = {}
+        for stream in self.streams:
+            self.volumes[stream.index] = stream.volumes
+
+    def restore_stream_volumes(self):
+        if hasattr(self, 'volumes'):
+            for index, volumes in self.volumes.items():
+                cmd = [
+                    'pactl',
+                    'set-sink-input-volume',
+                    str(index),
+                    str(volumes[0]),
+                ]
+                subprocess.check_output(cmd)
+
     def switch_streams_to_fallback_source(self):
         if self.fallback_sink is not None:
             for stream in self.streams:
@@ -583,6 +599,7 @@ class PulseWatcher(PulseAudio):
     def cleanup(self):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
+            bridge.sink.restore_stream_volumes()
             self.delete_null_sink(bridge.sink.module.index)
         self.bridges = []
 
@@ -719,6 +736,7 @@ class PulseWatcher(PulseAudio):
                 if len(bridge.sink.streams) == 0 and (
                         not self.disable_device_stop and
                         'DISABLE_DEVICE_STOP' not in bridge.device.rules):
+                    bridge.sink.restore_stream_volumes()
                     logger.info(
                         'Instructing the device "{}" to stop ...'.format(
                             bridge.device.label))
@@ -750,6 +768,9 @@ class PulseWatcher(PulseAudio):
                         logger.info(
                             'The device "{}" is playing.'.format(
                                 bridge.device.label))
+                        bridge.sink.remember_stream_volumes()
+                        for stream in bridge.sink.streams:
+                            stream.set_volume(65536)
                     else:
                         if not message:
                             message = 'Unknown reason.'
