@@ -21,6 +21,7 @@ import logging
 import threading
 import requests
 import traceback
+import setproctitle
 
 logger = logging.getLogger('pulseaudio_dlna.holder')
 
@@ -28,15 +29,22 @@ logger = logging.getLogger('pulseaudio_dlna.holder')
 class Holder(object):
     def __init__(
             self, plugins,
-            message_queue=None, device_filter=None, device_config=None):
+            pulse_queue=None, device_filter=None, device_config=None,
+            proc_title=None):
         self.plugins = plugins
         self.device_filter = device_filter or None
         self.device_config = device_config or {}
-        self.message_queue = message_queue
+        self.pulse_queue = pulse_queue
         self.devices = {}
+        self.proc_title = proc_title
         self.lock = threading.Lock()
 
+    def _set_proc_title(self):
+        if self.proc_title:
+            setproctitle.setproctitle(self.proc_title)
+
     def search(self, ttl=None, host=None):
+        self._set_proc_title()
         threads = []
         for plugin in self.plugins:
             thread = threading.Thread(
@@ -55,6 +63,7 @@ class Holder(object):
         logger.debug('Holder.search() quit')
 
     def lookup(self, locations):
+        self._set_proc_title()
         xmls = {}
         for url in locations:
             try:
@@ -114,8 +123,8 @@ class Holder(object):
             self.lock.release()
 
     def _send_message(self, _type, device):
-        if self.message_queue:
-            self.message_queue.put({
+        if self.pulse_queue:
+            self.pulse_queue.put({
                 'type': _type,
                 'device': device
             })

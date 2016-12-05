@@ -178,10 +178,6 @@ class Application(object):
             codec = _type()
             logger.info('  {}'.format(codec))
 
-        manager = multiprocessing.Manager()
-        message_queue = multiprocessing.Queue()
-        bridges = manager.list()
-
         fake_http_content_length = False
         if options['--fake-http-content-length']:
             fake_http_content_length = True
@@ -203,17 +199,22 @@ class Application(object):
         if options['--auto-reconnect']:
             disable_auto_reconnect = False
 
+        pulse_queue = multiprocessing.Queue()
+        stream_queue = multiprocessing.Queue()
+
         stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
-            host, port, bridges, message_queue,
+            host, port, pulse_queue, stream_queue,
             fake_http_content_length=fake_http_content_length,
+            proc_title='stream_server',
         )
 
         pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
-            bridges, message_queue,
+            pulse_queue, stream_queue,
             disable_switchback=disable_switchback,
             disable_device_stop=disable_device_stop,
             disable_auto_reconnect=disable_auto_reconnect,
             cover_mode=cover_mode,
+            proc_title='pulse_watcher',
         )
 
         device_filter = None
@@ -232,9 +233,10 @@ class Application(object):
 
         holder = pulseaudio_dlna.holder.Holder(
             plugins=self.PLUGINS,
-            message_queue=message_queue,
+            pulse_queue=pulse_queue,
             device_filter=device_filter,
-            device_config=device_config
+            device_config=device_config,
+            proc_title='holder',
         )
 
         self.run_process(stream_server.run)

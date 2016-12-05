@@ -23,7 +23,6 @@ import re
 import subprocess
 import setproctitle
 import logging
-import time
 import socket
 import select
 import sys
@@ -201,7 +200,7 @@ class StreamManager(object):
         if len(self.streams[stream.path]) == 0:
             logger.info('No more stream from device "{}".'.format(
                 stream.bridge.device.name))
-            self.server.message_queue.put({
+            self.server.pulse_queue.put({
                 'type': 'on_bridge_disconnected',
                 'stopped_bridge': stream.bridge,
             })
@@ -361,14 +360,16 @@ class StreamServer(SocketServer.TCPServer):
     PORT = None
 
     def __init__(
-            self, ip, port, bridges, message_queue,
-            fake_http_content_length=False, *args):
+            self, ip, port, pulse_queue, stream_queue,
+            fake_http_content_length=False, proc_title=None, *args):
         self.ip = ip
         self.port = port or self.PORT
-        self.bridges = bridges
-        self.message_queue = message_queue
+        self.pulse_queue = pulse_queue
+        self.stream_queue = stream_queue
         self.stream_manager = StreamManager(self)
         self.fake_http_content_length = fake_http_content_length
+        self.proc_title = proc_title
+        self.bridges = []
 
     def run(self):
         self.allow_reuse_address = True
@@ -382,26 +383,41 @@ class StreamServer(SocketServer.TCPServer):
                 'cannot work properly!'.format(port=self.port))
             sys.exit(1)
 
-        setproctitle.setproctitle('stream_server')
+        if self.proc_title:
+            setproctitle.setproctitle(self.proc_title)
         self.serve_forever()
+
+    def update_bridges(self, bridges):
+        self.bridges = bridges
 
 
 class GobjectMainLoopMixin:
 
     def serve_forever(self, poll_interval=0.5):
-        self.mainloop = GObject.MainLoop()
+        mainloop = GObject.MainLoop()
         if hasattr(self, 'socket'):
             GObject.io_add_watch(
                 self, GObject.IO_IN | GObject.IO_PRI, self._on_new_request)
-        context = self.mainloop.get_context()
-        while True:
-            try:
-                if context.pending():
-                    context.iteration(True)
-                else:
-                    time.sleep(0.1)
-            except KeyboardInterrupt:
-                break
+        if hasattr(self, 'stream_queue'):
+            GObject.io_add_watch(
+                self.stream_queue._reader, GObject.IO_IN | GObject.IO_PRI,
+                self._on_new_message)
+        try:
+            mainloop.run()
+        except KeyboardInterrupt:
+            pass
+
+    def _on_new_message(self, fd, condition):
+        try:
+            message = self.stream_queue.get_nowait()
+        except:
+            return True
+
+        message_type = message.get('type', None)
+        if message_type and hasattr(self, message_type):
+            del message['type']
+            getattr(self, message_type)(**message)
+        return True
 
     def _on_new_request(self, sock, *args):
         self._handle_request_noblock()

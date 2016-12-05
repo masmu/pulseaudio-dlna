@@ -71,7 +71,7 @@ class MDNSListener(object):
                 if context.pending():
                     context.iteration(True)
                 else:
-                    time.sleep(0.1)
+                    time.sleep(0.01)
             except KeyboardInterrupt:
                 break
         self.zeroconf.close()
