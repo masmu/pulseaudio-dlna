@@ -702,6 +702,10 @@ class PulseWatcher(PulseAudio):
                     return
 
     def _delayed_handle_sink_update(self, sink_path):
+        for bridge in self.bridges:
+            if len(bridge.sink.streams) == 0:
+                bridge.sink.restore_stream_volumes()
+
         if self.signal_timers.get(sink_path, None):
             GObject.source_remove(self.signal_timers[sink_path])
         self.signal_timers[sink_path] = GObject.timeout_add(
@@ -736,7 +740,6 @@ class PulseWatcher(PulseAudio):
                 if len(bridge.sink.streams) == 0 and (
                         not self.disable_device_stop and
                         'DISABLE_DEVICE_STOP' not in bridge.device.rules):
-                    bridge.sink.restore_stream_volumes()
                     logger.info(
                         'Instructing the device "{}" to stop ...'.format(
                             bridge.device.label))
