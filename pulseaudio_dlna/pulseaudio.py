@@ -502,15 +502,15 @@ class PulseWatcher(PulseAudio):
         self.disable_device_stop = disable_device_stop
         self.disable_auto_reconnect = disable_auto_reconnect
 
-    def terminate(self, signal_number=None, frame=None):
+    def shutdown(self, signal_number=None, frame=None):
         if not self.is_terminating:
+            logger.info('PulseWatcher.shutdown()')
             self.is_terminating = True
             self.cleanup()
             sys.exit(0)
 
     def run(self):
-        signal.signal(signal.SIGINT, self.terminate)
-        signal.signal(signal.SIGTERM, self.terminate)
+        signal.signal(signal.SIGTERM, self.shutdown)
         if self.proc_title:
             setproctitle.setproctitle(self.proc_title)
 
@@ -538,7 +538,7 @@ class PulseWatcher(PulseAudio):
         try:
             mainloop.run()
         except KeyboardInterrupt:
-            pass
+            self.shutdown()
 
     def _on_new_message(self, fd, condition):
         try:
@@ -570,6 +570,7 @@ class PulseWatcher(PulseAudio):
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
             self.delete_null_sink(bridge.sink.module.index)
         self.bridges = []
+        sys.exit(0)
 
     def _was_stream_moved(self, moved_stream, ignore_sink):
         for sink in self.system_sinks:

@@ -78,7 +78,7 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
         except:
             traceback.print_exc()
 
-        logger.debug('DLNAPlugin.discover() quit')
+        logger.info('DLNAPlugin.discover()')
 
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
     def _on_device_response(self, header, address):

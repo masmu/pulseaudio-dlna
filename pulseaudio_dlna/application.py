@@ -24,6 +24,7 @@ import logging
 import sys
 import json
 import os
+import time
 
 import pulseaudio_dlna
 import pulseaudio_dlna.holder
@@ -56,16 +57,44 @@ class Application(object):
         pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
         pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
     ]
+    SHUTDOWN_TIMEOUT = 5
 
     def __init__(self):
         self.processes = []
+        self.is_terminating = False
 
     def shutdown(self, signal_number=None, frame=None):
-        print('Application is shutting down.')
-        for process in self.processes:
-            if process is not None and process.is_alive():
-                process.terminate()
-        sys.exit(0)
+        if not self.is_terminating:
+            print('Application is shutting down ...')
+            self.is_terminating = True
+
+            for process in self.processes:
+                # We send SIGINT to all subprocesses to trigger
+                # KeyboardInterrupt and exit the mainloop
+                # in those which use GObject.MainLoop().
+                # This unblocks the main thread and ensures that the process
+                # is receiving signals again.
+                os.kill(process.pid, signal.SIGINT)
+                # SIGTERM is the acutal one which is terminating the process
+                os.kill(process.pid, signal.SIGTERM)
+
+            start_time = time.time()
+            while True:
+                if time.time() - start_time >= self.SHUTDOWN_TIMEOUT:
+                    print('Terminating remaining subprocesses ...')
+                    for process in self.processes:
+                        if process is not None and process.is_alive():
+                            os.kill(process.pid, signal.SIGKILL)
+                    sys.exit(1)
+                time.sleep(0.1)
+                all_dead = True
+                for process in self.processes:
+                    if process.is_alive():
+                        all_dead = False
+                        break
+                if all_dead:
+                    break
+            sys.exit(0)
 
     def run_process(self, target, *args, **kwargs):
         process = multiprocessing.Process(
@@ -250,9 +279,7 @@ class Application(object):
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
         signal.signal(signal.SIGHUP, self.shutdown)
-
-        for process in self.processes:
-            process.join()
+        signal.pause()
 
     def create_device_config(self, update=False):
         logger.info('Starting discovery ...')

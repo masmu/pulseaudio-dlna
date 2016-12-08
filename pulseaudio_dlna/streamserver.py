@@ -383,6 +383,7 @@ class StreamServer(SocketServer.TCPServer):
                 'cannot work properly!'.format(port=self.port))
             sys.exit(1)
 
+        signal.signal(signal.SIGTERM, self.shutdown)
         if self.proc_title:
             setproctitle.setproctitle(self.proc_title)
         self.serve_forever()
@@ -405,7 +406,7 @@ class GobjectMainLoopMixin:
         try:
             mainloop.run()
         except KeyboardInterrupt:
-            pass
+            self.shutdown()
 
     def _on_new_message(self, fd, condition):
         try:
@@ -424,9 +425,8 @@ class GobjectMainLoopMixin:
         return True
 
     def shutdown(self, *args):
-        logger.debug(
-            'StreamServer GobjectMainLoopMixin.shutdown() pid: {}'.format(
-                os.getpid()))
+        logger.info(
+            'StreamServer GobjectMainLoopMixin.shutdown()')
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
         except socket.error:

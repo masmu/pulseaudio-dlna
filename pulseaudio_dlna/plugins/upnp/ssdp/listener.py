@@ -105,7 +105,7 @@ class SSDPListener(SocketServer.UDPServer):
 
         setproctitle.setproctitle('ssdp_listener')
         self.serve_forever(self)
-        logger.debug('SSDPListener.run() quit')
+        logger.info('SSDPListener.run()')
 
     def _multicast_struct(self, address):
         return struct.pack(
@@ -123,22 +123,22 @@ class GobjectMainLoopMixin:
                 self, GObject.IO_IN | GObject.IO_PRI, self._on_new_request)
 
         context = self.__mainloop.get_context()
-        while not self.__running:
-            try:
+        try:
+            while not self.__running:
                 if context.pending():
                     context.iteration(True)
                 else:
                     time.sleep(0.01)
-            except KeyboardInterrupt:
-                break
-        logger.debug('SSDPListener.serve_forever() quit')
+        except KeyboardInterrupt:
+            pass
+        logger.info('SSDPListener.serve_forever()')
 
     def _on_new_request(self, sock, *args):
         self._handle_request_noblock()
         return True
 
     def shutdown(self, *args):
-        logger.debug('SSDPListener.shutdown()')
+        logger.info('SSDPListener.shutdown()')
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
         except socket.error:
