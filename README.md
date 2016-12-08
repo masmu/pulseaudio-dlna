@@ -43,6 +43,8 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where devices with the same name could keep updating each other
     - Fixed a bug where codec bit rates could not be set although those were supported
     - Fixed a bug where a missing xml attribute prevented xml parsing
+    - Added the `--disable-mimetype-check` option
+    - Disabled mimetype check for virtual _Raumfeld_ devices 
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
