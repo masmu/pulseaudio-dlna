@@ -199,9 +199,9 @@ class PulseAudioProcess(psutil.Process):
     def _kill_process_tree(self, pid, timeout=3):
         try:
             p = psutil.Process(pid)
-            for child in p.get_children():
+            for child in p.children():
                 self._kill_process_tree(child.pid)
-            p.send_signal(signal.SIGINT)
+            p.send_signal(signal.SIGTERM)
             p.wait(timeout=timeout)
         except psutil.TimeoutExpired:
             logger.info(

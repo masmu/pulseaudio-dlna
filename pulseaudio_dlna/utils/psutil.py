@@ -46,6 +46,9 @@ if __series__ >= 2:
 else:
     class Process(psutil.Process):
 
+        def children(self, *args, **kwargs):
+            return self.get_children(*args, **kwargs)
+
         def name(self):
             return self._platform_impl.get_process_name()
 
