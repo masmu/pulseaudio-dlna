@@ -66,17 +66,17 @@ class MDNSListener(object):
         self.__running = True
         self.__mainloop = GObject.MainLoop()
         context = self.__mainloop.get_context()
-        while self.__running:
-            try:
+        try:
+            while self.__running:
                 if context.pending():
                     context.iteration(True)
                 else:
-                    time.sleep(0.1)
-            except KeyboardInterrupt:
-                break
+                    time.sleep(0.01)
+        except KeyboardInterrupt:
+            pass
         self.zeroconf.close()
-        logger.debug('MDNSListener.run() quit')
+        logger.info('MDNSListener.run()')
 
     def shutdown(self):
-        logger.debug('MDNSListener.shutdown()')
+        logger.info('MDNSListener.shutdown()')
         self.__running = False

@@ -28,7 +28,6 @@ import subprocess
 import logging
 import setproctitle
 import functools
-import copy
 import signal
 import concurrent.futures
 
@@ -253,7 +252,7 @@ class PulseClient(object):
                    self.name,
                    self.icon,
                    self.binary
-                   )
+               )
 
 
 class PulseModuleFactory(PulseBaseFactory):
@@ -485,34 +484,35 @@ class PulseWatcher(PulseAudio):
 
     ASYNC_EXECUTION = True
 
-    def __init__(self, bridges_shared, message_queue, disable_switchback=False,
+    def __init__(self, pulse_queue, stream_queue, disable_switchback=False,
                  disable_device_stop=False, disable_auto_reconnect=True,
-                 cover_mode='application'):
+                 cover_mode='application', proc_title=None):
         PulseAudio.__init__(self)
 
         self.bridges = []
-        self.bridges_shared = bridges_shared
-
-        self.message_queue = message_queue
+        self.pulse_queue = pulse_queue
+        self.stream_queue = stream_queue
         self.blocked_devices = []
         self.signal_timers = {}
         self.is_terminating = False
         self.cover_mode = pulseaudio_dlna.covermodes.MODES[cover_mode]()
+        self.proc_title = proc_title
 
         self.disable_switchback = disable_switchback
         self.disable_device_stop = disable_device_stop
         self.disable_auto_reconnect = disable_auto_reconnect
 
-    def terminate(self, signal_number=None, frame=None):
+    def shutdown(self, signal_number=None, frame=None):
         if not self.is_terminating:
+            logger.info('PulseWatcher.shutdown()')
             self.is_terminating = True
             self.cleanup()
             sys.exit(0)
 
     def run(self):
-        signal.signal(signal.SIGINT, self.terminate)
-        signal.signal(signal.SIGTERM, self.terminate)
-        setproctitle.setproctitle('pulse_watcher')
+        signal.signal(signal.SIGTERM, self.shutdown)
+        if self.proc_title:
+            setproctitle.setproctitle(self.proc_title)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         signals = (
@@ -533,16 +533,16 @@ class PulseWatcher(PulseAudio):
 
         mainloop = GObject.MainLoop()
         GObject.io_add_watch(
-            self.message_queue._reader, GObject.IO_IN | GObject.IO_PRI,
+            self.pulse_queue._reader, GObject.IO_IN | GObject.IO_PRI,
             self._on_new_message)
         try:
             mainloop.run()
         except KeyboardInterrupt:
-            pass
+            self.shutdown()
 
     def _on_new_message(self, fd, condition):
         try:
-            message = self.message_queue.get_nowait()
+            message = self.pulse_queue.get_nowait()
         except:
             return True
 
@@ -560,15 +560,17 @@ class PulseWatcher(PulseAudio):
         self.blocked_devices.remove(object_path)
 
     def share_bridges(self):
-        bridges_copy = [bridge for bridge in copy.deepcopy(self.bridges)]
-        del self.bridges_shared[:]
-        self.bridges_shared.extend(bridges_copy)
+        self.stream_queue.put({
+            'type': 'update_bridges',
+            'bridges': self.bridges,
+        })
 
     def cleanup(self):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
             self.delete_null_sink(bridge.sink.module.index)
         self.bridges = []
+        sys.exit(0)
 
     def _was_stream_moved(self, moved_stream, ignore_sink):
         for sink in self.system_sinks:

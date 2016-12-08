@@ -83,7 +83,7 @@ class SSDPDiscover(object):
                         thread.join()
                 except:
                     traceback.print_exc()
-        logger.debug('SSDPDiscover.search() quit')
+        logger.info('SSDPDiscover.search()')
 
     def _search(self, host, ssdp_ttl, ssdp_mx, ssdp_amount):
         logger.debug('Binding socket to "{}" ...'.format(host or ''))

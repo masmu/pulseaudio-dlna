@@ -24,6 +24,7 @@ import logging
 import sys
 import json
 import os
+import time
 
 import pulseaudio_dlna
 import pulseaudio_dlna.holder
@@ -56,16 +57,44 @@ class Application(object):
         pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
         pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
     ]
+    SHUTDOWN_TIMEOUT = 5
 
     def __init__(self):
         self.processes = []
+        self.is_terminating = False
 
     def shutdown(self, signal_number=None, frame=None):
-        print('Application is shutting down.')
-        for process in self.processes:
-            if process is not None and process.is_alive():
-                process.terminate()
-        sys.exit(0)
+        if not self.is_terminating:
+            print('Application is shutting down ...')
+            self.is_terminating = True
+
+            for process in self.processes:
+                # We send SIGINT to all subprocesses to trigger
+                # KeyboardInterrupt and exit the mainloop
+                # in those which use GObject.MainLoop().
+                # This unblocks the main thread and ensures that the process
+                # is receiving signals again.
+                os.kill(process.pid, signal.SIGINT)
+                # SIGTERM is the acutal one which is terminating the process
+                os.kill(process.pid, signal.SIGTERM)
+
+            start_time = time.time()
+            while True:
+                if time.time() - start_time >= self.SHUTDOWN_TIMEOUT:
+                    print('Terminating remaining subprocesses ...')
+                    for process in self.processes:
+                        if process is not None and process.is_alive():
+                            os.kill(process.pid, signal.SIGKILL)
+                    sys.exit(1)
+                time.sleep(0.1)
+                all_dead = True
+                for process in self.processes:
+                    if process.is_alive():
+                        all_dead = False
+                        break
+                if all_dead:
+                    break
+            sys.exit(0)
 
     def run_process(self, target, *args, **kwargs):
         process = multiprocessing.Process(
@@ -181,10 +210,6 @@ class Application(object):
             codec = _type()
             logger.info('  {}'.format(codec))
 
-        manager = multiprocessing.Manager()
-        message_queue = multiprocessing.Queue()
-        bridges = manager.list()
-
         fake_http_content_length = False
         if options['--fake-http-content-length']:
             fake_http_content_length = True
@@ -206,17 +231,22 @@ class Application(object):
         if options['--auto-reconnect']:
             disable_auto_reconnect = False
 
+        pulse_queue = multiprocessing.Queue()
+        stream_queue = multiprocessing.Queue()
+
         stream_server = pulseaudio_dlna.streamserver.ThreadedStreamServer(
-            host, port, bridges, message_queue,
+            host, port, pulse_queue, stream_queue,
             fake_http_content_length=fake_http_content_length,
+            proc_title='stream_server',
         )
 
         pulse = pulseaudio_dlna.pulseaudio.PulseWatcher(
-            bridges, message_queue,
+            pulse_queue, stream_queue,
             disable_switchback=disable_switchback,
             disable_device_stop=disable_device_stop,
             disable_auto_reconnect=disable_auto_reconnect,
             cover_mode=cover_mode,
+            proc_title='pulse_watcher',
         )
 
         device_filter = None
@@ -235,9 +265,10 @@ class Application(object):
 
         holder = pulseaudio_dlna.holder.Holder(
             plugins=self.PLUGINS,
-            message_queue=message_queue,
+            pulse_queue=pulse_queue,
             device_filter=device_filter,
-            device_config=device_config
+            device_config=device_config,
+            proc_title='holder',
         )
 
         self.run_process(stream_server.run)
@@ -251,9 +282,7 @@ class Application(object):
         signal.signal(signal.SIGINT, self.shutdown)
         signal.signal(signal.SIGTERM, self.shutdown)
         signal.signal(signal.SIGHUP, self.shutdown)
-
-        for process in self.processes:
-            process.join()
+        signal.pause()
 
     def create_device_config(self, update=False):
         logger.info('Starting discovery ...')
