@@ -45,6 +45,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where a missing xml attribute prevented xml parsing
     - Added the `--disable-mimetype-check` option
     - Disabled mimetype check for virtual _Raumfeld_ devices 
+    - Subprocesses now always exit gracefully
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
