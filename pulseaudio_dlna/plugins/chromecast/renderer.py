@@ -26,6 +26,7 @@ import lxml
 
 import pycastv2
 import pulseaudio_dlna.plugins.renderer
+import pulseaudio_dlna.rules
 import pulseaudio_dlna.codecs
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
@@ -34,9 +35,11 @@ logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def __init__(
-            self, name, ip, port, udn, model_name, model_number, manufacturer):
+            self, name, ip, port, udn, model_name, model_number,
+            model_description, manufacturer):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
-            self, udn, model_name, model_number, manufacturer)
+            self, udn, model_name, model_number, model_description,
+            manufacturer)
         self.flavour = 'Chromecast'
         self.name = name
         self.ip = ip
@@ -55,11 +58,8 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pulseaudio_dlna.codecs.OggCodec(),
                 pulseaudio_dlna.codecs.AacCodec(),
             ]
-            if pulseaudio_dlna.plugins.renderer.DISABLE_MIMETYPE_CHECK:
-                for codec in pulseaudio_dlna.codecs.enabled_codecs():
-                    if codec not in self.codecs:
-                        self.codecs.append(codec)
-                self.prioritize_codecs()
+            self.apply_device_rules()
+            self.prioritize_codecs()
 
     def play(self, url, artist=None, title=None, thumb=None):
         self._before_play()
@@ -208,6 +208,7 @@ class ChromecastRendererFactory(object):
                     unicode(device_udn.text),
                     unicode(device_modelname.text),
                     None,
+                    None,
                     unicode(device_manufacturer.text),
                 )
                 return cast_device
@@ -251,6 +252,7 @@ class ChromecastRendererFactory(object):
                 udn=device_info['udn'],
                 model_name=device_info['type'],
                 model_number=None,
+                model_description=None,
                 manufacturer='Google Inc.'
             )
         return None
