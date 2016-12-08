@@ -32,6 +32,8 @@ import pulseaudio_dlna.utils.network
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 
+DISABLE_MIMETYPE_CHECK = False
+
 
 class NoEncoderFoundException(Exception):
     def __init__(self):
@@ -60,10 +62,11 @@ class BaseRenderer(object):
     REQUEST_TIMEOUT = 10
 
     def __init__(self, udn, model_name=None, model_number=None,
-                 manufacturer=None):
+                 model_description=None, manufacturer=None):
         self._udn = udn
         self._model_name = model_name
         self._model_number = model_number
+        self._model_description = model_description
         self._manufacturer = manufacturer
 
         self._name = None
@@ -101,6 +104,14 @@ class BaseRenderer(object):
     @model_number.setter
     def model_number(self, value):
         self._model_number = value
+
+    @property
+    def model_description(self):
+        return self._model_description
+
+    @model_description.setter
+    def model_description(self, value):
+        self._model_description = value
 
     @property
     def manufacturer(self):
@@ -174,12 +185,16 @@ class BaseRenderer(object):
         logger.info(
             'There was no suitable codec found for "{name}". '
             'The device can play "{codecs}". Install one of following '
-            'encoders: "{encoders}".'.format(
+            'encoders: "{encoders}". '.format(
                 name=self.label,
                 codecs=','.join(
                     [codec.mime_type for codec in self.codecs]),
                 encoders=','.join(missing_encoders),
-            ))
+            ) +
+            'You can also try to disable the mime type check with the '
+            '"--disable-mimetype-check" flag. But be warned: In that way you '
+            'can use codecs your device does not support officially and this '
+            'could lead to distortions or in rare cases to speaker damage!')
         raise NoEncoderFoundException()
 
     @property
@@ -251,12 +266,18 @@ class BaseRenderer(object):
 
         self.codecs.sort(key=sorting_algorithm, reverse=True)
 
-    def check_for_device_rules(self):
+    def apply_device_rules(self):
         for rule in self.rules:
             if type(rule) is pulseaudio_dlna.rules.REQUEST_TIMEOUT:
                 self.REQUEST_TIMEOUT = rule.timeout
 
-    def check_for_codec_rules(self):
+        if (pulseaudio_dlna.plugins.renderer.DISABLE_MIMETYPE_CHECK or
+           pulseaudio_dlna.rules.DISABLE_MIMETYPE_CHECK in self.rules):
+            for codec in pulseaudio_dlna.codecs.enabled_codecs():
+                if codec not in self.codecs:
+                    self.codecs.append(codec)
+
+    def apply_device_fixes(self):
         if self.manufacturer == 'Sonos, Inc.':
             for codec in self.codecs:
                 if type(codec) in [
@@ -264,6 +285,12 @@ class BaseRenderer(object):
                         pulseaudio_dlna.codecs.OggCodec]:
                     codec.rules.append(
                         pulseaudio_dlna.rules.FAKE_HTTP_CONTENT_LENGTH())
+
+        if self.manufacturer == 'Raumfeld GmbH':
+            if (self.model_description == 'Virtual Media Player' and
+               pulseaudio_dlna.rules.DISABLE_MIMETYPE_CHECK not in self.rules):
+                self.rules.append(
+                    pulseaudio_dlna.rules.DISABLE_MIMETYPE_CHECK())
 
     def set_rules_from_config(self, config):
         self.name = config['name']
@@ -280,7 +307,7 @@ class BaseRenderer(object):
             for rule in codec_properties.get('rules', []):
                 codec.rules.append(rule)
             self.codecs.append(codec)
-        self.check_for_device_rules()
+        self.apply_device_rules()
         logger.debug(
             'Loaded the following device configuration:\n{}'.format(
                 self.__str__(True)))
@@ -325,7 +352,8 @@ class BaseRenderer(object):
     def __str__(self, detailed=False):
         return (
             '<{} name="{}" short="{}" state="{}" udn="{}" model_name="{}" '
-            'model_number="{}" manufacturer="{}" timeout="{}">{}{}').format(
+            'model_number="{}" model_description="{}" manufacturer="{}" '
+            'timeout="{}">{}{}').format(
                 self.__class__.__name__,
                 self.name,
                 self.short_name,
@@ -333,6 +361,7 @@ class BaseRenderer(object):
                 self.udn,
                 self.model_name,
                 self.model_number,
+                self.model_description,
                 self.manufacturer,
                 self.REQUEST_TIMEOUT,
                 ('\n' if len(self.rules) > 0 else '') + '\n'.join(

@@ -28,6 +28,8 @@ import lxml
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.workarounds
+import pulseaudio_dlna.codecs
+import pulseaudio_dlna.rules
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.plugins.upnp.byto
 
@@ -130,10 +132,11 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     ENCODING = 'utf-8'
 
     def __init__(
-            self, name, ip, port, udn, model_name, model_number, manufacturer,
-            services):
+            self, name, ip, port, udn, model_name, model_number,
+            model_description, manufacturer, services):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
-            self, udn, model_name, model_number, manufacturer)
+            self, udn, model_name, model_number, model_description,
+            manufacturer)
         self.flavour = 'DLNA'
         self.name = name
         self.ip = ip
@@ -164,8 +167,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             if mime_types:
                 for mime_type in mime_types:
                     self.add_mime_type(mime_type)
-                self.check_for_codec_rules()
-                self.prioritize_codecs()
+            self.apply_device_fixes()
+            self.apply_device_rules()
+            self.prioritize_codecs()
 
     def validate(self):
         if self.service_transport is None:
@@ -460,7 +464,11 @@ class CoinedUpnpMediaRenderer(
                 self, stream_url, codec,
                 artist=artist, title=title, thumb=thumb)
             if return_code == 200:
-                if self._update_current_state():
+                if pulseaudio_dlna.rules.DISABLE_PLAY_COMMAND in self.rules:
+                    logger.info(
+                        'Disabled play command. Device should be playing ...')
+                    return return_code, message
+                elif self._update_current_state():
                     if self.state == self.STOP:
                         logger.info(
                             'Device state is stopped. Sending play command.')
@@ -523,6 +531,7 @@ class UpnpMediaRendererFactory(object):
                 device_udn = device.find('{*}UDN')
                 device_modelname = device.find('{*}modelName')
                 device_modelnumber = device.find('{*}modelNumber')
+                device_modeldescription = device.find('{*}modelDescription')
                 device_manufacturer = device.find('{*}manufacturer')
 
                 if device_type.text not in cls.NOTIFICATION_TYPES:
@@ -547,6 +556,8 @@ class UpnpMediaRendererFactory(object):
                         device_modelname is not None) else None,
                     unicode(device_modelnumber.text) if (
                         device_modelnumber is not None) else None,
+                    unicode(device_modeldescription.text) if (
+                        device_modeldescription is not None) else None,
                     unicode(device_manufacturer.text) if (
                         device_manufacturer is not None) else None,
                     services,

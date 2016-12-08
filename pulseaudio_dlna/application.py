@@ -95,6 +95,9 @@ class Application(object):
             pulseaudio_dlna.plugins.upnp.ssdp.listener.\
                 SSDPListener.DISABLE_SSDP_LISTENER = True
 
+        if options['--disable-mimetype-check']:
+            pulseaudio_dlna.plugins.renderer.DISABLE_MIMETYPE_CHECK = True
+
         if options['--ssdp-ttl']:
             ssdp_ttl = int(options['--ssdp-ttl'])
             pulseaudio_dlna.plugins.upnp.ssdp.discover.\

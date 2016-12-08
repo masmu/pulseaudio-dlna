@@ -78,6 +78,14 @@ class DISABLE_DEVICE_STOP(BaseRule):
     pass
 
 
+class DISABLE_MIMETYPE_CHECK(BaseRule):
+    pass
+
+
+class DISABLE_PLAY_COMMAND(BaseRule):
+    pass
+
+
 class REQUEST_TIMEOUT(BaseRule):
     def __init__(self, timeout=None):
         self.timeout = float(timeout or 10)
