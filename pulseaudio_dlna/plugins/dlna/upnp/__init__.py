@@ -25,15 +25,9 @@ import time
 import pkg_resources
 import lxml
 
-import pulseaudio_dlna.pulseaudio
-import pulseaudio_dlna.encoders
-import pulseaudio_dlna.workarounds
-import pulseaudio_dlna.codecs
-import pulseaudio_dlna.rules
-import pulseaudio_dlna.plugins.renderer
-import pulseaudio_dlna.plugins.upnp.byto
+import byto
 
-logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.renderer')
+logger = logging.getLogger('upnp')
 
 
 class UpnpContentFlags(object):
@@ -127,27 +121,47 @@ class UpnpService(object):
         return urlparse.urljoin(host, self._event_url)
 
 
-class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
+UPNP_STATE_PLAYING = 'PLAYING'
+UPNP_STATE_STOPPED = 'STOPPED'
+UPNP_STATE_PAUSED_PLAYBACK = 'PAUSED_PLAYBACK'
+UPNP_STATE_PAUSED_RECORDING = 'PAUSED_RECORDING'
+UPNP_STATE_RECORDING = 'RECORDING'
+UPNP_STATE_TRANSITIONING = 'TRANSITIONING'
+UPNP_STATE_NO_MEDIA_PRESENT = 'NO_MEDIA_PRESENT'
+
+
+class UpnpMediaRenderer(object):
 
     ENCODING = 'utf-8'
 
-    def __init__(
-            self, name, ip, port, udn, model_name, model_number,
-            model_description, manufacturer, services):
-        pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
-            self, udn, model_name, model_number, model_description,
-            manufacturer)
-        self.flavour = 'DLNA'
-        self.name = name
+    def __init__(self, access_url, ip, port, name, udn, model_name,
+                 model_number, model_description, manufacturer, services,
+                 timeout=10):
+        self.state = None
+
+        self.access_url = access_url
         self.ip = ip
         self.port = port
-        self.state = self.IDLE
-        self.codecs = []
+        self.name = name
+        self.udn = udn
+        self.model_name = model_name
+        self.model_number = model_number
+        self.model_description = model_description
+        self.manufacturer = manufacturer
 
         self.xml = self._load_xml_files()
         self.service_transport = None
         self.service_connection = None
         self.service_rendering = None
+        self.timeout = timeout
+
+        self.content_features = UpnpContentFeatures(
+            flags=[
+                UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
+                UpnpContentFlags.BACKGROUND_TRANSFER_MODE_SUPPORTED,
+                UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
+                UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
+            ])
 
         for service in services:
             service = UpnpService(ip, port, service)
@@ -158,36 +172,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             if service.type == UpnpService.SERVICE_RENDERING:
                 self.service_rendering = service
 
-    def activate(self, config):
-        if config:
-            self.set_rules_from_config(config)
-        else:
-            self.codecs = []
-            mime_types = self._get_protocol_info()
-            if mime_types:
-                for mime_type in mime_types:
-                    self.add_mime_type(mime_type)
-            self.apply_device_fixes()
-            self.apply_device_rules()
-            self.prioritize_codecs()
-
-    def validate(self):
-        if self.service_transport is None:
-            logger.info(
-                'The device "{}" does not specify a service transport url. '
-                'Device skipped!'.format(self.label))
-            return False
-        if self.service_connection is None:
-            logger.info(
-                'The device "{}" does not specify a service connection url. '
-                'Device skipped!'.format(self.label))
-            return False
-        if self.service_rendering is None:
-            logger.info(
-                'The device "{}" does not specify a service rendering url. '
-                'Device skipped!'.format(self.label))
-            return False
-        return True
+        self._request = requests.Session()
 
     def _load_xml_files(self):
         content = {}
@@ -206,7 +191,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         }
         for ident, path in self.xml_files.items():
             file_name = pkg_resources.resource_filename(
-                'pulseaudio_dlna.plugins.upnp', path)
+                'pulseaudio_dlna.plugins.dlna.upnp', path)
             with open(file_name, 'r') as f:
                 content[ident] = unicode(f.read())
         return content
@@ -228,24 +213,23 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
     def _update_current_state(self):
         start_time = time.time()
-        while time.time() - start_time <= self.REQUEST_TIMEOUT:
+        while time.time() - start_time <= self.timeout:
             state = self._get_transport_info()
             if state is None:
                 return False
             elif state == 'PLAYING':
-                self.state = self.PLAYING
+                self.state = UPNP_STATE_PLAYING
                 return True
             elif state == 'STOPPED':
-                self.state = self.STOP
+                self.state = UPNP_STATE_STOPPED
                 return True
             time.sleep(1)
         return False
 
     def register(
-            self, stream_url, codec=None, artist=None, title=None, thumb=None):
-        self._before_register()
+            self, stream_url, mime_type=None, artist=None, title=None,
+            thumb=None, content_features=None):
         url = self.service_transport.control_url
-        codec = codec or self.codec
         headers = {
             'Content-Type':
                 'text/xml; charset="{encoding}"'.format(
@@ -254,13 +238,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 '"{service_type}#SetAVTransportURI"'.format(
                     service_type=self.service_transport.service_type),
         }
-        content_features = UpnpContentFeatures(
-            flags=[
-                UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
-                UpnpContentFlags.BACKGROUND_TRANSFER_MODE_SUPPORTED,
-                UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
-                UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
-            ])
+        content_features = content_features or self.content_features
         metadata = self.xml['register_metadata'].format(
             stream_url=stream_url,
             title=title or '',
@@ -269,7 +247,7 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             creator='',
             album='',
             encoding=self.ENCODING,
-            mime_type=codec.mime_type,
+            mime_type=mime_type,
             content_features=str(content_features),
         )
         data = self.xml['register'].format(
@@ -280,9 +258,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             return response.status_code, None
         except requests.exceptions.Timeout:
             message = 'REGISTER command - Could no connect to {url}. ' \
@@ -290,7 +268,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return 408, message
         finally:
             self._debug('register', url, headers, data, response)
-            self._after_register()
 
     def _get_transport_info(self):
         url = self.service_transport.control_url
@@ -307,9 +284,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
                 try:
                     xml_root = lxml.etree.fromstring(response.content)
@@ -341,9 +318,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
                 try:
                     mime_types = []
@@ -384,9 +361,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
                 try:
                     xml_root = lxml.etree.fromstring(response.content)
@@ -421,9 +398,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
                 return True
             return False
@@ -451,9 +428,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
                 try:
                     xml_root = lxml.etree.fromstring(response.content)
@@ -490,9 +467,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
                 return True
             return False
@@ -505,7 +482,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self._debug('set_mute', url, headers, data, response)
 
     def play(self):
-        self._before_play()
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
@@ -520,11 +496,11 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
-                self.state = self.PLAYING
+                self.state = UPNP_STATE_PLAYING
             return response.status_code, None
         except requests.exceptions.Timeout:
             message = 'PLAY command - Could no connect to {url}. ' \
@@ -532,10 +508,8 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return 408, message
         finally:
             self._debug('play', url, headers, data, response)
-            self._after_play()
 
     def stop(self):
-        self._before_stop()
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
@@ -550,11 +524,11 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
-                self.state = self.IDLE
+                self.state = UPNP_STATE_STOPPED
             return response.status_code, None
         except requests.exceptions.Timeout:
             message = 'STOP command - Could no connect to {url}. ' \
@@ -562,7 +536,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return 408, message
         finally:
             self._debug('stop', url, headers, data, response)
-            self._after_stop()
 
     def pause(self):
         url = self.service_transport.control_url
@@ -579,9 +552,9 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         )
         try:
             response = None
-            response = requests.post(
+            response = self._request.post(
                 url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.REQUEST_TIMEOUT)
+                headers=headers, timeout=self.timeout)
             if response.status_code == 200:
                 self.state = self.PAUSE
             return response.status_code, None
@@ -593,46 +566,6 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self._debug('pause', url, headers, data, response)
 
 
-class CoinedUpnpMediaRenderer(
-        pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin,
-        UpnpMediaRenderer):
-
-    def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
-        try:
-            stream_url = url or self.get_stream_url()
-            return_code, message = UpnpMediaRenderer.register(
-                self, stream_url, codec,
-                artist=artist, title=title, thumb=thumb)
-            if return_code == 200:
-                if pulseaudio_dlna.rules.DISABLE_PLAY_COMMAND in self.rules:
-                    logger.info(
-                        'Disabled play command. Device should be playing ...')
-                    return return_code, message
-                elif self._update_current_state():
-                    if self.state == self.STOP:
-                        logger.info(
-                            'Device state is stopped. Sending play command.')
-                        return UpnpMediaRenderer.play(self)
-                    elif self.state == self.PLAYING:
-                        logger.info(
-                            'Device state is playing. No need '
-                            'to send play command.')
-                        return return_code, message
-                else:
-                    logger.warning(
-                        'Updating device state unsuccessful! '
-                        'Sending play command.')
-                    return UpnpMediaRenderer.play(self)
-            else:
-                logger.error('"{}" registering failed!'.format(self.name))
-                return return_code, None
-        except requests.exceptions.ConnectionError:
-            return 403, 'The device refused the connection!'
-        except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
-                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
-            return 500, e
-
-
 class UpnpMediaRendererFactory(object):
 
     NOTIFICATION_TYPES = [
@@ -641,7 +574,7 @@ class UpnpMediaRendererFactory(object):
     ]
 
     @classmethod
-    def from_url(cls, url, type_=UpnpMediaRenderer):
+    def from_url(cls, url):
         try:
             response = requests.get(url, timeout=5)
             logger.debug('Response from UPNP device ({url})\n'
@@ -656,12 +589,12 @@ class UpnpMediaRendererFactory(object):
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
-        return cls.from_xml(url, response.content, type_)
+        return cls.from_xml(url, response.content)
 
     @classmethod
-    def from_xml(cls, url, xml, type_=UpnpMediaRenderer):
+    def from_xml(cls, url, xml):
 
-        def process_xml(url, xml_root, xml, type_):
+        def process_xml(url, xml_root, xml):
             url_object = urlparse.urlparse(url)
             ip, port = url_object.netloc.split(':')
             services = []
@@ -687,37 +620,32 @@ class UpnpMediaRendererFactory(object):
                     }
                     services.append(service)
 
-                upnp_device = type_(
-                    unicode(device_friendlyname.text),
-                    unicode(ip),
-                    port,
-                    unicode(device_udn.text),
-                    unicode(device_modelname.text) if (
+                upnp_device = UpnpMediaRenderer(
+                    access_url=url,
+                    ip=unicode(ip),
+                    port=port,
+                    name=unicode(device_friendlyname.text),
+                    udn=unicode(device_udn.text),
+                    model_name=unicode(device_modelname.text) if (
                         device_modelname is not None) else None,
-                    unicode(device_modelnumber.text) if (
+                    model_number=unicode(device_modelnumber.text) if (
                         device_modelnumber is not None) else None,
-                    unicode(device_modeldescription.text) if (
+                    model_description=unicode(device_modeldescription.text) if (
                         device_modeldescription is not None) else None,
-                    unicode(device_manufacturer.text) if (
+                    manufacturer=unicode(device_manufacturer.text) if (
                         device_manufacturer is not None) else None,
-                    services,
+                    services=services,
                 )
-
-                if upnp_device.manufacturer is not None and \
-                   upnp_device.manufacturer.lower() == 'yamaha corporation':
-                    upnp_device.workarounds.append(
-                        pulseaudio_dlna.workarounds.YamahaWorkaround(xml))
-
                 return upnp_device
         try:
             xml_root = lxml.etree.fromstring(xml)
-            return process_xml(url, xml_root, xml, type_)
+            return process_xml(url, xml_root, xml)
         except:
             logger.debug('Got broken xml, trying to fix it.')
-            xml = pulseaudio_dlna.plugins.upnp.byto.repair_xml(xml)
+            xml = byto.repair_xml(xml)
             try:
                 xml_root = lxml.etree.fromstring(xml)
-                return process_xml(url, xml_root, xml, type_)
+                return process_xml(url, xml_root, xml)
             except:
                 import traceback
                 traceback.print_exc()
@@ -726,6 +654,6 @@ class UpnpMediaRendererFactory(object):
                 return None
 
     @classmethod
-    def from_header(cls, header, type_=UpnpMediaRenderer):
+    def from_header(cls, header):
         if header.get('location', None):
-            return cls.from_url(header['location'], type_)
+            return cls.from_url(header['location'])

@@ -21,8 +21,7 @@ import logging
 
 import pulseaudio_dlna.plugins
 import pulseaudio_dlna.plugins.chromecast.mdns
-from pulseaudio_dlna.plugins.chromecast.renderer import (
-    CoinedChromecastRenderer, ChromecastRendererFactory)
+from pulseaudio_dlna.plugins.chromecast.renderer import ChromecastRendererFactory
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast')
 
@@ -35,8 +34,7 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
         pulseaudio_dlna.plugins.BasePlugin.__init__(self, *args)
 
     def lookup(self, url, xml):
-        return ChromecastRendererFactory.from_xml(
-            url, xml, CoinedChromecastRenderer)
+        return ChromecastRendererFactory.from_xml(url, xml)
 
     def discover(self, holder, ttl=None, host=None):
         self.holder = holder
@@ -51,8 +49,7 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
     def _on_device_added(self, mdns_info):
         if mdns_info:
-            return ChromecastRendererFactory.from_mdns_info(
-                mdns_info, CoinedChromecastRenderer)
+            return ChromecastRendererFactory.from_mdns_info(mdns_info)
         return None
 
     @pulseaudio_dlna.plugins.BasePlugin.remove_device_after

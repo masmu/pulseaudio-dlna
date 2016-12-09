@@ -38,14 +38,17 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self, name, ip, port, udn, model_name, model_number,
             model_description, manufacturer):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
-            self, udn, model_name, model_number, model_description,
-            manufacturer)
-        self.flavour = 'Chromecast'
-        self.name = name
-        self.ip = ip
-        self.port = port or 8009
-        self.state = self.IDLE
-        self.codecs = []
+            self,
+            udn=udn,
+            flavour='Chromecast',
+            name=name,
+            ip=ip,
+            port=port or 8009,
+            model_name=model_name,
+            model_number=model_number,
+            model_description=model_description,
+            manufacturer=manufacturer
+        )
 
     def activate(self, config):
         if config:
@@ -61,8 +64,9 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self.apply_device_rules()
             self.prioritize_codecs()
 
-    def play(self, url, artist=None, title=None, thumb=None):
+    def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
         self._before_play()
+        url = url or self.get_stream_url()
         try:
             cast = pycastv2.MediaPlayerController(
                 self.ip, self.port, self.REQUEST_TIMEOUT)
@@ -96,6 +100,9 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             else:
                 traceback.print_exc()
             return 500, None
+        except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
+            return 500, e
         finally:
             self._after_play()
             cast.cleanup()
@@ -133,20 +140,6 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         raise NotImplementedError()
 
 
-class CoinedChromecastRenderer(
-        pulseaudio_dlna.plugins.renderer.CoinedBaseRendererMixin,
-        ChromecastRenderer):
-
-    def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
-        try:
-            stream_url = url or self.get_stream_url()
-            return ChromecastRenderer.play(
-                self, stream_url, artist=artist, title=title, thumb=thumb)
-        except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
-                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
-            return 500, e
-
-
 class ChromecastRendererFactory(object):
 
     NOTIFICATION_TYPES = [
@@ -161,7 +154,7 @@ class ChromecastRendererFactory(object):
     ]
 
     @classmethod
-    def from_url(cls, url, type_=ChromecastRenderer):
+    def from_url(cls, url):
         try:
             response = requests.get(url, timeout=5)
             logger.debug('Response from chromecast device ({url})\n'
@@ -176,10 +169,10 @@ class ChromecastRendererFactory(object):
                 'Could no connect to {url}. '
                 'Connection refused.'.format(url=url))
             return None
-        return cls.from_xml(url, response.content, type_)
+        return cls.from_xml(url, response.content)
 
     @classmethod
-    def from_xml(cls, url, xml, type_=ChromecastRenderer):
+    def from_xml(cls, url, xml):
         url_object = urlparse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
@@ -201,28 +194,27 @@ class ChromecastRendererFactory(object):
                             device_modelname.text))
                     return None
 
-                cast_device = type_(
-                    unicode(device_friendlyname.text),
-                    unicode(ip),
-                    None,
-                    unicode(device_udn.text),
-                    unicode(device_modelname.text),
-                    None,
-                    None,
-                    unicode(device_manufacturer.text),
+                return ChromecastRenderer(
+                    name=unicode(device_friendlyname.text),
+                    ip=unicode(ip),
+                    port=None,
+                    udn=unicode(device_udn.text),
+                    model_name=unicode(device_modelname.text),
+                    model_number=None,
+                    model_description=None,
+                    manufacturer=unicode(device_manufacturer.text),
                 )
-                return cast_device
         except:
             logger.error('No valid XML returned from {url}.'.format(url=url))
             return None
 
     @classmethod
-    def from_header(cls, header, type_=ChromecastRenderer):
+    def from_header(cls, header):
         if header.get('location', None):
-            return cls.from_url(header['location'], type_)
+            return cls.from_url(header['location'])
 
     @classmethod
-    def from_mdns_info(cls, info, type_=ChromecastRenderer):
+    def from_mdns_info(cls, info):
 
         def _bytes2string(bytes):
             ip = []
@@ -245,7 +237,7 @@ class ChromecastRendererFactory(object):
 
         device_info = _get_device_info(info)
         if device_info:
-            return type_(
+            return ChromecastRenderer(
                 name=device_info['name'],
                 ip=device_info['ip'],
                 port=device_info['port'],

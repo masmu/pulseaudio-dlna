@@ -61,25 +61,36 @@ class BaseRenderer(object):
 
     REQUEST_TIMEOUT = 10
 
-    def __init__(self, udn, model_name=None, model_number=None,
+    def __init__(self, udn, flavour, name=None, ip=None, port=None,
+                 model_name=None, model_number=None,
                  model_description=None, manufacturer=None):
-        self._udn = udn
-        self._model_name = model_name
-        self._model_number = model_number
-        self._model_description = model_description
-        self._manufacturer = manufacturer
-
+        self._udn = None
         self._name = None
-        self._short_name = None
-        self._label = None
         self._ip = None
         self._port = None
-        self._state = None
+        self._model_name = None
+        self._model_number = None
+        self._model_description = None
+        self._manufacturer = None
+
+        self._short_name = None
+        self._label = None
+        self._state = self.IDLE
         self._encoder = None
         self._flavour = None
         self._codecs = []
         self._rules = pulseaudio_dlna.rules.Rules()
         self._workarounds = []
+
+        self.udn = udn
+        self.flavour = flavour
+        self.name = name
+        self.ip = ip
+        self.port = port
+        self.model_name = model_name
+        self.model_number = model_number
+        self.model_description = model_description
+        self.manufacturer = manufacturer
 
     @property
     def udn(self):
@@ -127,6 +138,8 @@ class BaseRenderer(object):
 
     @name.setter
     def name(self, name):
+        if not name:
+            name = ''
         name = name.strip()
         if name == '':
             name = 'Unnamed device #{random_id}'.format(
@@ -313,6 +326,44 @@ class BaseRenderer(object):
                 self.__str__(True)))
         return True
 
+    def _encode_settings(self, settings, suffix=''):
+        server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
+        if not server_ip:
+            raise NoSuitableHostFoundException(self.ip)
+        server_port = pulseaudio_dlna.streamserver.StreamServer.PORT
+        base_url = 'http://{ip}:{port}'.format(
+            ip=server_ip,
+            port=server_port,
+        )
+        data_string = ','.join(
+            ['{}="{}"'.format(k, v) for k, v in settings.iteritems()])
+        stream_name = '/{base_string}/{suffix}'.format(
+            base_string=urllib.quote(base64.b64encode(data_string)),
+            suffix=suffix,
+        )
+        return urlparse.urljoin(base_url, stream_name)
+
+    def get_stream_url(self):
+        settings = {
+            'type': 'bridge',
+            'udn': self.udn,
+        }
+        return self._encode_settings(settings, 'stream.' + self.codec.suffix)
+
+    def get_image_url(self, name='default.png'):
+        settings = {
+            'type': 'image',
+            'name': name,
+        }
+        return self._encode_settings(settings)
+
+    def get_sys_icon_url(self, name):
+        settings = {
+            'type': 'sys-icon',
+            'name': name,
+        }
+        return self._encode_settings(settings)
+
     def _before_register(self):
         for workaround in self.workarounds:
             workaround.run('before_register')
@@ -379,47 +430,3 @@ class BaseRenderer(object):
             'codecs': self.codecs,
             'rules': self.rules,
         }
-
-
-class CoinedBaseRendererMixin():
-
-    def _encode_settings(self, settings, suffix=''):
-        server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
-        if not server_ip:
-            raise NoSuitableHostFoundException(self.ip)
-        server_port = pulseaudio_dlna.streamserver.StreamServer.PORT
-        base_url = 'http://{ip}:{port}'.format(
-            ip=server_ip,
-            port=server_port,
-        )
-        data_string = ','.join(
-            ['{}="{}"'.format(k, v) for k, v in settings.iteritems()])
-        stream_name = '/{base_string}/{suffix}'.format(
-            base_string=urllib.quote(base64.b64encode(data_string)),
-            suffix=suffix,
-        )
-        return urlparse.urljoin(base_url, stream_name)
-
-    def get_stream_url(self):
-        settings = {
-            'type': 'bridge',
-            'udn': self.udn,
-        }
-        return self._encode_settings(settings, 'stream.' + self.codec.suffix)
-
-    def get_image_url(self, name='default.png'):
-        settings = {
-            'type': 'image',
-            'name': name,
-        }
-        return self._encode_settings(settings)
-
-    def get_sys_icon_url(self, name):
-        settings = {
-            'type': 'sys-icon',
-            'name': name,
-        }
-        return self._encode_settings(settings)
-
-    def play(self):
-        raise NotImplementedError()
