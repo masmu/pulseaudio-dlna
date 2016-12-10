@@ -76,7 +76,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 artist=artist,
                 title=title,
                 thumb=thumb)
-            self.state = self.PLAYING
+            self.state = self.STATE_PLAYING
             return 200, None
         except pycastv2.LaunchErrorException:
             message = 'The media player could not be launched. ' \
@@ -101,8 +101,12 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 traceback.print_exc()
             return 500, None
         except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
-                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException)\
+                as e:
             return 500, e
+        except Exception:
+            traceback.print_exc()
+            return 500, 'Unknown exception.'
         finally:
             self._after_play()
             cast.cleanup()
@@ -112,7 +116,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         try:
             cast = pycastv2.MediaPlayerController(
                 self.ip, self.port, self.REQUEST_TIMEOUT)
-            self.state = self.IDLE
+            self.state = self.STATE_STOPPED
             cast.disconnect_application()
             return 200, None
         except pycastv2.ChannelClosedException:
@@ -131,7 +135,10 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 return 403, message
             else:
                 traceback.print_exc()
-            return 500, None
+                return 500, 'Unknown exception.'
+        except Exception:
+            traceback.print_exc()
+            return 500, 'Unknown exception.'
         finally:
             self._after_stop()
             cast.cleanup()

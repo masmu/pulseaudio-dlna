@@ -17,8 +17,9 @@
 
 from __future__ import unicode_literals
 
-import requests
 import logging
+import time
+import traceback
 
 import pulseaudio_dlna.pulseaudio
 import pulseaudio_dlna.encoders
@@ -29,6 +30,15 @@ import pulseaudio_dlna.plugins.renderer
 import upnp
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.dlna.renderer')
+
+
+class MissingAttributeException(Exception):
+    def __init__(self, command):
+        Exception.__init__(
+            self,
+            'The command\'s "{}" response did not contain a required '
+            'attribute!'.format(command.upper())
+        )
 
 
 class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
@@ -53,32 +63,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     def content_features(self):
         return self.upnp_device.content_features
 
-    @property
-    def state(self):
-        if self.upnp_device.state == upnp.UPNP_STATE_PLAYING:
-            return self.PLAYING
-        elif self.upnp_device.state == upnp.UPNP_STATE_STOPPED:
-            return self.IDLE
-        elif self.upnp_device.state is None:
-            return self.IDLE
-        else:
-            logger.warning('Could not get an appropriate state value!')
-
-    @state.setter
-    def state(self, value):
-        if value == self.PLAYING:
-            self.upnp_device.state = upnp.UPNP_STATE_PLAYING
-        elif value == self.IDLE:
-            self.upnp_device.state = upnp.UPNP_STATE_STOPPED
-        else:
-            logger.warning('Could not set an appropriate state value!')
-
     def activate(self, config):
         if config:
             self.set_rules_from_config(config)
         else:
             self.codecs = []
-            mime_types = self.upnp_device._get_protocol_info()
+            mime_types = self.get_mime_types()
             if mime_types:
                 for mime_type in mime_types:
                     self.add_mime_type(mime_type)
@@ -104,57 +94,199 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return False
         return True
 
+    def _register(
+            self, stream_url, codec=None, artist=None, title=None, thumb=None):
+        self._before_register()
+        try:
+            codec = codec or self.codec
+            self.upnp_device.register(
+                stream_url, codec.mime_type, artist, title, thumb)
+        except Exception as e:
+            raise e
+        finally:
+            self._after_register()
+
     def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
         self._before_play()
         try:
             stream_url = url or self.get_stream_url()
-            return_code, message = self.upnp_device.register(
+            self._register(
                 stream_url, codec, artist=artist, title=title, thumb=thumb)
-            if return_code == 200:
-                if pulseaudio_dlna.rules.DISABLE_PLAY_COMMAND in self.rules:
+            if pulseaudio_dlna.rules.DISABLE_PLAY_COMMAND in self.rules:
+                logger.info(
+                    'Disabled play command. Device should be playing ...')
+            elif self._update_current_state():
+                if self.state == self.STATE_STOPPED:
                     logger.info(
-                        'Disabled play command. Device should be playing ...')
-                    return return_code, message
-                elif self.upnp_device._update_current_state():
-                    if self.upnp_device.state == upnp.UPNP_STATE_STOPPED:
-                        logger.info(
-                            'Device state is stopped. Sending play command.')
-                        return self.upnp_device.play()
-                    elif self.upnp_device.state == upnp.UPNP_STATE_PLAYING:
-                        logger.info(
-                            'Device state is playing. No need '
-                            'to send play command.')
-                        return return_code, message
+                        'Device state is stopped. Sending play command.')
+                    self.upnp_device.play()
+                elif self.state == self.STATE_PLAYING:
+                    logger.info(
+                        'Device state is playing. No need '
+                        'to send play command.')
                 else:
-                    logger.warning(
-                        'Updating device state unsuccessful! '
-                        'Sending play command.')
-                    return self.upnp_device.play()
+                    logger.info('Device state is unknown!')
+                    return 500, 'Unknown device state!'
             else:
-                logger.error('"{}" registering failed!'.format(self.name))
-                return return_code, None
-        except requests.exceptions.ConnectionError:
-            return 403, 'The device refused the connection!'
+                logger.warning(
+                    'Updating device state unsuccessful! '
+                    'Sending play command.')
+                self.upnp_device.play()
+            self.state = self.STATE_PLAYING
+            return 200, None
+        except upnp.CommandFailedException as e:
+            return 422, e
+        except upnp.XmlParsingException as e:
+            return 422, e
+        except upnp.ConnectionErrorException as e:
+            return 403, e
+        except upnp.ConnectionTimeoutException as e:
+            return 408, e
         except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
-                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException)\
+                as e:
             return 500, e
+        except Exception:
+            traceback.print_exc()
+            return 500, 'Unknown exception.'
         finally:
             self._after_play()
 
     def stop(self):
         self._before_stop()
-        return_code, message = self.upnp_device.stop()
-        self._after_stop()
-        return return_code, message
+        try:
+            self.upnp_device.stop()
+            self.state = self.STATE_STOPPED
+            return 200, None
+        except upnp.CommandFailedException as e:
+            return 422, e
+        except upnp.XmlParsingException as e:
+            return 422, e
+        except upnp.ConnectionErrorException as e:
+            return 403, e
+        except upnp.ConnectionTimeoutException as e:
+            return 408, e
+        except Exception:
+            traceback.print_exc()
+            return 500, 'Unknown exception.'
+        finally:
+            self._after_stop()
 
-    def register(
-            self, stream_url, codec=None, artist=None, title=None, thumb=None):
-        self._before_register()
-        codec = codec or self.codec
-        return_code, message = self.upnp_device.register(
-            stream_url, codec.mime_type, artist, title, thumb)
-        self._after_register()
-        return return_code, message
+    def get_volume(self):
+        try:
+            d = self.upnp_device.get_volume()
+            return int(d['GetVolumeResponse']['CurrentVolume'])
+        except KeyError:
+            logger.error(MissingAttributeException('get_volume'))
+            return None
+        except upnp.XmlParsingException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionErrorException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionTimeoutException as e:
+            logger.error(e)
+            return None
+
+    def set_volume(self, volume):
+        try:
+            return self.upnp_device.set_volume(volume)
+        except upnp.XmlParsingException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionErrorException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionTimeoutException as e:
+            logger.error(e)
+            return None
+
+    def get_mute(self):
+        try:
+            d = self.upnp_device.get_mute()
+            return int(d['GetMuteResponse']['CurrentMute']) != 0
+        except KeyError:
+            logger.error(MissingAttributeException('get_mute'))
+            return None
+        except upnp.XmlParsingException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionErrorException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionTimeoutException as e:
+            logger.error(e)
+            return None
+
+    def set_mute(self, mute):
+        try:
+            return self.upnp_device.set_mute(mute)
+        except upnp.XmlParsingException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionErrorException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionTimeoutException as e:
+            logger.error(e)
+            return None
+
+    def get_mime_types(self):
+        mime_types = []
+        try:
+            d = self.upnp_device.get_protocol_info()
+            sinks = d['GetProtocolInfoResponse']['Sink']
+            for sink in sinks.split(','):
+                attributes = sink.strip().split(':')
+                if len(attributes) >= 4:
+                    mime_types.append(attributes[2])
+            return mime_types
+        except KeyError:
+            logger.error(MissingAttributeException('get_protocol_info'))
+            return None
+        except upnp.XmlParsingException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionErrorException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionTimeoutException as e:
+            logger.error(e)
+            return None
+
+    def get_transport_state(self):
+        try:
+            d = self.upnp_device.get_transport_info()
+            state = d['GetTransportInfoResponse']['CurrentTransportState']
+            return state
+        except KeyError:
+            logger.error(MissingAttributeException('get_transport_state'))
+            return None
+        except upnp.XmlParsingException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionErrorException as e:
+            logger.error(e)
+            return None
+        except upnp.ConnectionTimeoutException as e:
+            logger.error(e)
+            return None
+
+    def _update_current_state(self):
+        start_time = time.time()
+        while time.time() - start_time <= self.REQUEST_TIMEOUT:
+            state = self.get_transport_state()
+            if state is None:
+                return False
+            if state == upnp.UPNP_STATE_PLAYING:
+                self.state = self.STATE_PLAYING
+                return True
+            elif state == upnp.UPNP_STATE_STOPPED:
+                self.state = self.STATE_STOPPED
+                return True
+            time.sleep(1)
+        return False
 
 
 class DLNAMediaRendererFactory(object):

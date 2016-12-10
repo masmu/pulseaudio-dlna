@@ -54,10 +54,9 @@ class NoSuitableHostFoundException(Exception):
 @functools.total_ordering
 class BaseRenderer(object):
 
-    IDLE = 'idle'
-    PLAYING = 'playing'
-    PAUSE = 'paused'
-    STOP = 'stopped'
+    STATE_PLAYING = 'PLAYING'
+    STATE_PAUSED = 'PAUSED'
+    STATE_STOPPED = 'STOPPED'
 
     REQUEST_TIMEOUT = 10
 
@@ -75,7 +74,7 @@ class BaseRenderer(object):
 
         self._short_name = None
         self._label = None
-        self._state = self.IDLE
+        self._state = self.STATE_STOPPED
         self._encoder = None
         self._flavour = None
         self._codecs = []

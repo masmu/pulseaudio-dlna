@@ -21,13 +21,51 @@ import cgi
 import requests
 import urlparse
 import logging
-import time
 import pkg_resources
 import lxml
+import json
+import xmltodict
+import xml.parsers.expat
 
 import byto
 
 logger = logging.getLogger('upnp')
+
+
+class ConnectionTimeoutException(Exception):
+    def __init__(self, command):
+        Exception.__init__(
+            self,
+            'The command "{}" timed out!'.format(
+                command.upper())
+        )
+
+
+class ConnectionErrorException(Exception):
+    def __init__(self, command):
+        Exception.__init__(
+            self,
+            'The command "{}" could not connect to the host!'.format(
+                command.upper())
+        )
+
+
+class XmlParsingException(Exception):
+    def __init__(self, command):
+        Exception.__init__(
+            self,
+            'The XML retrieved for command "{}" could not be parsed!'.format(
+                command.upper())
+        )
+
+
+class CommandFailedException(Exception):
+    def __init__(self, command, status_code):
+        Exception.__init__(
+            self,
+            'The command "{}" failed with status code {}!'.format(
+                command.upper(), status_code)
+        )
 
 
 class UpnpContentFlags(object):
@@ -130,7 +168,7 @@ UPNP_STATE_TRANSITIONING = 'TRANSITIONING'
 UPNP_STATE_NO_MEDIA_PRESENT = 'NO_MEDIA_PRESENT'
 
 
-class UpnpMediaRenderer(object):
+class UpnpMediaRendererController(object):
 
     ENCODING = 'utf-8'
 
@@ -196,35 +234,19 @@ class UpnpMediaRenderer(object):
                 content[ident] = unicode(f.read())
         return content
 
-    def _debug(self, action, url, headers, data, response):
-        response_code = response.status_code if response else 'none'
-        response_text = response.text if response else 'none'
-        logger.debug(
-            'sending {action} to {url}:\n'
-            ' - headers:\n{headers}\n'
-            ' - data:\n{data}'
-            ' - result: {status_code}\n{result}'.format(
-                action=action.upper(),
-                url=url,
-                headers=headers,
-                data=data,
-                status_code=response_code,
-                result=response_text))
+    def _debug_sent(self, url, headers, data):
+        logger.debug('SENT {headers}:\n{url}\n{data}'.format(
+            headers=headers,
+            data=data,
+            url=url,
+        ))
 
-    def _update_current_state(self):
-        start_time = time.time()
-        while time.time() - start_time <= self.timeout:
-            state = self._get_transport_info()
-            if state is None:
-                return False
-            elif state == 'PLAYING':
-                self.state = UPNP_STATE_PLAYING
-                return True
-            elif state == 'STOPPED':
-                self.state = UPNP_STATE_STOPPED
-                return True
-            time.sleep(1)
-        return False
+    def _debug_received(self, status_code, headers, data):
+        logger.debug('RECEIVED [{code}] - {headers}:\n{data}'.format(
+            code=status_code,
+            headers=headers,
+            data=data,
+        ))
 
     def register(
             self, stream_url, mime_type=None, artist=None, title=None,
@@ -259,17 +281,18 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
-            return response.status_code, None
-        except requests.exceptions.Timeout:
-            message = 'REGISTER command - Could no connect to {url}. ' \
-                      'Connection timeout.'.format(url=url)
-            return 408, message
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('register', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
-    def _get_transport_info(self):
+    def get_transport_info(self):
         url = self.service_transport.control_url
         headers = {
             'Content-Type':
@@ -285,25 +308,18 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
-            if response.status_code == 200:
-                try:
-                    xml_root = lxml.etree.fromstring(response.content)
-                    return xml_root.find('.//{*}CurrentTransportState').text
-                except:
-                    logger.error(
-                        'No valid XML returned from {url}.'.format(url=url))
-                    return None
-        except requests.exceptions.Timeout:
-            logger.error(
-                'TRANSPORT_INFO command - Could no connect to {url}. '
-                'Connection timeout.'.format(url=url))
-            return None
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('get_transport_info', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
-    def _get_protocol_info(self):
+    def get_protocol_info(self):
         url = self.service_connection.control_url
         headers = {
             'Content-Type':
@@ -319,31 +335,16 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
-            if response.status_code == 200:
-                try:
-                    mime_types = []
-                    xml_root = lxml.etree.fromstring(response.content)
-                    sinks = xml_root.find('.//{*}Sink').text
-                    logger.debug('Got the following mime types: "{}"'.format(
-                        sinks))
-                    for sink in sinks.split(','):
-                        attributes = sink.strip().split(':')
-                        if len(attributes) >= 4:
-                            mime_types.append(attributes[2])
-                    return mime_types
-                except:
-                    logger.error(
-                        'No valid XML returned from {url}.'.format(url=url))
-                    return None
-        except requests.exceptions.Timeout:
-            logger.error(
-                'PROTOCOL_INFO command - Could no connect to {url}. '
-                'Connection timeout.'.format(url=url))
-            return None
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('get_protocol_info', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
     def get_volume(self, channel='Master'):
         url = self.service_rendering.control_url
@@ -362,24 +363,16 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
-            if response.status_code == 200:
-                try:
-                    xml_root = lxml.etree.fromstring(response.content)
-                    volume = xml_root.find('.//{*}CurrentVolume').text
-                    return int(volume)
-                except:
-                    logger.error(
-                        'No valid XML returned from {url}.'.format(url=url))
-                    return None
-        except requests.exceptions.Timeout:
-            logger.error(
-                'GET_VOLUME command - Could no connect to {url}. '
-                'Connection timeout.'.format(url=url))
-            return None
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('get_volume', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
     def set_volume(self, volume, channel='Master'):
         url = self.service_rendering.control_url
@@ -399,18 +392,16 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
-            if response.status_code == 200:
-                return True
-            return False
-        except requests.exceptions.Timeout:
-            logger.error(
-                'SET_VOLUME command - Could no connect to {url}. '
-                'Connection timeout.'.format(url=url))
-            return None
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('set_volume', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
     def get_mute(self, channel='Master'):
         url = self.service_rendering.control_url
@@ -429,26 +420,16 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
-            if response.status_code == 200:
-                try:
-                    xml_root = lxml.etree.fromstring(response.content)
-                    muted = xml_root.find('.//{*}CurrentMute').text
-                    if int(muted) == 0:
-                        return False
-                    return True
-                except:
-                    logger.error(
-                        'No valid XML returned from {url}.'.format(url=url))
-                    return None
-        except requests.exceptions.Timeout:
-            logger.error(
-                'GET_MUTE command - Could no connect to {url}. '
-                'Connection timeout.'.format(url=url))
-            return None
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('get_mute', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
     def set_mute(self, muted, channel='Master'):
         url = self.service_rendering.control_url
@@ -468,18 +449,16 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
-            if response.status_code == 200:
-                return True
-            return False
-        except requests.exceptions.Timeout:
-            logger.error(
-                'SET_MUTE command - Could no connect to {url}. '
-                'Connection timeout.'.format(url=url))
-            return None
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('set_mute', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
     def play(self):
         url = self.service_transport.control_url
@@ -497,17 +476,18 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
             if response.status_code == 200:
                 self.state = UPNP_STATE_PLAYING
-            return response.status_code, None
-        except requests.exceptions.Timeout:
-            message = 'PLAY command - Could no connect to {url}. ' \
-                      'Connection timeout.'.format(url=url)
-            return 408, message
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('play', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
     def stop(self):
         url = self.service_transport.control_url
@@ -525,17 +505,18 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
             if response.status_code == 200:
                 self.state = UPNP_STATE_STOPPED
-            return response.status_code, None
-        except requests.exceptions.Timeout:
-            message = 'STOP command - Could no connect to {url}. ' \
-                      'Connection timeout.'.format(url=url)
-            return 408, message
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('stop', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
 
     def pause(self):
         url = self.service_transport.control_url
@@ -553,17 +534,219 @@ class UpnpMediaRenderer(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING),
-                headers=headers, timeout=self.timeout)
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
             if response.status_code == 200:
-                self.state = self.PAUSE
-            return response.status_code, None
-        except requests.exceptions.Timeout:
-            message = 'PAUSE command - Could no connect to {url}. ' \
-                      'Connection timeout.'.format(url=url)
-            return 408, message
+                self.state = UPNP_STATE_PAUSED_PLAYBACK
+            return response
+        except Exception as e:
+            raise e
         finally:
-            self._debug('pause', url, headers, data, response)
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
+
+
+class UpnpMediaRenderer(UpnpMediaRendererController):
+
+    IGNORE_NAMESPACES = {
+        'ns0': None,
+        'ns1': None,
+        's': None,
+        'u': None,
+    }
+
+    def _convert_xml_to_dict(self, xml):
+        d = xmltodict.parse(
+            xml, process_namespaces=False,
+            namespaces=self.IGNORE_NAMESPACES)
+        return d
+
+    def _convert_response_to_dict(self, response):
+        if response.status_code == 200:
+            try:
+                d = self._convert_xml_to_dict(response.content)
+                return d['Envelope']['Body']
+            except TypeError:
+                logger.error('No valid XML returned')
+                return None
+
+    def _debug_sent(self, url, headers, data):
+        data = self._convert_xml_to_dict(data)
+        logger.debug('SENT {headers}:\n{url}\n{data}'.format(
+            headers=headers,
+            data=json.dumps(data, indent=4, sort_keys=True),
+            url=url,
+        ))
+
+    def _debug_received(self, status_code, headers, data):
+        data = self._convert_xml_to_dict(data)
+        logger.debug('RECEIVED [{code}] - {headers}:\n{data}'.format(
+            code=status_code,
+            headers=headers,
+            data=json.dumps(data, indent=4, sort_keys=True),
+        ))
+
+    def register(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.register(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'register', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('register')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('register')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('register')
+
+    def get_transport_info(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.get_transport_info(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'get_transport_info', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('get_transport_info')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('get_transport_info')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('get_transport_info')
+
+    def get_protocol_info(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.get_protocol_info(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'get_protocol_info', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('get_protocol_info')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('get_protocol_info')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('get_protocol_info')
+
+    def get_volume(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.get_volume(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'get_volume', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('get_volume')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('get_volume')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('get_volume')
+
+    def set_volume(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.set_volume(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'set_volume', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('set_volume')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('set_volume')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('set_volume')
+
+    def get_mute(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.get_mute(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'get_mute', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('get_mute')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('get_mute')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('get_mute')
+
+    def set_mute(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.set_mute(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'set_mute', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('set_mute')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('set_mute')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('set_mute')
+
+    def play(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.play(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'play', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('play')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('play')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('play')
+
+    def stop(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.stop(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'stop', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('stop')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('stop')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('stop')
+
+    def pause(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.pause(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'pause', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('pause')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('pause')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('pause')
 
 
 class UpnpMediaRendererFactory(object):
