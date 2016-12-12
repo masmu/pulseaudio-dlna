@@ -365,6 +365,7 @@ class StreamServer(SocketServer.TCPServer):
 
     def run(self):
         self.allow_reuse_address = True
+        self.daemon_threads = True
         try:
             SocketServer.TCPServer.__init__(
                 self, (self.ip or '', self.port), StreamRequestHandler)
