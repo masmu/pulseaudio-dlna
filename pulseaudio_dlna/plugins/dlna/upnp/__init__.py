@@ -319,6 +319,7 @@ class UpnpMediaRendererController(object):
             'pause': 'xml/pause.xml',
             'get_protocol_info': 'xml/get_protocol_info.xml',
             'get_transport_info': 'xml/get_transport_info.xml',
+            'get_position_info': 'xml/get_position_info.xml',
             'get_volume': 'xml/get_volume.xml',
             'set_volume': 'xml/set_volume.xml',
             'get_mute': 'xml/get_mute.xml',
@@ -410,6 +411,15 @@ class UpnpMediaRendererController(object):
         data = self.xml['get_transport_info'].format(
             encoding=self.ENCODING,
             service_type=self.av_transport.service_type,
+        )
+        return self._do_post_request(url, headers, data)
+
+    def get_position_info(self):
+        url, headers = self._get_connection_details(
+            self.av_transport, 'GetPositionInfo')
+        data = self.xml['get_position_info'].format(
+            encoding=self.ENCODING,
+            service_type=self.connection_manager.service_type,
         )
         return self._do_post_request(url, headers, data)
 
@@ -565,6 +575,22 @@ class UpnpMediaRenderer(UpnpMediaRendererController):
             raise ConnectionErrorException('get_transport_info')
         except requests.exceptions.Timeout:
             raise ConnectionTimeoutException('get_transport_info')
+
+    def get_position_info(self, *args, **kwargs):
+        try:
+            response = UpnpMediaRendererController.get_position_info(
+                self, *args, **kwargs)
+            if response.status_code == 200:
+                return self._convert_response_to_dict(response)
+            else:
+                raise CommandFailedException(
+                    'get_position_info', response.status_code)
+        except xml.parsers.expat.ExpatError:
+            raise XmlParsingException('get_position_info')
+        except requests.exceptions.ConnectionError:
+            raise ConnectionErrorException('get_position_info')
+        except requests.exceptions.Timeout:
+            raise ConnectionTimeoutException('get_position_info')
 
     def get_protocol_info(self, *args, **kwargs):
         try:
