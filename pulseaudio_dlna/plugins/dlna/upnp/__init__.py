@@ -59,6 +59,15 @@ class XmlParsingException(Exception):
         )
 
 
+class XmlMisformatException(Exception):
+    def __init__(self, command):
+        Exception.__init__(
+            self,
+            'The XML retrieved for command "{}" was misformated!'.format(
+                command.upper())
+        )
+
+
 class CommandFailedException(Exception):
     def __init__(self, command, status_code):
         Exception.__init__(
@@ -66,6 +75,38 @@ class CommandFailedException(Exception):
             'The command "{}" failed with status code {}!'.format(
                 command.upper(), status_code)
         )
+
+
+class UnsupportedActionException(Exception):
+    def __init__(self, action_name):
+        Exception.__init__(
+            self,
+            'The action "{}" is not supported!'.format(action_name)
+        )
+
+
+class UnsupportedServiceTypeException(Exception):
+    def __init__(self, service_type):
+        Exception.__init__(
+            self,
+            'Service type "{}" is not supported!'.format(service_type)
+        )
+
+
+class MissingServiceException(Exception):
+    def __init__(self, service_type):
+        Exception.__init__(
+            self,
+            'The service type "{}" is missing!'.format(service_type)
+        )
+        self.service_type = service_type
+
+IGNORE_NAMESPACES = {
+    'ns0': None,
+    'ns1': None,
+    's': None,
+    'u': None,
+}
 
 
 class UpnpContentFlags(object):
@@ -107,36 +148,67 @@ class UpnpContentFeatures(object):
             (str(self.flags) + ('0' * 24)))
 
 
+SERVICE_TYPE_AVTRANSPORT = \
+    'urn:schemas-upnp-org:service:AVTransport'
+SERVICE_TYPE_CONNECTION_MANAGER = \
+    'urn:schemas-upnp-org:service:ConnectionManager'
+SERVICE_TYPE_RENDERING_CONTROL = \
+    'urn:schemas-upnp-org:service:RenderingControl'
+
+
+class UpnpServiceFactory(object):
+
+    @classmethod
+    def from_dict(cls, ip, port, service, request):
+        if service['service_type'].startswith(
+                '{}:'.format(SERVICE_TYPE_AVTRANSPORT)):
+            return UpnpAVTransportService(ip, port, service, request)
+        elif service['service_type'].startswith(
+                '{}:'.format(SERVICE_TYPE_CONNECTION_MANAGER)):
+            return UpnpConnectionManagerService(ip, port, service, request)
+        elif service['service_type'].startswith(
+                '{}:'.format(SERVICE_TYPE_RENDERING_CONTROL)):
+            return UpnpRenderingControlService(ip, port, service, request)
+        else:
+            raise UnsupportedServiceTypeException(service['service_type'])
+
+
 class UpnpService(object):
 
-    SERVICE_TRANSPORT = 'transport'
-    SERVICE_CONNECTION = 'connection'
-    SERVICE_RENDERING = 'rendering'
-
-    def __init__(self, ip, port, service):
+    def __init__(self, ip, port, service, request=None):
 
         self.ip = ip
         self.port = port
+        self.supported_actions = []
 
-        if service['service_type'].startswith(
-                'urn:schemas-upnp-org:service:AVTransport:'):
-            self._type = self.SERVICE_TRANSPORT
-        elif service['service_type'].startswith(
-                'urn:schemas-upnp-org:service:ConnectionManager:'):
-            self._type = self.SERVICE_CONNECTION
-        elif service['service_type'].startswith(
-                'urn:schemas-upnp-org:service:RenderingControl:'):
-            self._type = self.SERVICE_RENDERING
-        else:
-            self._type = None
-
+        self._request = request or requests
         self._service_type = service['service_type']
         self._control_url = service['control_url']
         self._event_url = service['eventsub_url']
+        self._scpd_url = service['scpd_url']
 
-    @property
-    def type(self):
-        return self._type
+        self._update_supported_actions()
+
+    def verify_action(self, action_name):
+        if action_name not in self.supported_actions:
+            raise UnsupportedActionException(action_name)
+
+    def _update_supported_actions(self):
+        self.supported_actions = []
+        response = self._request.get(self.scpd_url)
+        if response.status_code == 200:
+            try:
+                d = xmltodict.parse(
+                    response.content, process_namespaces=False,
+                    namespaces=IGNORE_NAMESPACES)
+                for action in d['scpd']['actionList']['action']:
+                    self.supported_actions.append(action['name'])
+            except KeyError:
+                logger.debug(d)
+                raise XmlMisformatException('get_actions')
+            except xml.parsers.expat.ExpatError:
+                logger.debug(response.content)
+                raise XmlParsingException('get_actions')
 
     @property
     def service_type(self):
@@ -157,6 +229,26 @@ class UpnpService(object):
             port=self.port,
         )
         return urlparse.urljoin(host, self._event_url)
+
+    @property
+    def scpd_url(self):
+        host = 'http://{ip}:{port}'.format(
+            ip=self.ip,
+            port=self.port,
+        )
+        return urlparse.urljoin(host, self._scpd_url)
+
+
+class UpnpAVTransportService(UpnpService):
+    pass
+
+
+class UpnpConnectionManagerService(UpnpService):
+    pass
+
+
+class UpnpRenderingControlService(UpnpService):
+    pass
 
 
 UPNP_STATE_PLAYING = 'PLAYING'
@@ -188,10 +280,8 @@ class UpnpMediaRendererController(object):
         self.manufacturer = manufacturer
 
         self.xml = self._load_xml_files()
-        self.service_transport = None
-        self.service_connection = None
-        self.service_rendering = None
         self.timeout = timeout
+        self._request = requests.Session()
 
         self.content_features = UpnpContentFeatures(
             flags=[
@@ -201,16 +291,23 @@ class UpnpMediaRendererController(object):
                 UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
             ])
 
-        for service in services:
-            service = UpnpService(ip, port, service)
-            if service.type == UpnpService.SERVICE_TRANSPORT:
-                self.service_transport = service
-            if service.type == UpnpService.SERVICE_CONNECTION:
-                self.service_connection = service
-            if service.type == UpnpService.SERVICE_RENDERING:
-                self.service_rendering = service
+        self.av_transport = None
+        self.connection_manager = None
+        self.rendering_control = None
 
-        self._request = requests.Session()
+        for service in services:
+            try:
+                service = UpnpServiceFactory.from_dict(
+                    ip, port, service, self._request)
+                if isinstance(service, UpnpAVTransportService):
+                    self.av_transport = service
+                if isinstance(service, UpnpConnectionManagerService):
+                    self.connection_manager = service
+                if isinstance(service, UpnpRenderingControlService):
+                    self.rendering_control = service
+            except UnsupportedServiceTypeException:
+                pass
+        self._validate_service_types()
 
     def _load_xml_files(self):
         content = {}
@@ -235,31 +332,58 @@ class UpnpMediaRendererController(object):
         return content
 
     def _debug_sent(self, url, headers, data):
-        logger.debug('SENT {headers}:\n{url}\n{data}'.format(
+        logger.info('SENT {headers}:\n{url}\n{data}'.format(
             headers=headers,
             data=data,
             url=url,
         ))
 
     def _debug_received(self, status_code, headers, data):
-        logger.debug('RECEIVED [{code}] - {headers}:\n{data}'.format(
+        logger.info('RECEIVED [{code}] - {headers}:\n{data}'.format(
             code=status_code,
             headers=headers,
             data=data,
         ))
 
-    def register(
-            self, stream_url, mime_type=None, artist=None, title=None,
-            thumb=None, content_features=None):
-        url = self.service_transport.control_url
+    def _validate_service_types(self):
+        if not self.av_transport:
+            raise MissingServiceException(SERVICE_TYPE_AVTRANSPORT)
+        if not self.connection_manager:
+            raise MissingServiceException(SERVICE_TYPE_CONNECTION_MANAGER)
+        if not self.rendering_control:
+            raise MissingServiceException(SERVICE_TYPE_RENDERING_CONTROL)
+
+    def _get_connection_details(self, service, action_name):
+        service.verify_action(action_name)
         headers = {
             'Content-Type':
                 'text/xml; charset="{encoding}"'.format(
                     encoding=self.ENCODING),
             'SOAPAction':
-                '"{service_type}#SetAVTransportURI"'.format(
-                    service_type=self.service_transport.service_type),
+                '"{service_type}#{action_name}"'.format(
+                    service_type=service.service_type,
+                    action_name=action_name),
         }
+        return service.control_url, headers
+
+    def _do_post_request(self, url, headers, data):
+        try:
+            response = None
+            response = self._request.post(
+                url, data=data.encode(self.ENCODING), headers=headers,
+                timeout=self.timeout)
+            return response
+        finally:
+            self._debug_sent(url, headers, data)
+            if response:
+                self._debug_received(
+                    response.status_code, response.headers, response.content)
+
+    def register(
+            self, stream_url, mime_type=None, artist=None, title=None,
+            thumb=None, content_features=None):
+        url, headers = self._get_connection_details(
+            self.av_transport, 'SetAVTransportURI')
         content_features = content_features or self.content_features
         metadata = self.xml['register_metadata'].format(
             stream_url=stream_url,
@@ -276,291 +400,113 @@ class UpnpMediaRendererController(object):
             stream_url=stream_url,
             current_url_metadata=cgi.escape(metadata),
             encoding=self.ENCODING,
-            service_type=self.service_transport.service_type,
+            service_type=self.av_transport.service_type,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        return self._do_post_request(url, headers, data)
 
     def get_transport_info(self):
-        url = self.service_transport.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#GetTransportInfo"'.format(
-                service_type=self.service_transport.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.av_transport, 'GetTransportInfo')
         data = self.xml['get_transport_info'].format(
             encoding=self.ENCODING,
-            service_type=self.service_transport.service_type,
+            service_type=self.av_transport.service_type,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        return self._do_post_request(url, headers, data)
 
     def get_protocol_info(self):
-        url = self.service_connection.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#GetProtocolInfo"'.format(
-                service_type=self.service_connection.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.connection_manager, 'GetProtocolInfo')
         data = self.xml['get_protocol_info'].format(
             encoding=self.ENCODING,
-            service_type=self.service_connection.service_type,
+            service_type=self.connection_manager.service_type,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        return self._do_post_request(url, headers, data)
 
     def get_volume(self, channel='Master'):
-        url = self.service_rendering.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#GetVolume"'.format(
-                service_type=self.service_rendering.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.rendering_control, 'GetVolume')
         data = self.xml['get_volume'].format(
             encoding=self.ENCODING,
-            service_type=self.service_rendering.service_type,
+            service_type=self.rendering_control.service_type,
             channel=channel,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        return self._do_post_request(url, headers, data)
 
     def set_volume(self, volume, channel='Master'):
-        url = self.service_rendering.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#SetVolume"'.format(
-                service_type=self.service_rendering.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.rendering_control, 'SetVolume')
         data = self.xml['set_volume'].format(
             encoding=self.ENCODING,
-            service_type=self.service_rendering.service_type,
+            service_type=self.rendering_control.service_type,
             volume=volume,
             channel=channel,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        return self._do_post_request(url, headers, data)
 
     def get_mute(self, channel='Master'):
-        url = self.service_rendering.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#GetMute"'.format(
-                service_type=self.service_rendering.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.rendering_control, 'GetMute')
         data = self.xml['get_mute'].format(
             encoding=self.ENCODING,
-            service_type=self.service_rendering.service_type,
+            service_type=self.rendering_control.service_type,
             channel=channel,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        return self._do_post_request(url, headers, data)
 
     def set_mute(self, muted, channel='Master'):
-        url = self.service_rendering.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#SetMute"'.format(
-                service_type=self.service_rendering.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.rendering_control, 'SetMute')
         data = self.xml['set_mute'].format(
             encoding=self.ENCODING,
-            service_type=self.service_rendering.service_type,
+            service_type=self.rendering_control.service_type,
             muted='1' if muted else '0',
             channel=channel,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        return self._do_post_request(url, headers, data)
 
     def play(self):
-        url = self.service_transport.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#Play"'.format(
-                service_type=self.service_transport.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.av_transport, 'Play')
         data = self.xml['play'].format(
             encoding=self.ENCODING,
-            service_type=self.service_transport.service_type,
+            service_type=self.av_transport.service_type,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            if response.status_code == 200:
-                self.state = UPNP_STATE_PLAYING
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        response = self._do_post_request(url, headers, data)
+        if response.status_code == 200:
+            self.state = UPNP_STATE_PLAYING
+        return response
 
     def stop(self):
-        url = self.service_transport.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#Stop"'.format(
-                service_type=self.service_transport.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.av_transport, 'Stop')
         data = self.xml['stop'].format(
             encoding=self.ENCODING,
-            service_type=self.service_transport.service_type,
+            service_type=self.av_transport.service_type,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            if response.status_code == 200:
-                self.state = UPNP_STATE_STOPPED
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        response = self._do_post_request(url, headers, data)
+        if response.status_code == 200:
+            self.state = UPNP_STATE_STOPPED
+        return response
 
     def pause(self):
-        url = self.service_transport.control_url
-        headers = {
-            'Content-Type':
-                'text/xml; charset="{encoding}"'.format(
-                    encoding=self.ENCODING),
-            'SOAPAction': '"{service_type}#Pause"'.format(
-                service_type=self.service_transport.service_type),
-        }
+        url, headers = self._get_connection_details(
+            self.av_transport, 'Pause')
         data = self.xml['pause'].format(
             encoding=self.ENCODING,
-            service_type=self.service_transport.service_type,
+            service_type=self.av_transport.service_type,
         )
-        try:
-            response = None
-            response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
-                timeout=self.timeout)
-            if response.status_code == 200:
-                self.state = UPNP_STATE_PAUSED_PLAYBACK
-            return response
-        except Exception as e:
-            raise e
-        finally:
-            self._debug_sent(url, headers, data)
-            if response:
-                self._debug_received(
-                    response.status_code, response.headers, response.content)
+        response = self._do_post_request(url, headers, data)
+        if response.status_code == 200:
+            self.state = UPNP_STATE_PAUSED_PLAYBACK
+        return response
 
 
 class UpnpMediaRenderer(UpnpMediaRendererController):
 
-    IGNORE_NAMESPACES = {
-        'ns0': None,
-        'ns1': None,
-        's': None,
-        'u': None,
-    }
-
     def _convert_xml_to_dict(self, xml):
         d = xmltodict.parse(
             xml, process_namespaces=False,
-            namespaces=self.IGNORE_NAMESPACES)
+            namespaces=IGNORE_NAMESPACES)
         return d
 
     def _convert_response_to_dict(self, response):
@@ -803,23 +749,37 @@ class UpnpMediaRendererFactory(object):
                     }
                     services.append(service)
 
-                upnp_device = UpnpMediaRenderer(
-                    access_url=url,
-                    ip=unicode(ip),
-                    port=port,
-                    name=unicode(device_friendlyname.text),
-                    udn=unicode(device_udn.text),
-                    model_name=unicode(device_modelname.text) if (
-                        device_modelname is not None) else None,
-                    model_number=unicode(device_modelnumber.text) if (
-                        device_modelnumber is not None) else None,
-                    model_description=unicode(device_modeldescription.text) if (
-                        device_modeldescription is not None) else None,
-                    manufacturer=unicode(device_manufacturer.text) if (
-                        device_manufacturer is not None) else None,
-                    services=services,
-                )
-                return upnp_device
+                try:
+                    upnp_device = UpnpMediaRenderer(
+                        access_url=url,
+                        ip=unicode(ip),
+                        port=port,
+                        name=unicode(device_friendlyname.text),
+                        udn=unicode(device_udn.text),
+                        model_name=unicode(
+                            device_modelname.text) if (
+                                device_modelname is not None) else None,
+                        model_number=unicode(
+                            device_modelnumber.text) if (
+                                device_modelnumber is not None) else None,
+                        model_description=unicode(
+                            device_modeldescription.text) if (
+                                device_modeldescription is not None) else None,
+                        manufacturer=unicode(
+                            device_manufacturer.text) if (
+                                device_manufacturer is not None) else None,
+                        services=services,
+                    )
+                    return upnp_device
+                except MissingServiceException as e:
+                    logger.warning(
+                        'The device "{}" did not specify a "{}" service. '
+                        'Device skipped!'.format(
+                            device_friendlyname.text, e.service_type))
+                except (XmlParsingException, XmlMisformatException) as e:
+                    logger.warning(
+                        'The device "{}" did not specify a valid action list. '
+                        'Device skipped!'.format(device_friendlyname.text))
         try:
             xml_root = lxml.etree.fromstring(xml)
             return process_xml(url, xml_root, xml)

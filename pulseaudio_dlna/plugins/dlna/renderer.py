@@ -76,24 +76,6 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self.apply_device_rules()
             self.prioritize_codecs()
 
-    def validate(self):
-        if self.upnp_device.service_transport is None:
-            logger.info(
-                'The device "{}" does not specify a service transport url. '
-                'Device skipped!'.format(self.label))
-            return False
-        if self.upnp_device.service_connection is None:
-            logger.info(
-                'The device "{}" does not specify a service connection url. '
-                'Device skipped!'.format(self.label))
-            return False
-        if self.upnp_device.service_rendering is None:
-            logger.info(
-                'The device "{}" does not specify a service rendering url. '
-                'Device skipped!'.format(self.label))
-            return False
-        return True
-
     def _register(
             self, stream_url, codec=None, artist=None, title=None, thumb=None):
         self._before_register()
@@ -134,18 +116,15 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 self.upnp_device.play()
             self.state = self.STATE_PLAYING
             return 200, None
-        except upnp.CommandFailedException as e:
-            return 422, e
-        except upnp.XmlParsingException as e:
-            return 422, e
-        except upnp.ConnectionErrorException as e:
-            return 403, e
-        except upnp.ConnectionTimeoutException as e:
-            return 408, e
-        except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
+        except (upnp.UnsupportedActionException,
+                upnp.CommandFailedException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException,
+                pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
                 pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException)\
                 as e:
-            return 500, e
+            return 500, '"{}" : {}'.format(self.label, str(e))
         except Exception:
             traceback.print_exc()
             return 500, 'Unknown exception.'
@@ -158,14 +137,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self.upnp_device.stop()
             self.state = self.STATE_STOPPED
             return 200, None
-        except upnp.CommandFailedException as e:
-            return 422, e
-        except upnp.XmlParsingException as e:
-            return 422, e
-        except upnp.ConnectionErrorException as e:
-            return 403, e
-        except upnp.ConnectionTimeoutException as e:
-            return 408, e
+        except (upnp.UnsupportedActionException,
+                upnp.CommandFailedException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            return 500, '"{}" : {}'.format(self.label, str(e))
         except Exception:
             traceback.print_exc()
             return 500, 'Unknown exception.'
@@ -177,60 +154,50 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             d = self.upnp_device.get_volume()
             return int(d['GetVolumeResponse']['CurrentVolume'])
         except KeyError:
-            logger.error(MissingAttributeException('get_volume'))
-            return None
-        except upnp.XmlParsingException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionErrorException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionTimeoutException as e:
-            logger.error(e)
-            return None
+            e = MissingAttributeException('get_protocol_info')
+        except (upnp.UnsupportedActionException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            pass
+        logger.error('"{}" : {}'.format(self.label, str(e)))
+        return None
 
     def set_volume(self, volume):
         try:
             return self.upnp_device.set_volume(volume)
-        except upnp.XmlParsingException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionErrorException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionTimeoutException as e:
-            logger.error(e)
-            return None
+        except (upnp.UnsupportedActionException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            pass
+        logger.error('"{}" : {}'.format(self.label, str(e)))
+        return None
 
     def get_mute(self):
         try:
             d = self.upnp_device.get_mute()
             return int(d['GetMuteResponse']['CurrentMute']) != 0
         except KeyError:
-            logger.error(MissingAttributeException('get_mute'))
-            return None
-        except upnp.XmlParsingException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionErrorException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionTimeoutException as e:
-            logger.error(e)
-            return None
+            e = MissingAttributeException('get_mute')
+        except (upnp.UnsupportedActionException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            pass
+        logger.error('"{}" : {}'.format(self.label, str(e)))
+        return None
 
     def set_mute(self, mute):
         try:
             return self.upnp_device.set_mute(mute)
-        except upnp.XmlParsingException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionErrorException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionTimeoutException as e:
-            logger.error(e)
-            return None
+        except (upnp.UnsupportedActionException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            pass
+        logger.error('"{}" : {}'.format(self.label, str(e)))
+        return None
 
     def get_mime_types(self):
         mime_types = []
@@ -243,17 +210,14 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                     mime_types.append(attributes[2])
             return mime_types
         except KeyError:
-            logger.error(MissingAttributeException('get_protocol_info'))
-            return None
-        except upnp.XmlParsingException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionErrorException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionTimeoutException as e:
-            logger.error(e)
-            return None
+            e = MissingAttributeException('get_protocol_info')
+        except (upnp.UnsupportedActionException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            pass
+        logger.error('"{}" : {}'.format(self.label, str(e)))
+        return None
 
     def get_transport_state(self):
         try:
@@ -261,17 +225,14 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             state = d['GetTransportInfoResponse']['CurrentTransportState']
             return state
         except KeyError:
-            logger.error(MissingAttributeException('get_transport_state'))
-            return None
-        except upnp.XmlParsingException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionErrorException as e:
-            logger.error(e)
-            return None
-        except upnp.ConnectionTimeoutException as e:
-            logger.error(e)
-            return None
+            e = MissingAttributeException('get_transport_state')
+        except (upnp.UnsupportedActionException,
+                upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            pass
+        logger.error('"{}" : {}'.format(self.label, str(e)))
+        return None
 
     def _update_current_state(self):
         start_time = time.time()
