@@ -201,8 +201,12 @@ class UpnpService(object):
                 d = xmltodict.parse(
                     response.content, process_namespaces=False,
                     namespaces=IGNORE_NAMESPACES)
-                for action in d['scpd']['actionList']['action']:
-                    self.supported_actions.append(action['name'])
+                actions = d['scpd']['actionList']['action']
+                if type(actions) == list:
+                    for action in d['scpd']['actionList']['action']:
+                        self.supported_actions.append(action['name'])
+                else:
+                    self.supported_actions.append(actions['name'])
             except KeyError:
                 logger.debug(d)
                 raise XmlMisformatException('get_actions')
