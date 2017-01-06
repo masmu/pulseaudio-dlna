@@ -1,8 +1,8 @@
-<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
-<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-    <s:Body>
-        <u:GetTransportInfo xmlns:u="{service_type}">
-            <InstanceID>0</InstanceID>
-        </u:GetTransportInfo>
-    </s:Body>
+<?xml version='1.0' encoding='{encoding}'?>
+<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+  <s:Body>
+    <u:GetTransportInfo xmlns:u="{service_type}">
+      <InstanceID>0</InstanceID>
+    </u:GetTransportInfo>
+  </s:Body>
 </s:Envelope>
