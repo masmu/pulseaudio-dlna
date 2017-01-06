@@ -17,12 +17,11 @@
 
 from __future__ import unicode_literals
 
-import cgi
 import requests
 import urlparse
 import logging
-import pkg_resources
 import lxml
+import lxml.builder
 import json
 import xmltodict
 import xml.parsers.expat
@@ -263,6 +262,14 @@ UPNP_STATE_RECORDING = 'RECORDING'
 UPNP_STATE_TRANSITIONING = 'TRANSITIONING'
 UPNP_STATE_NO_MEDIA_PRESENT = 'NO_MEDIA_PRESENT'
 
+SOAP_ENV_NS = 'http://schemas.xmlsoap.org/soap/envelope/'
+SOAP_ENC_NS = 'http://schemas.xmlsoap.org/soap/encoding/'
+DC_NS = 'http://purl.org/dc/elements/1.1/'
+SEC_NS = 'http://www.sec.co.kr/'
+DLNA_NS = 'urn:schemas-dlna-org:metadata-1-0/'
+UPNP_NS = 'urn:schemas-upnp-org:metadata-1-0/upnp/'
+DIDL_NS = 'urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/'
+
 
 class UpnpMediaRendererController(object):
 
@@ -283,7 +290,6 @@ class UpnpMediaRendererController(object):
         self.model_description = model_description
         self.manufacturer = manufacturer
 
-        self.xml = self._load_xml_files()
         self.timeout = timeout
         self._request = requests.Session()
 
@@ -313,28 +319,70 @@ class UpnpMediaRendererController(object):
                 pass
         self._validate_service_types()
 
-    def _load_xml_files(self):
-        content = {}
-        self.xml_files = {
-            'register': 'xml/register.xml',
-            'register_metadata': 'xml/register_metadata.xml',
-            'play': 'xml/play.xml',
-            'stop': 'xml/stop.xml',
-            'pause': 'xml/pause.xml',
-            'get_protocol_info': 'xml/get_protocol_info.xml',
-            'get_transport_info': 'xml/get_transport_info.xml',
-            'get_position_info': 'xml/get_position_info.xml',
-            'get_volume': 'xml/get_volume.xml',
-            'set_volume': 'xml/set_volume.xml',
-            'get_mute': 'xml/get_mute.xml',
-            'set_mute': 'xml/set_mute.xml',
-        }
-        for ident, path in self.xml_files.items():
-            file_name = pkg_resources.resource_filename(
-                'pulseaudio_dlna.plugins.dlna.upnp', path)
-            with open(file_name, 'r') as f:
-                content[ident] = unicode(f.read())
-        return content
+    def generate_soap_xml(
+            self, command, service_type, dict_,
+            xml_declaration=True, pretty_print=True, encoding='utf-8'):
+
+        def _add_dict(root, dict_):
+            for tag, value in dict_.items():
+                if isinstance(value, dict):
+                    element = lxml.etree.Element(tag)
+                    _add_dict(element, value)
+                    root.append(element)
+                else:
+                    element = lxml.etree.Element(tag)
+                    element.text = value
+                    root.append(element)
+
+        command_maker = lxml.builder.ElementMaker(
+            namespace=service_type, nsmap={'u': service_type})
+
+        cmd_xml = command_maker(command)
+        _add_dict(cmd_xml, dict_)
+
+        soap_maker = lxml.builder.ElementMaker(
+            namespace=SOAP_ENV_NS, nsmap={'s': SOAP_ENV_NS})
+        envelope_xml = soap_maker.Envelope(
+            soap_maker.Body(cmd_xml)
+        )
+        tag_name = '{{{prefix}}}encodingStyle'.format(prefix=SOAP_ENV_NS)
+        envelope_xml.attrib[tag_name] = SOAP_ENC_NS
+
+        return lxml.etree.tostring(
+            envelope_xml, xml_declaration=xml_declaration, encoding=encoding,
+            pretty_print=pretty_print)
+
+    def generate_didl_xml(
+            self, title, creator, artist, album_art, album, protocol_info,
+            stream_url,
+            pretty_print=True, xml_declaration=True, encoding='utf-8'):
+
+        didl_maker = lxml.builder.ElementMaker(namespace=DIDL_NS, nsmap={
+            None: DIDL_NS,
+            'dc': DC_NS,
+            'dlna': DLNA_NS,
+            'sec': SEC_NS,
+            'upnp': UPNP_NS,
+        })
+        upnp_maker = lxml.builder.ElementMaker(namespace=UPNP_NS)
+        dc_maker = lxml.builder.ElementMaker(namespace=DC_NS)
+
+        didl_xml = didl_maker(
+            'DIDL-Lite',
+            didl_maker.item(
+                {'id': '0', 'parentID': '0', 'restricted': '1'},
+                upnp_maker('class', 'object.item.audioItem.musicTrack'),
+                dc_maker('title', title),
+                dc_maker('creator', creator),
+                upnp_maker('artist', artist),
+                upnp_maker('albumArtURI', album_art),
+                upnp_maker('album', album),
+                didl_maker('res', {'protocolInfo': protocol_info}, stream_url),
+            )
+        )
+        return lxml.etree.tostring(
+            didl_xml, xml_declaration=xml_declaration, encoding=encoding,
+            pretty_print=pretty_print)
 
     def _debug_sent(self, url, headers, data):
         logger.info('SENT {headers}:\n{url}\n{data}'.format(
@@ -390,101 +438,116 @@ class UpnpMediaRendererController(object):
         url, headers = self._get_connection_details(
             self.av_transport, 'SetAVTransportURI')
         content_features = content_features or self.content_features
-        metadata = self.xml['register_metadata'].format(
-            stream_url=stream_url,
+        metadata = self.generate_didl_xml(
             title=title or '',
-            artist=artist or '',
-            albumart=thumb or '',
             creator='',
+            artist=artist or '',
+            album_art=thumb or '',
             album='',
-            encoding=self.ENCODING,
-            mime_type=mime_type,
-            content_features=str(content_features),
-        )
-        data = self.xml['register'].format(
+            protocol_info='http-get:*:{}:{}'.format(
+                mime_type, str(content_features)),
             stream_url=stream_url,
-            current_url_metadata=cgi.escape(metadata),
-            encoding=self.ENCODING,
-            service_type=self.av_transport.service_type,
         )
+        data = self.generate_soap_xml(
+            'SetAVTransportURI', self.av_transport.service_type,
+            {
+                'InstanceID': '0',
+                'CurrentURI': stream_url,
+                'CurrentURIMetaData': metadata,
+            },
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
     def get_transport_info(self):
         url, headers = self._get_connection_details(
             self.av_transport, 'GetTransportInfo')
-        data = self.xml['get_transport_info'].format(
-            encoding=self.ENCODING,
-            service_type=self.av_transport.service_type,
-        )
+        data = self.generate_soap_xml(
+            'GetTransportInfo', self.av_transport.service_type,
+            {
+                'InstanceID': '0'
+            },
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
     def get_position_info(self):
         url, headers = self._get_connection_details(
             self.av_transport, 'GetPositionInfo')
-        data = self.xml['get_position_info'].format(
-            encoding=self.ENCODING,
-            service_type=self.connection_manager.service_type,
-        )
+        data = self.generate_soap_xml(
+            'GetPositionInfo', self.connection_manager.service_type,
+            {
+                'InstanceID': '0'
+            },
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
     def get_protocol_info(self):
         url, headers = self._get_connection_details(
             self.connection_manager, 'GetProtocolInfo')
-        data = self.xml['get_protocol_info'].format(
-            encoding=self.ENCODING,
-            service_type=self.connection_manager.service_type,
-        )
+        data = self.generate_soap_xml(
+            'GetProtocolInfo', self.connection_manager.service_type, {},
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
     def get_volume(self, channel='Master'):
         url, headers = self._get_connection_details(
             self.rendering_control, 'GetVolume')
-        data = self.xml['get_volume'].format(
-            encoding=self.ENCODING,
-            service_type=self.rendering_control.service_type,
-            channel=channel,
-        )
+        data = self.generate_soap_xml(
+            'GetVolume', self.rendering_control.service_type,
+            {
+                'Channel': channel,
+                'InstanceID': '0',
+            },
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
     def set_volume(self, volume, channel='Master'):
         url, headers = self._get_connection_details(
             self.rendering_control, 'SetVolume')
-        data = self.xml['set_volume'].format(
-            encoding=self.ENCODING,
-            service_type=self.rendering_control.service_type,
-            volume=volume,
-            channel=channel,
-        )
+        data = self.generate_soap_xml(
+            'SetVolume', self.rendering_control.service_type,
+            {
+                'DesiredVolume': volume,
+                'Channel': channel,
+                'InstanceID': '0',
+            },
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
     def get_mute(self, channel='Master'):
         url, headers = self._get_connection_details(
             self.rendering_control, 'GetMute')
-        data = self.xml['get_mute'].format(
-            encoding=self.ENCODING,
-            service_type=self.rendering_control.service_type,
-            channel=channel,
-        )
+        data = self.generate_soap_xml(
+            'GetMute', self.rendering_control.service_type,
+            {
+                'Channel': channel,
+                'InstanceID': '0',
+            },
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
     def set_mute(self, muted, channel='Master'):
         url, headers = self._get_connection_details(
             self.rendering_control, 'SetMute')
-        data = self.xml['set_mute'].format(
-            encoding=self.ENCODING,
-            service_type=self.rendering_control.service_type,
-            muted='1' if muted else '0',
-            channel=channel,
-        )
+        data = self.generate_soap_xml(
+            'SetMute', self.rendering_control.service_type,
+            {
+                'DesiredMute': '1' if muted else '0',
+                'Channel': channel,
+                'InstanceID': '0',
+            },
+            encoding=self.ENCODING)
         return self._do_post_request(url, headers, data)
 
-    def play(self):
+    def play(self, speed='1'):
         url, headers = self._get_connection_details(
             self.av_transport, 'Play')
-        data = self.xml['play'].format(
-            encoding=self.ENCODING,
-            service_type=self.av_transport.service_type,
-        )
+        data = self.generate_soap_xml(
+            'Play', self.av_transport.service_type,
+            {
+                'InstanceID': '0',
+                'Speed': speed,
+            },
+            encoding=self.ENCODING)
         response = self._do_post_request(url, headers, data)
         if response.status_code == 200:
             self.state = UPNP_STATE_PLAYING
@@ -493,10 +556,12 @@ class UpnpMediaRendererController(object):
     def stop(self):
         url, headers = self._get_connection_details(
             self.av_transport, 'Stop')
-        data = self.xml['stop'].format(
-            encoding=self.ENCODING,
-            service_type=self.av_transport.service_type,
-        )
+        data = self.generate_soap_xml(
+            'Stop', self.av_transport.service_type,
+            {
+                'InstanceID': '0',
+            },
+            encoding=self.ENCODING)
         response = self._do_post_request(url, headers, data)
         if response.status_code == 200:
             self.state = UPNP_STATE_STOPPED
@@ -505,10 +570,12 @@ class UpnpMediaRendererController(object):
     def pause(self):
         url, headers = self._get_connection_details(
             self.av_transport, 'Pause')
-        data = self.xml['pause'].format(
-            encoding=self.ENCODING,
-            service_type=self.av_transport.service_type,
-        )
+        data = self.generate_soap_xml(
+            'Pause', self.av_transport.service_type,
+            {
+                'InstanceID': '0',
+            },
+            encoding=self.ENCODING)
         response = self._do_post_request(url, headers, data)
         if response.status_code == 200:
             self.state = UPNP_STATE_PAUSED_PLAYBACK

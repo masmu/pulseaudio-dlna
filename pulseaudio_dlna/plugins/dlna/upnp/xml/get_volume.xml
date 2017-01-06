@@ -1,9 +1,0 @@
-<?xml version='1.0' encoding='{encoding}'?>
-<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
-  <s:Body>
-    <u:GetVolume xmlns:u="{service_type}">
-      <Channel>{channel}</Channel>
-      <InstanceID>0</InstanceID>
-    </u:GetVolume>
-  </s:Body>
-</s:Envelope>
