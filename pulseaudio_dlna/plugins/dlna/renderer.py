@@ -57,11 +57,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             manufacturer=upnp_device.manufacturer
         )
         self.upnp_device = upnp_device
-        self.upnp_device.timeout = self.REQUEST_TIMEOUT
+        pulseaudio_dlna.plugins.dlna.upnp.UpnpService.TIMEOUT = \
+            self.REQUEST_TIMEOUT
 
     @property
     def content_features(self):
-        return self.upnp_device.content_features
+        return self.upnp_device.av_transport.content_features
 
     def activate(self, config):
         if config:
@@ -81,7 +82,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         self._before_register()
         try:
             codec = codec or self.codec
-            self.upnp_device.register(
+            self.upnp_device.set_av_transport_uri(
                 stream_url, codec.mime_type, artist, title, thumb)
         except Exception as e:
             raise e
@@ -226,6 +227,20 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return state
         except KeyError:
             e = MissingAttributeException('get_transport_state')
+        except (upnp.XmlParsingException,
+                upnp.ConnectionErrorException,
+                upnp.ConnectionTimeoutException) as e:
+            pass
+        logger.error('"{}" : {}'.format(self.label, str(e)))
+        return None
+
+    def get_position_info(self):
+        try:
+            d = self.upnp_device.get_position_info()
+            state = d['GetPositionInfoResponse']
+            return state
+        except KeyError:
+            e = MissingAttributeException('get_position_info')
         except (upnp.UnsupportedActionException,
                 upnp.XmlParsingException,
                 upnp.ConnectionErrorException,
