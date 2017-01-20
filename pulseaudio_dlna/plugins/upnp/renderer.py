@@ -491,6 +491,8 @@ class CoinedUpnpMediaRenderer(
         except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
                 pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
             return 500, e
+        except pulseaudio_dlna.codecs.UnsupportedCodecException as e:
+            return 500, e
 
 
 class UpnpMediaRendererFactory(object):

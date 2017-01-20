@@ -162,7 +162,7 @@ class SamplerateChannelMixin(object):
 
 class NullEncoder(BaseEncoder):
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         BaseEncoder.__init__(self)
         self._binary = 'cat'
         self._command = []
