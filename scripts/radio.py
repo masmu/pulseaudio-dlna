@@ -23,6 +23,12 @@ import logging
 import sys
 import concurrent.futures
 
+import pulseaudio_dlna
+import pulseaudio_dlna.holder
+import pulseaudio_dlna.plugins.dlna
+import pulseaudio_dlna.plugins.chromecast
+import pulseaudio_dlna.codecs
+
 level = logging.INFO
 logging.getLogger('requests').setLevel(logging.WARNING)
 logging.getLogger('urllib3').setLevel(logging.WARNING)
@@ -33,17 +39,11 @@ logging.basicConfig(
     datefmt='%m-%d %H:%M:%S')
 logger = logging.getLogger('radio')
 
-import pulseaudio_dlna
-import pulseaudio_dlna.holder
-import pulseaudio_dlna.plugins.upnp
-import pulseaudio_dlna.plugins.chromecast
-import pulseaudio_dlna.codecs
-
 
 class RadioLauncher():
 
     PLUGINS = [
-        pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
+        pulseaudio_dlna.plugins.dlna.DLNAPlugin(),
         pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
     ]
 

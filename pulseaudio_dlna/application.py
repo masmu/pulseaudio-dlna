@@ -28,10 +28,10 @@ import time
 
 import pulseaudio_dlna
 import pulseaudio_dlna.holder
-import pulseaudio_dlna.plugins.upnp
-import pulseaudio_dlna.plugins.upnp.ssdp
-import pulseaudio_dlna.plugins.upnp.ssdp.listener
-import pulseaudio_dlna.plugins.upnp.ssdp.discover
+import pulseaudio_dlna.plugins.dlna
+import pulseaudio_dlna.plugins.dlna.ssdp
+import pulseaudio_dlna.plugins.dlna.ssdp.listener
+import pulseaudio_dlna.plugins.dlna.ssdp.discover
 import pulseaudio_dlna.plugins.chromecast
 import pulseaudio_dlna.plugins.chromecast.mdns
 import pulseaudio_dlna.encoders
@@ -54,7 +54,7 @@ class Application(object):
     ]
     DEVICE_CONFIG = 'devices.json'
     PLUGINS = [
-        pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
+        pulseaudio_dlna.plugins.dlna.DLNAPlugin(),
         pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
     ]
     SHUTDOWN_TIMEOUT = 5
@@ -121,7 +121,7 @@ class Application(object):
             pulseaudio_dlna.workarounds.BaseWorkaround.ENABLED = False
 
         if options['--disable-ssdp-listener']:
-            pulseaudio_dlna.plugins.upnp.ssdp.listener.\
+            pulseaudio_dlna.plugins.dlna.ssdp.listener.\
                 SSDPListener.DISABLE_SSDP_LISTENER = True
 
         if options['--disable-mimetype-check']:
@@ -129,24 +129,24 @@ class Application(object):
 
         if options['--ssdp-ttl']:
             ssdp_ttl = int(options['--ssdp-ttl'])
-            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+            pulseaudio_dlna.plugins.dlna.ssdp.discover.\
                 SSDPDiscover.SSDP_TTL = ssdp_ttl
-            pulseaudio_dlna.plugins.upnp.ssdp.listener.\
+            pulseaudio_dlna.plugins.dlna.ssdp.listener.\
                 SSDPListener.SSDP_TTL = ssdp_ttl
 
         if options['--ssdp-mx']:
             ssdp_mx = int(options['--ssdp-mx'])
-            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+            pulseaudio_dlna.plugins.dlna.ssdp.discover.\
                 SSDPDiscover.SSDP_MX = ssdp_mx
 
         if options['--ssdp-amount']:
             ssdp_amount = int(options['--ssdp-amount'])
-            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+            pulseaudio_dlna.plugins.dlna.ssdp.discover.\
                 SSDPDiscover.SSDP_AMOUNT = ssdp_amount
 
         msearch_port = options.get('--msearch-port', None)
         if msearch_port != 'random':
-            pulseaudio_dlna.plugins.upnp.ssdp.discover.\
+            pulseaudio_dlna.plugins.dlna.ssdp.discover.\
                 SSDPDiscover.MSEARCH_PORT = int(msearch_port)
 
         if options['--create-device-config']:
