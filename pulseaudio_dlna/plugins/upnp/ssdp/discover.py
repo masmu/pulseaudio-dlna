@@ -24,7 +24,7 @@ import threading
 import traceback
 
 import pulseaudio_dlna.utils.network
-import pulseaudio_dlna.plugins.dlna.ssdp
+import pulseaudio_dlna.plugins.upnp.ssdp
 
 logger = logging.getLogger('pulseaudio_dlna.discover')
 
@@ -108,7 +108,7 @@ class SSDPDiscover(object):
                 if self.cb_on_device_response:
                     guess = chardet.detect(header)
                     header = header.decode(guess['encoding'])
-                    header = pulseaudio_dlna.plugins.dlna.ssdp._get_header_map(
+                    header = pulseaudio_dlna.plugins.upnp.ssdp._get_header_map(
                         header)
                     self.cb_on_device_response(header, address)
             except socket.timeout:

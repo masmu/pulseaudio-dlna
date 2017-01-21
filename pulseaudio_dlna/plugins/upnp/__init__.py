@@ -22,12 +22,13 @@ import threading
 import traceback
 
 import pulseaudio_dlna.plugins
-import pulseaudio_dlna.plugins.dlna.ssdp
-import pulseaudio_dlna.plugins.dlna.ssdp.listener
-import pulseaudio_dlna.plugins.dlna.ssdp.discover
-from pulseaudio_dlna.plugins.dlna.renderer import DLNAMediaRendererFactory
+import pulseaudio_dlna.plugins.upnp.ssdp
+import pulseaudio_dlna.plugins.upnp.ssdp.listener
+import pulseaudio_dlna.plugins.upnp.ssdp.discover
+from pulseaudio_dlna.plugins.upnp.renderer import (
+    CoinedUpnpMediaRenderer, UpnpMediaRendererFactory)
 
-logger = logging.getLogger('pulseaudio_dlna.plugins.dlna')
+logger = logging.getLogger('pulseaudio_dlna.plugins.upnp')
 
 
 class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
@@ -41,13 +42,14 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
         pulseaudio_dlna.plugins.BasePlugin.__init__(self, *args)
 
     def lookup(self, url, xml):
-        return DLNAMediaRendererFactory.from_xml(url, xml)
+        return UpnpMediaRendererFactory.from_xml(
+            url, xml, CoinedUpnpMediaRenderer)
 
     def discover(self, holder, ttl=None, host=None):
         self.holder = holder
 
         def launch_discover():
-            discover = pulseaudio_dlna.plugins.dlna.ssdp.discover\
+            discover = pulseaudio_dlna.plugins.upnp.ssdp.discover\
                 .SSDPDiscover(
                     cb_on_device_response=self._on_device_response,
                     host=host,
@@ -55,7 +57,7 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
             discover.search(ssdp_ttl=ttl)
 
         def launch_listener():
-            ssdp = pulseaudio_dlna.plugins.dlna.ssdp.listener\
+            ssdp = pulseaudio_dlna.plugins.upnp.ssdp.listener\
                 .ThreadedSSDPListener(
                     cb_on_device_alive=self._on_device_added,
                     cb_on_device_byebye=self._on_device_removed,
@@ -82,18 +84,20 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
     def _on_device_response(self, header, address):
         st_header = header.get('st', None)
         if st_header and st_header in self.NOTIFICATION_TYPES:
-            return DLNAMediaRendererFactory.from_header(header)
+            return UpnpMediaRendererFactory.from_header(
+                header, CoinedUpnpMediaRenderer)
 
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
     def _on_device_added(self, header):
         nt_header = header.get('nt', None)
         if nt_header and nt_header in self.NOTIFICATION_TYPES:
-            return DLNAMediaRendererFactory.from_header(header)
+            return UpnpMediaRendererFactory.from_header(
+                header, CoinedUpnpMediaRenderer)
 
     @pulseaudio_dlna.plugins.BasePlugin.remove_device_after
     def _on_device_removed(self, header):
         nt_header = header.get('nt', None)
         if nt_header and nt_header in self.NOTIFICATION_TYPES:
-            device_id = pulseaudio_dlna.plugins.dlna.ssdp._get_device_id(
+            device_id = pulseaudio_dlna.plugins.upnp.ssdp._get_device_id(
                 header)
             return device_id

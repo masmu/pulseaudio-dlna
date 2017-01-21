@@ -24,7 +24,7 @@ import re
 
 import pulseaudio_dlna
 import pulseaudio_dlna.holder
-import pulseaudio_dlna.plugins.dlna
+import pulseaudio_dlna.plugins.upnp
 import pulseaudio_dlna.codecs
 
 
@@ -58,6 +58,26 @@ SHARE_PATTERN = """#############################################################
 """
 
 
+class UpnpMediaRendererLocationFactory(
+        pulseaudio_dlna.plugins.upnp.UpnpMediaRendererFactory):
+
+    @classmethod
+    def from_header(
+            cls, header,
+            type_=pulseaudio_dlna.plugins.upnp.renderer.UpnpMediaRenderer):
+        location = header.get('location')
+        if location:
+            device = cls.from_url(location, type_)
+            device.location = None
+            if device:
+                device.location = location
+            return device
+
+
+pulseaudio_dlna.plugins.upnp.UpnpMediaRendererFactory = \
+    UpnpMediaRendererLocationFactory
+
+
 class IPDetector():
 
     TIMEOUT = 5
@@ -85,7 +105,7 @@ class IPDetector():
 class DLNADiscover():
 
     PLUGINS = [
-        pulseaudio_dlna.plugins.dlna.DLNAPlugin(),
+        pulseaudio_dlna.plugins.upnp.DLNAPlugin(),
     ]
     TIMEOUT = 5
 
@@ -116,7 +136,6 @@ if not dlna_discover.discover_devices():
 
 print(STEPS_PATTERN)
 for device in dlna_discover.devices:
-    link = device.upnp_device.access_url.replace(
-        device.ip, ip_detector.public_ip)
+    link = device.location.replace(device.ip, ip_detector.public_ip)
     print(SHARE_PATTERN.format(
         name=device.name, ip=device.ip, port=device.port, link=link))

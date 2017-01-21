@@ -277,9 +277,17 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             if isinstance(
                 bridge.device,
-                    pulseaudio_dlna.plugins.dlna.renderer.DLNAMediaRenderer):
-                headers['contentFeatures.dlna.org'] = str(
-                    bridge.device.content_features)
+                    pulseaudio_dlna.plugins.upnp.renderer.UpnpMediaRenderer):
+                from pulseaudio_dlna.plugins.upnp.renderer import (
+                    UpnpContentFeatures, UpnpContentFlags)
+                content_features = UpnpContentFeatures(
+                    flags=[
+                        UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
+                        UpnpContentFlags.BACKGROUND_TRANSFER_MODE_SUPPORTED,
+                        UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
+                        UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
+                    ])
+                headers['contentFeatures.dlna.org'] = str(content_features)
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
                 headers['Content-Disposition'] = 'inline;'
@@ -365,7 +373,6 @@ class StreamServer(SocketServer.TCPServer):
 
     def run(self):
         self.allow_reuse_address = True
-        self.daemon_threads = True
         try:
             SocketServer.TCPServer.__init__(
                 self, (self.ip or '', self.port), StreamRequestHandler)

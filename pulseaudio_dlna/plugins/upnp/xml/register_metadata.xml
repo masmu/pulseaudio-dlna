@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="{encoding}"?>
+<DIDL-Lite xmlns="urn:schemas-upnp-org:metadata-1-0/DIDL-Lite/" xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:dlna="urn:schemas-dlna-org:metadata-1-0/" xmlns:sec="http://www.sec.co.kr/" xmlns:upnp="urn:schemas-upnp-org:metadata-1-0/upnp/">
+    <item id="0" parentID="0" restricted="1">
+        <upnp:class>object.item.audioItem.musicTrack</upnp:class>
+        <dc:title>{title}</dc:title>
+        <dc:creator>{creator}</dc:creator>
+        <upnp:artist>{artist}</upnp:artist>
+        <upnp:albumArtURI>{albumart}</upnp:albumArtURI>
+        <upnp:album>{album}</upnp:album>
+        <res protocolInfo="http-get:*:{mime_type}:{content_features}">{stream_url}</res>
+    </item>
+</DIDL-Lite>

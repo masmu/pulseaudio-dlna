@@ -617,7 +617,7 @@ class PulseWatcher(PulseAudio):
                 break
 
         stopped_bridge.device.state = \
-            pulseaudio_dlna.plugins.renderer.BaseRenderer.STATE_STOPPED
+            pulseaudio_dlna.plugins.renderer.BaseRenderer.IDLE
 
         reason = 'The device disconnected'
         if len(stopped_bridge.sink.streams) > 1:
@@ -696,7 +696,7 @@ class PulseWatcher(PulseAudio):
 
         for bridge in self.bridges:
             logger.debug('\n{}'.format(bridge))
-            if bridge.device.state == bridge.device.STATE_PLAYING:
+            if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0 and (
                         not self.disable_device_stop and
                         'DISABLE_DEVICE_STOP' not in bridge.device.rules):
@@ -719,8 +719,8 @@ class PulseWatcher(PulseAudio):
                         self.switch_back(bridge, message)
                     continue
             if bridge.sink.object_path == sink_path:
-                if bridge.device.state == bridge.device.STATE_STOPPED or \
-                   bridge.device.state == bridge.device.STATE_PAUSED:
+                if bridge.device.state == bridge.device.IDLE or \
+                   bridge.device.state == bridge.device.PAUSE:
                     logger.info(
                         'Instructing the device "{}" to play ...'.format(
                             bridge.device.label))

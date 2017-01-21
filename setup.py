@@ -59,6 +59,7 @@ setuptools.setup(
         ("share/man/man1", ["man/pulseaudio-dlna.1"]),
     ],
     package_data={
+        "pulseaudio_dlna.plugins.upnp": ["xml/*.xml"],
         "pulseaudio_dlna": ["images/*.png"],
     }
 )

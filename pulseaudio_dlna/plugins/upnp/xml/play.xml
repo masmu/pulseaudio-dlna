@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="{encoding}" standalone="yes"?>
+<s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+    <s:Body>
+        <u:Play xmlns:u="{service_type}">
+            <InstanceID>0</InstanceID>
+            <Speed>1</Speed>
+        </u:Play>
+    </s:Body>
+</s:Envelope>

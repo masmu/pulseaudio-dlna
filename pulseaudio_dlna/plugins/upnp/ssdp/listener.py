@@ -27,9 +27,9 @@ import setproctitle
 import time
 import chardet
 
-import pulseaudio_dlna.plugins.dlna.ssdp
+import pulseaudio_dlna.plugins.upnp.ssdp
 
-logger = logging.getLogger('pulseaudio_dlna.plugins.dlna.ssdp')
+logger = logging.getLogger('pulseaudio_dlna.plugins.upnp.ssdp')
 
 
 class SSDPHandler(SocketServer.BaseRequestHandler):
@@ -42,7 +42,7 @@ class SSDPHandler(SocketServer.BaseRequestHandler):
         lines = packet.splitlines()
         if len(lines) > 0:
             if self._is_notify_method(lines[0]):
-                header = pulseaudio_dlna.plugins.dlna.ssdp._get_header_map(
+                header = pulseaudio_dlna.plugins.upnp.ssdp._get_header_map(
                     packet)
                 nts_header = header.get('nts', None)
                 if nts_header and nts_header == self.SSDP_ALIVE:
