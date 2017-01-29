@@ -44,7 +44,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where codec bit rates could not be set although those were supported
     - Fixed a bug where a missing xml attribute prevented xml parsing
     - Added the `--disable-mimetype-check` option
-    - Disabled mimetype check for virtual _Raumfeld_ devices 
+    - Disabled mimetype check for virtual _Raumfeld_ devices
     - Subprocesses now always exit gracefully
 
  * __0.5.2__ - (_2016-04-01_)
@@ -450,7 +450,7 @@ very useful if you ever plan to stream to a UPNP device over VPN.
 
 ### Device configuration rules
 
-Most times the automatic discovery of supported device codecs and their 
+Most times the automatic discovery of supported device codecs and their
 prioritization works pretty good. But in the case of a device which does work
 out of the box or if you don't like the used codec you can adjust the settings
 with a _device configuration_.
@@ -472,40 +472,40 @@ that is what was discovered:
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
-        "rules": [], 
-        "flavour": "DLNA", 
-        "name": "Device name", 
+        "rules": [],
+        "flavour": "DLNA",
+        "name": "Device name",
         "codecs": [
             {
-                "rules": [], 
-                "bit_rate": null, 
-                "identifier": "mp3", 
+                "rules": [],
+                "bit_rate": null,
+                "identifier": "mp3",
                 "mime_type": "audio/mpeg"
-            }, 
+            },
             {
-                "rules": [], 
-                "identifier": "flac", 
+                "rules": [],
+                "identifier": "flac",
                 "mime_type": "audio/flac"
-            }, 
+            },
             {
-                "channels": 2, 
-                "rules": [], 
-                "identifier": "l16", 
-                "sample_rate": 48000, 
+                "channels": 2,
+                "rules": [],
+                "identifier": "l16",
+                "sample_rate": 48000,
                 "mime_type": "audio/L16;rate=48000;channels=2"
-            }, 
+            },
             {
-                "channels": 2, 
-                "rules": [], 
-                "identifier": "l16", 
-                "sample_rate": 44100, 
+                "channels": 2,
+                "rules": [],
+                "identifier": "l16",
+                "sample_rate": 44100,
                 "mime_type": "audio/L16;rate=44100;channels=2"
-            }, 
+            },
             {
-                "channels": 1, 
-                "rules": [], 
-                "identifier": "l16", 
-                "sample_rate": 44100, 
+                "channels": 1,
+                "rules": [],
+                "identifier": "l16",
+                "sample_rate": 44100,
                 "mime_type": "audio/L16;rate=44100;channels=1"
             }
         ]
@@ -524,7 +524,7 @@ If you don't change the configuration at all, it means that the next time
 you start _pulseaudio-dlna_ it will automatically use those codecs for that
 device. The order of the list also defines the priority. It will take the
 first codec and use it if the appropriate encoder binary is installed on your
-system. If the binary is missing it will take the next one. So here the 
+system. If the binary is missing it will take the next one. So here the
 _mp3_ codec would be used, if the _lame_ binary is installed.
 
 You can also change the name of the device, adjust the mime type or set the
@@ -537,19 +537,19 @@ be encoded in 256 Kbit/s.
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
-        "rules": [], 
-        "flavour": "DLNA", 
-        "name": "Living Room", 
+        "rules": [],
+        "flavour": "DLNA",
+        "name": "Living Room",
         "codecs": [
             {
-                "rules": [], 
-                "bit_rate": 256, 
-                "identifier": "mp3", 
+                "rules": [],
+                "bit_rate": 256,
+                "identifier": "mp3",
                 "mime_type": "audio/mpeg"
-            }, 
+            },
             {
-                "rules": [], 
-                "identifier": "flac", 
+                "rules": [],
+                "identifier": "flac",
                 "mime_type": "audio/flac"
             }
         ]
@@ -561,23 +561,23 @@ works without the flag. So, you can add a rule for that to that device.
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
-        "rules": [], 
-        "flavour": "DLNA", 
-        "name": "Living Room", 
+        "rules": [],
+        "flavour": "DLNA",
+        "name": "Living Room",
         "codecs": [
             {
                 "rules": [
                     {
                         "name": "FAKE_HTTP_CONTENT_LENGTH"
                     }
-                ], 
-                "bit_rate": 256, 
-                "identifier": "mp3", 
+                ],
+                "bit_rate": 256,
+                "identifier": "mp3",
                 "mime_type": "audio/mpeg"
-            }, 
+            },
             {
-                "rules": [], 
-                "identifier": "flac", 
+                "rules": [],
+                "identifier": "flac",
                 "mime_type": "audio/flac"
             }
         ]
@@ -674,6 +674,7 @@ Libratone ZIPP                                                                  
 Logitech Media Server                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Medion P85055                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Naim Mu-So](https://www.naimaudio.com/mu-so)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :grey_question:                | :grey_question:                   | :white_check_mark:
 Onkyo TX-8050                                                                   | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :white_check_mark:
 Onkyo TX-NR509                                                                  | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :no_entry_sign:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR616 <sup>7</sup>                                                     | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
