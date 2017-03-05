@@ -141,7 +141,7 @@ def main(argv=sys.argv[1:]):
         datefmt='%m-%d %H:%M:%S')
     logger = logging.getLogger('pulseaudio_dlna.__main__')
 
-    if not aquire_lock():
+    if not acquire_lock():
         print('The application is shutting down, since there already seems to '
               'be a running instance.')
         return 1
@@ -158,12 +158,12 @@ def main(argv=sys.argv[1:]):
     return 0
 
 
-def aquire_lock():
-    aquire_lock._lock_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+def acquire_lock():
+    acquire_lock._lock_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
 
     try:
         name = '/com/masmu/pulseaudio_dlna/{}'.format(getpass.getuser())
-        aquire_lock._lock_socket.bind('\0' + name)
+        acquire_lock._lock_socket.bind('\0' + name)
         return True
     except socket.error:
         return False
