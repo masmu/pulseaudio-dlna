@@ -120,6 +120,8 @@ import sys
 import os
 import docopt
 import logging
+import socket
+import getpass
 
 
 def main(argv=sys.argv[1:]):
@@ -139,6 +141,11 @@ def main(argv=sys.argv[1:]):
         datefmt='%m-%d %H:%M:%S')
     logger = logging.getLogger('pulseaudio_dlna.__main__')
 
+    if not aquire_lock():
+        print('The application is shutting down, since there already seems to '
+              'be a running instance.')
+        return 1
+
     if os.geteuid() == 0:
         logger.info('Running as root. Starting daemon ...')
         import pulseaudio_dlna.daemon
@@ -148,6 +155,18 @@ def main(argv=sys.argv[1:]):
         import pulseaudio_dlna.application
         app = pulseaudio_dlna.application.Application()
         app.run(options)
+    return 0
+
+
+def aquire_lock():
+    aquire_lock._lock_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+
+    try:
+        name = '/com/masmu/pulseaudio_dlna/{}'.format(getpass.getuser())
+        aquire_lock._lock_socket.bind('\0' + name)
+        return True
+    except socket.error:
+        return False
 
 if __name__ == "__main__":
     sys.exit(main())
