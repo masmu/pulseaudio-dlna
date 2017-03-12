@@ -48,6 +48,9 @@ PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 
 
 class ProcessStream(object):
+
+    CHUNK_SIZE = 1024 * 4
+
     def __init__(self, path, sock, recorder, encoder, bridge):
         self.path = path
         self.sock = sock
@@ -58,7 +61,6 @@ class ProcessStream(object):
         self.id = hex(id(self))
         self.recorder_process = None
         self.encoder_process = None
-        self.chunk_size = 1024 * 4
         self.reinitialize_count = 0
 
         GObject.timeout_add(
@@ -86,7 +88,7 @@ class ProcessStream(object):
                             self.reinitialize_count))
                     break
 
-            data = self.encoder_process.stdout.read(self.chunk_size)
+            data = self.encoder_process.stdout.read(self.CHUNK_SIZE)
             r, w, e = select.select([self.sock], [self.sock], [], 0)
 
             if self.sock in w:
