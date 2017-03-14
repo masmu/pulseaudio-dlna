@@ -28,7 +28,7 @@ import pulseaudio_dlna.rules
 
 logger = logging.getLogger('pulseaudio_dlna.codecs')
 
-BACKENDS = ['generic', 'ffmpeg', 'avconv']
+BACKENDS = ['generic', 'ffmpeg', 'avconv', 'pulseaudio']
 CODECS = {}
 
 
@@ -45,6 +45,15 @@ class UnknownCodecException(Exception):
         Exception.__init__(
             self,
             'You specified an unknown codec "{}"!'.format(codec),
+        )
+
+
+class UnsupportedCodecException(Exception):
+    def __init__(self, codec, backend):
+        Exception.__init__(
+            self,
+            'You specified an unsupported codec "{}" for the '
+            'backend "{}"!'.format(codec, backend),
         )
 
 
@@ -113,7 +122,14 @@ class BaseCodec(object):
 
     @property
     def encoder(self):
-        return self.ENCODERS[self.BACKEND]()
+        return self.encoder_type()
+
+    @property
+    def encoder_type(self):
+        if self.BACKEND in self.ENCODERS:
+            return self.ENCODERS[self.BACKEND]
+        else:
+            raise UnsupportedCodecException(self.IDENTIFIER, self.BACKEND)
 
     @classmethod
     def accepts(cls, mime_type):
@@ -123,7 +139,11 @@ class BaseCodec(object):
         return False
 
     def get_recorder(self, monitor):
-        return pulseaudio_dlna.recorders.PulseaudioRecorder(monitor)
+        if self.BACKEND == 'pulseaudio':
+            return pulseaudio_dlna.recorders.PulseaudioRecorder(
+                monitor, codec=self)
+        else:
+            return pulseaudio_dlna.recorders.PulseaudioRecorder(monitor)
 
     def __eq__(self, other):
         return type(self) is type(other)
@@ -163,7 +183,7 @@ class BitRateMixin(object):
 
     @property
     def encoder(self):
-        return self.ENCODERS[self.BACKEND](self.bit_rate)
+        return self.encoder_type(self.bit_rate)
 
     def __eq__(self, other):
         return type(self) is type(other) and self.bit_rate == other.bit_rate
@@ -198,6 +218,7 @@ class WavCodec(BaseCodec):
         'generic': pulseaudio_dlna.encoders.SoxWavEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegWavEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvWavEncoder,
+        'pulseaudio': pulseaudio_dlna.encoders.NullEncoder,
     }
     PRIORITY = 15
 
@@ -246,7 +267,7 @@ class L16Codec(BaseCodec):
 
     @property
     def encoder(self):
-        return self.ENCODERS[self.BACKEND](self.sample_rate, self.channels)
+        return self.encoder_type(self.sample_rate, self.channels)
 
     def __eq__(self, other):
         return type(self) is type(other) and (
@@ -285,6 +306,7 @@ class OggCodec(BitRateMixin, BaseCodec):
         'generic': pulseaudio_dlna.encoders.OggencOggEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegOggEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvOggEncoder,
+        'pulseaudio': pulseaudio_dlna.encoders.NullEncoder,
     }
     PRIORITY = 6
 
@@ -303,6 +325,7 @@ class FlacCodec(BaseCodec):
         'generic': pulseaudio_dlna.encoders.FlacFlacEncoder,
         'ffmpeg': pulseaudio_dlna.encoders.FFMpegFlacEncoder,
         'avconv': pulseaudio_dlna.encoders.AVConvFlacEncoder,
+        'pulseaudio': pulseaudio_dlna.encoders.NullEncoder,
     }
     PRIORITY = 9
 

@@ -127,6 +127,10 @@ class Application(object):
         if options['--disable-mimetype-check']:
             pulseaudio_dlna.plugins.renderer.DISABLE_MIMETYPE_CHECK = True
 
+        if options['--chunk-size']:
+            chunk_size = int(options['--chunk-size'])
+            pulseaudio_dlna.streamserver.ProcessStream.CHUNK_SIZE = chunk_size
+
         if options['--ssdp-ttl']:
             ssdp_ttl = int(options['--ssdp-ttl'])
             pulseaudio_dlna.plugins.dlna.ssdp.discover.\

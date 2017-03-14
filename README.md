@@ -35,7 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2016-12-04_)
+ * __master__ - (_2017-03-14_)
     - Fixed a bug where the detection of DLNA devices failed when there were multiple network interfaces
     - The application now binds to all interfaces by default
     - When using multiple network interfaces the appropriate network address is being used for streaming (new dependency `python-netaddr`)
@@ -44,8 +44,11 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where codec bit rates could not be set although those were supported
     - Fixed a bug where a missing xml attribute prevented xml parsing
     - Added the `--disable-mimetype-check` option
-    - Disabled mimetype check for virtual _Raumfeld_ devices 
+    - Disabled mimetype check for virtual _Raumfeld_ devices
     - Subprocesses now always exit gracefully
+    - Added the `--chunk-size` option
+    - Added _pulseaudio_ as an encoder backend (*experimental*)
+    - You can now just start one instance of pulseaudio-dlna
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
@@ -365,6 +368,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                         [--filter-device=<filter-device>]
                         [--renderer-urls <urls>]
                         [--request-timeout <timeout>]
+                        [--chunk-size <chunk-size>]
                         [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
                         [--cover-mode <mode>]
                         [--auto-reconnect]
@@ -408,6 +412,7 @@ Since 0.4, new devices are automatically discovered as they appear on the networ
                                                filter text will be skipped.
         --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
         --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 15].
+        --chunk-size=<chunk-size>              Set the stream's chunk size [default: 4096].
         --ssdp-ttl=<ssdp-ttl>                  Set the SSDP socket's TTL [default: 10].
         --ssdp-mx=<ssdp-mx>                    Set the MX value of the SSDP discovery message [default: 3].
         --ssdp-amount=<ssdp-amount>            Set the amount of SSDP discovery messages being sent [default: 5].
@@ -450,7 +455,7 @@ very useful if you ever plan to stream to a UPNP device over VPN.
 
 ### Device configuration rules
 
-Most times the automatic discovery of supported device codecs and their 
+Most times the automatic discovery of supported device codecs and their
 prioritization works pretty good. But in the case of a device which does work
 out of the box or if you don't like the used codec you can adjust the settings
 with a _device configuration_.
@@ -472,40 +477,40 @@ that is what was discovered:
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
-        "rules": [], 
-        "flavour": "DLNA", 
-        "name": "Device name", 
+        "rules": [],
+        "flavour": "DLNA",
+        "name": "Device name",
         "codecs": [
             {
-                "rules": [], 
-                "bit_rate": null, 
-                "identifier": "mp3", 
+                "rules": [],
+                "bit_rate": null,
+                "identifier": "mp3",
                 "mime_type": "audio/mpeg"
-            }, 
+            },
             {
-                "rules": [], 
-                "identifier": "flac", 
+                "rules": [],
+                "identifier": "flac",
                 "mime_type": "audio/flac"
-            }, 
+            },
             {
-                "channels": 2, 
-                "rules": [], 
-                "identifier": "l16", 
-                "sample_rate": 48000, 
+                "channels": 2,
+                "rules": [],
+                "identifier": "l16",
+                "sample_rate": 48000,
                 "mime_type": "audio/L16;rate=48000;channels=2"
-            }, 
+            },
             {
-                "channels": 2, 
-                "rules": [], 
-                "identifier": "l16", 
-                "sample_rate": 44100, 
+                "channels": 2,
+                "rules": [],
+                "identifier": "l16",
+                "sample_rate": 44100,
                 "mime_type": "audio/L16;rate=44100;channels=2"
-            }, 
+            },
             {
-                "channels": 1, 
-                "rules": [], 
-                "identifier": "l16", 
-                "sample_rate": 44100, 
+                "channels": 1,
+                "rules": [],
+                "identifier": "l16",
+                "sample_rate": 44100,
                 "mime_type": "audio/L16;rate=44100;channels=1"
             }
         ]
@@ -524,7 +529,7 @@ If you don't change the configuration at all, it means that the next time
 you start _pulseaudio-dlna_ it will automatically use those codecs for that
 device. The order of the list also defines the priority. It will take the
 first codec and use it if the appropriate encoder binary is installed on your
-system. If the binary is missing it will take the next one. So here the 
+system. If the binary is missing it will take the next one. So here the
 _mp3_ codec would be used, if the _lame_ binary is installed.
 
 You can also change the name of the device, adjust the mime type or set the
@@ -537,19 +542,19 @@ be encoded in 256 Kbit/s.
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
-        "rules": [], 
-        "flavour": "DLNA", 
-        "name": "Living Room", 
+        "rules": [],
+        "flavour": "DLNA",
+        "name": "Living Room",
         "codecs": [
             {
-                "rules": [], 
-                "bit_rate": 256, 
-                "identifier": "mp3", 
+                "rules": [],
+                "bit_rate": 256,
+                "identifier": "mp3",
                 "mime_type": "audio/mpeg"
-            }, 
+            },
             {
-                "rules": [], 
-                "identifier": "flac", 
+                "rules": [],
+                "identifier": "flac",
                 "mime_type": "audio/flac"
             }
         ]
@@ -561,23 +566,23 @@ works without the flag. So, you can add a rule for that to that device.
 
 ```json
     "uuid:e4572d54-c2c7-d491-1eb3-9cf17cf5fe01": {
-        "rules": [], 
-        "flavour": "DLNA", 
-        "name": "Living Room", 
+        "rules": [],
+        "flavour": "DLNA",
+        "name": "Living Room",
         "codecs": [
             {
                 "rules": [
                     {
                         "name": "FAKE_HTTP_CONTENT_LENGTH"
                     }
-                ], 
-                "bit_rate": 256, 
-                "identifier": "mp3", 
+                ],
+                "bit_rate": 256,
+                "identifier": "mp3",
                 "mime_type": "audio/mpeg"
-            }, 
+            },
             {
-                "rules": [], 
-                "identifier": "flac", 
+                "rules": [],
+                "identifier": "flac",
                 "mime_type": "audio/flac"
             }
         ]
@@ -656,7 +661,7 @@ codec information available.
 
 Device                                                                          | mp3                               | wav                               | ogg                               | flac                              | aac                               | opus                              | l16
 ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | ------------- | -------------
-[AVM FritzRepeater N/G](http://avm.de/service/fritzwlan/fritzwlan-repeater-ng/uebersicht/)                                                           | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[AVM FritzRepeater N/G](http://avm.de/)                                         | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 BubbleUPnP (Android App)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:
 [Cocy UPNP media renderer](https://github.com/mnlipp/CoCy)                      | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 D-Link DCH-M225/E                                                               | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
@@ -666,14 +671,15 @@ Denon AVR-X4000                                                                 
 Freebox Player Mini (4K)                                                        | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
 Freebox Player (Revolution)                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 [gmrender-resurrect](http://github.com/hzeller/gmrender-resurrect)              | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Google Chromecast                                                               | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+Google Chromecast (1st gen)                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
 Google Chromecast Audio                                                         | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
 Hame Soundrouter                                                                | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 LG BP550                                                                        | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-Libratone ZIPP                                                                  | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :white_check_mark:
+Libratone ZIPP                                                                  | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:
 Logitech Media Server                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Majik DSM                                                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Medion P85055                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+[Naim Mu-So](https://www.naimaudio.com/mu-so)                                                        | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :grey_question:                | :grey_question:                   | :white_check_mark:
 Onkyo TX-8050                                                                   | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :white_check_mark:
 Onkyo TX-NR509                                                                  | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :no_entry_sign:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR616 <sup>7</sup>                                                     | :grey_question:                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
@@ -688,12 +694,13 @@ Philips NP2900                                                                  
 Pioneer SC-LX76 (AV Receiver)                                                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:
 Pioneer VSX-824 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Pure Jongo S3                                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
-[Raumfeld One M](http://raumfeld.com)                                       | :white_check_mark:                   | :white_check_mark:                   | :no_entry_sign:                   | :white_check_mark:                   | :grey_question:                   | :no_entry_sign:                   | :no_entry_sign:
+[Raumfeld One M](http://raumfeld.com)                                           | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :grey_question:                   | :no_entry_sign:                   | :no_entry_sign:
 [Raumfeld Speaker M](http://raumfeld.com)                                       | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Raumfeld Speaker S](http://raumfeld.com)                                       | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:
 [ROCKI](http://www.myrocki.com/)                                                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [rygel](https://wiki.gnome.org/Projects/Rygel)                                  | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 RaidSonic IB-MP401Air                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
+Samsung Smart TV LED32 (UE32ES5500)                                             | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 Samsung Smart TV LED40 (UE40ES6100)                                             | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Samsung Smart TV LED46 (UE46ES6715)                                             | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :grey_question:                   | :no_entry_sign:
 Samsung Smart TV LED48 (UE48JU6560)                                             | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_circle:<sup>2</sup>        | :no_entry_sign:                   | :no_entry_sign:
@@ -702,6 +709,7 @@ Sonos PLAY:1                                                                    
 Sonos PLAY:3                                                                    | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :white_check_mark:<sup>3</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:
 Sony SRS-X77                                                                    | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:<sup>1</sup>
 Sony SRS-X88                                                                    | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:<sup>1</sup>
+Sony SRS-ZR5                                                                    | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
 Sony STR-DN1050 (AV Receiver)                                                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Volumio](http://volumio.org)                                                   | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 [Volumio 2](http://volumio.org)                                                 | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
