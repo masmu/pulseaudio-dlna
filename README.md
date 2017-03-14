@@ -35,7 +35,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
 ## Changelog ##
 
- * __master__ - (_2016-12-04_)
+ * __master__ - (_2017-03-14_)
     - Fixed a bug where the detection of DLNA devices failed when there were multiple network interfaces
     - The application now binds to all interfaces by default
     - When using multiple network interfaces the appropriate network address is being used for streaming (new dependency `python-netaddr`)
@@ -46,6 +46,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added the `--disable-mimetype-check` option
     - Disabled mimetype check for virtual _Raumfeld_ devices
     - Subprocesses now always exit gracefully
+    - Added the `--chunk-size` option
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
