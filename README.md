@@ -47,6 +47,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Disabled mimetype check for virtual _Raumfeld_ devices
     - Subprocesses now always exit gracefully
     - Added the `--chunk-size` option
+    - Added _pulseaudio_ as an encoder backend (*experimental*)
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
