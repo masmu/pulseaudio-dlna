@@ -17,6 +17,8 @@
 
 from __future__ import unicode_literals
 
+import pulseaudio_dlna.codecs
+
 
 class BaseRecorder(object):
     def __init__(self):
@@ -28,10 +30,10 @@ class BaseRecorder(object):
 
 
 class PulseaudioRecorder(BaseRecorder):
-    def __init__(self, monitor, _format=None):
+    def __init__(self, monitor, codec=None):
         BaseRecorder.__init__(self)
         self._monitor = monitor
-        self._format = _format
+        self._codec = codec
         self._command = ['parec', '--format=s16le']
 
     @property
@@ -39,13 +41,25 @@ class PulseaudioRecorder(BaseRecorder):
         return self._monitor
 
     @property
-    def format(self):
-        return self._format
+    def codec(self):
+        return self._codec
+
+    @property
+    def file_format(self):
+        if isinstance(self.codec, pulseaudio_dlna.codecs.WavCodec):
+            return 'wav'
+        elif isinstance(self.codec, pulseaudio_dlna.codecs.OggCodec):
+            return 'oga'
+        elif isinstance(self.codec, pulseaudio_dlna.codecs.FlacCodec):
+            return 'flac'
+        return None
 
     @property
     def command(self):
-        if not self.format:
+        if not self.codec:
             return super(PulseaudioRecorder, self).command + ['-d', self.monitor]
         else:
             return super(PulseaudioRecorder, self).command + [
-                '-d', self.monitor, '--file-format=' + self.format]
+                '-d', self.monitor,
+                '--file-format={}'.format(self.file_format),
+            ]
