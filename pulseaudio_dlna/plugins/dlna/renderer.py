@@ -27,7 +27,7 @@ import pulseaudio_dlna.workarounds
 import pulseaudio_dlna.codecs
 import pulseaudio_dlna.rules
 import pulseaudio_dlna.plugins.renderer
-import upnp
+import pyupnpv2
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.dlna.renderer')
 
@@ -57,7 +57,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             manufacturer=upnp_device.manufacturer
         )
         self.upnp_device = upnp_device
-        pulseaudio_dlna.plugins.dlna.upnp.UpnpService.TIMEOUT = \
+        pulseaudio_dlna.plugins.dlna.pyupnpv2.UpnpService.TIMEOUT = \
             self.REQUEST_TIMEOUT
 
     @property
@@ -117,11 +117,11 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 self.upnp_device.play()
             self.state = self.STATE_PLAYING
             return 200, None
-        except (upnp.UnsupportedActionException,
-                upnp.CommandFailedException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException,
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.CommandFailedException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException,
                 pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
                 pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException)\
                 as e:
@@ -138,11 +138,11 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self.upnp_device.stop()
             self.state = self.STATE_STOPPED
             return 200, None
-        except (upnp.UnsupportedActionException,
-                upnp.CommandFailedException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.CommandFailedException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             return 500, '"{}" : {}'.format(self.label, str(e))
         except Exception:
             traceback.print_exc()
@@ -156,10 +156,10 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return int(d['GetVolumeResponse']['CurrentVolume'])
         except KeyError:
             e = MissingAttributeException('get_protocol_info')
-        except (upnp.UnsupportedActionException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             pass
         logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
@@ -167,10 +167,10 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     def set_volume(self, volume):
         try:
             return self.upnp_device.set_volume(volume)
-        except (upnp.UnsupportedActionException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             pass
         logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
@@ -181,10 +181,10 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return int(d['GetMuteResponse']['CurrentMute']) != 0
         except KeyError:
             e = MissingAttributeException('get_mute')
-        except (upnp.UnsupportedActionException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             pass
         logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
@@ -192,10 +192,10 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     def set_mute(self, mute):
         try:
             return self.upnp_device.set_mute(mute)
-        except (upnp.UnsupportedActionException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             pass
         logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
@@ -212,10 +212,10 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return mime_types
         except KeyError:
             e = MissingAttributeException('get_protocol_info')
-        except (upnp.UnsupportedActionException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             pass
         logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
@@ -227,9 +227,9 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return state
         except KeyError:
             e = MissingAttributeException('get_transport_state')
-        except (upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             pass
         logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
@@ -241,10 +241,10 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return state
         except KeyError:
             e = MissingAttributeException('get_position_info')
-        except (upnp.UnsupportedActionException,
-                upnp.XmlParsingException,
-                upnp.ConnectionErrorException,
-                upnp.ConnectionTimeoutException) as e:
+        except (pyupnpv2.UnsupportedActionException,
+                pyupnpv2.XmlParsingException,
+                pyupnpv2.ConnectionErrorException,
+                pyupnpv2.ConnectionTimeoutException) as e:
             pass
         logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
@@ -255,10 +255,10 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             state = self.get_transport_state()
             if state is None:
                 return False
-            if state == upnp.UPNP_STATE_PLAYING:
+            if state == pyupnpv2.UPNP_STATE_PLAYING:
                 self.state = self.STATE_PLAYING
                 return True
-            elif state == upnp.UPNP_STATE_STOPPED:
+            elif state == pyupnpv2.UPNP_STATE_STOPPED:
                 self.state = self.STATE_STOPPED
                 return True
             time.sleep(1)
@@ -269,14 +269,14 @@ class DLNAMediaRendererFactory(object):
 
     @classmethod
     def from_url(cls, url):
-        upnp_device = upnp.UpnpMediaRendererFactory.from_url(url)
+        upnp_device = pyupnpv2.UpnpMediaRendererFactory.from_url(url)
         if upnp_device:
             return DLNAMediaRenderer(upnp_device)
         return None
 
     @classmethod
     def from_xml(cls, url, xml):
-        upnp_device = upnp.UpnpMediaRendererFactory.from_xml(url, xml)
+        upnp_device = pyupnpv2.UpnpMediaRendererFactory.from_xml(url, xml)
         if upnp_device:
             if upnp_device.manufacturer is not None and \
                upnp_device.manufacturer.lower() == 'yamaha corporation':
@@ -287,7 +287,7 @@ class DLNAMediaRendererFactory(object):
 
     @classmethod
     def from_header(cls, header):
-        upnp_device = upnp.UpnpMediaRendererFactory.from_header(header)
+        upnp_device = pyupnpv2.UpnpMediaRendererFactory.from_header(header)
         if upnp_device:
             return DLNAMediaRenderer(upnp_device)
         return None

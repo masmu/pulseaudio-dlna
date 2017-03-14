@@ -25,7 +25,7 @@ import lxml.builder
 
 import byto
 
-logger = logging.getLogger('upnp')
+logger = logging.getLogger('pyupnpv2')
 
 
 class ConnectionTimeoutException(Exception):
