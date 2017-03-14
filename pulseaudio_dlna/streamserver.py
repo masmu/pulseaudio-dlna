@@ -50,6 +50,7 @@ PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 class ProcessStream(object):
 
     CHUNK_SIZE = 1024 * 4
+    RUNNING = True
 
     def __init__(self, path, sock, recorder, encoder, bridge):
         self.path = path
@@ -67,7 +68,7 @@ class ProcessStream(object):
             10000, self._on_regenerate_reinitialize_count)
 
     def run(self):
-        while True:
+        while self.RUNNING:
             if not self.do_processes_exist():
                 self.create_processes()
                 logger.info(
@@ -429,6 +430,7 @@ class GobjectMainLoopMixin:
     def shutdown(self, *args):
         logger.info(
             'StreamServer GobjectMainLoopMixin.shutdown()')
+        ProcessStream.RUNNING = False
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
         except socket.error:
