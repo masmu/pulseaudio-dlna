@@ -38,6 +38,13 @@ import pulseaudio_dlna.covermodes
 
 logger = logging.getLogger('pulseaudio_dlna.pulseaudio')
 
+try:
+    with open('/var/lib/dbus/machine-id', 'r') as f:
+        MACHINE_ID = unicode(f.readline().strip())
+except:
+    MACHINE_ID = None
+    logger.warning('Could not determine the pulseaudio machine-id!')
+
 
 class PulseAudio(object):
     def __init__(self):
@@ -118,9 +125,10 @@ class PulseAudio(object):
         if retry_on_fail(self.update_playback_streams) and \
            retry_on_fail(self.update_sinks):
             for stream in self.streams:
-                for sink in self.sinks:
-                    if sink.object_path == stream.device:
-                        sink.streams.append(stream)
+                if stream.is_local_stream:
+                    for sink in self.sinks:
+                        if sink.object_path == stream.device:
+                            sink.streams.append(stream)
         else:
             logger.error(
                 'Could not update sinks and streams. This normally indicates '
@@ -208,12 +216,14 @@ class PulseClientFactory(PulseBaseFactory):
             name_bytes = properties.get('application.name', [])
             icon_bytes = properties.get('application.icon_name', [])
             binary_bytes = properties.get('application.process.binary', [])
+            machine_id_bytes = properties.get('application.process.machine_id', [])
             return PulseClient(
                 object_path=unicode(client_path),
                 index=unicode(obj.Get('org.PulseAudio.Core1.Client', 'Index')),
                 name=self._convert_bytes_to_unicode(name_bytes),
                 icon=self._convert_bytes_to_unicode(icon_bytes),
                 binary=self._convert_bytes_to_unicode(binary_bytes),
+                machine_id=self._convert_bytes_to_unicode(machine_id_bytes),
             )
         except dbus.exceptions.DBusException:
             logger.error(
@@ -227,7 +237,7 @@ class PulseClient(object):
 
     __shared_state = {}
 
-    def __init__(self, object_path, index, name, icon, binary):
+    def __init__(self, object_path, index, name, icon, binary, machine_id):
         if object_path not in self.__shared_state:
             self.__shared_state[object_path] = {}
         self.__dict__ = self.__shared_state[object_path]
@@ -237,6 +247,7 @@ class PulseClient(object):
         self.name = name or 'unknown'
         self.icon = icon or 'unknown'
         self.binary = binary or 'unknown'
+        self.machine_id = machine_id
 
     def __eq__(self, other):
         return self.object_path == other.object_path
@@ -438,6 +449,12 @@ class PulseStream(object):
         self.index = index
         self.device = device
         self.client = client
+
+    @property
+    def is_local_stream(self):
+        if not MACHINE_ID or self.client.machine_id == MACHINE_ID:
+            return True
+        return False
 
     def switch_to_source(self, index):
         cmd = [
