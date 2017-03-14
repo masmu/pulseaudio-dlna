@@ -48,6 +48,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Subprocesses now always exit gracefully
     - Added the `--chunk-size` option
     - Added _pulseaudio_ as an encoder backend (*experimental*)
+    - You can now just start one instance of pulseaudio-dlna
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
