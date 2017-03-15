@@ -45,6 +45,8 @@ except:
     MACHINE_ID = None
     logger.warning('Could not determine the pulseaudio machine-id!')
 
+logger.info('MACHINE_ID: {}'.format(MACHINE_ID))
+
 
 class PulseAudio(object):
     def __init__(self):
@@ -452,6 +454,8 @@ class PulseStream(object):
 
     @property
     def is_local_stream(self):
+        logger.info('{} | {} = {}'.format(
+            self.object_path, self.client.machine_id, MACHINE_ID))
         if not MACHINE_ID or self.client.machine_id == MACHINE_ID:
             return True
         return False
@@ -712,7 +716,7 @@ class PulseWatcher(PulseAudio):
             return
 
         for bridge in self.bridges:
-            logger.debug('\n{}'.format(bridge))
+            logger.info('\n{}'.format(bridge))
             if bridge.device.state == bridge.device.PLAYING:
                 if len(bridge.sink.streams) == 0 and (
                         not self.disable_device_stop and
