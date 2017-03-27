@@ -38,7 +38,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
  * __master__ - (_2017-03-14_)
     - Fixed a bug where the detection of DLNA devices failed when there were multiple network interfaces
     - The application now binds to all interfaces by default
-    - When using multiple network interfaces the appropriate network address is being used for streaming (new dependency `python-netaddr`)
+    - When using multiple network interfaces the appropriate network address is being used for streaming (new dependency `python-pyroute2` (preferred) or `python-netaddr` (fallback))
     - Migrated to GI bindings (removed dependencies `python-gobject` `python-rsvg` `python-gtk2`, new dependency `python-gi`, new optional dependencies `gir1.2-rsvg-2.0`, `gir1.2-gtk-3.0`)
     - Fixed a bug where devices with the same name could keep updating each other
     - Fixed a bug where codec bit rates could not be set although those were supported
@@ -260,7 +260,7 @@ will get installed if you install it via the PPA.
 - python-concurrent.futures
 - python-chardet
 - python-netifaces
-- python-netaddr
+- python-pyroute2 | python-netaddr
 - python-lxml
 - python-zeroconf
 - vorbis-tools
@@ -272,7 +272,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gi python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-netaddr python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gi python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-pyroute2 python-netaddr python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 

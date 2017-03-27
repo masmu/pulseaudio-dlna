@@ -18,8 +18,8 @@
 from __future__ import unicode_literals
 
 import netifaces
-import netaddr
 import traceback
+import socket
 import logging
 
 logger = logging.getLogger('pulseaudio_dlna.utils.network')
@@ -48,6 +48,39 @@ def ipv4_addresses(include_loopback=False):
 
 
 def get_host_by_ip(ip):
+    try:
+        return __pyroute2_get_host_by_ip(ip)
+    except ImportError:
+        logger.warning(
+            'Could not import module "pyroute2". '
+            'Falling back to module "netaddr"!')
+    try:
+        return __netaddr_get_host_by_ip(ip)
+    except ImportError:
+        logger.critical(
+            'Could not import module "netaddr". '
+            'Either "pyroute2" or "netaddr" must be available for automatic '
+            'interface detection! You can manually select the appropriate '
+            'host yourself via the --host option.')
+    return None
+
+
+def __pyroute2_get_host_by_ip(ip):
+    import pyroute2
+    ipr = pyroute2.IPRoute()
+    routes = ipr.get_routes(family=socket.AF_INET, dst=ip)
+    ipr.close()
+    for route in routes:
+        for attr in route.get('attrs', []):
+            if len(attr) >= 2 and attr[0] == 'RTA_PREFSRC':
+                return attr[1]
+    logger.critical(
+        '__pyroute2_get_host_by_ip() - No host found for IP {}!'.format(ip))
+    return None
+
+
+def __netaddr_get_host_by_ip(ip):
+    import netaddr
     host = netaddr.IPAddress(ip)
     for iface in netifaces.interfaces():
         for link in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
@@ -58,5 +91,6 @@ def get_host_by_ip(ip):
                     logger.debug(
                         'Selecting host "{}" for IP "{}"'.format(addr, ip))
                     return addr
-    logger.critical('No host found for IP {}!'.format(ip))
+    logger.critical(
+        '__netaddr_get_host_by_ip - No host found for IP {}!'.format(ip))
     return None
