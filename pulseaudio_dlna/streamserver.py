@@ -360,12 +360,13 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class StreamServer(SocketServer.TCPServer):
 
+    HOST = None
     PORT = None
 
     def __init__(
             self, ip, port, pulse_queue, stream_queue,
             fake_http_content_length=False, proc_title=None, *args):
-        self.ip = ip
+        self.ip = ip or self.HOST
         self.port = port or self.PORT
         self.pulse_queue = pulse_queue
         self.stream_queue = stream_queue

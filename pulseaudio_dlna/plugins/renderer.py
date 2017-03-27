@@ -384,7 +384,10 @@ class BaseRenderer(object):
 class CoinedBaseRendererMixin():
 
     def _encode_settings(self, settings, suffix=''):
-        server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
+        if pulseaudio_dlna.streamserver.StreamServer.HOST:
+            server_ip = pulseaudio_dlna.streamserver.StreamServer.HOST
+        else:
+            server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
         if not server_ip:
             raise NoSuitableHostFoundException(self.ip)
         server_port = pulseaudio_dlna.streamserver.StreamServer.PORT
