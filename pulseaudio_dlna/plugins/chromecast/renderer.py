@@ -244,6 +244,7 @@ class ChromecastRendererFactory(object):
                 return None
 
         device_info = _get_device_info(info)
+        logger.critical(device_info)
         if device_info:
             return type_(
                 name=device_info['name'],
