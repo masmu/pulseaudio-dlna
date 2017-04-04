@@ -62,6 +62,17 @@ def set_bit_rate(bit_rate):
                 _type.DEFAULT_BIT_RATE = bit_rate
 
 
+def _find_executable(path):
+    # The distutils module uses python's ascii default encoding and is
+    # therefore not capable of handling unicode properly when it contains
+    # non-ascii characters.
+    encoding = 'utf-8'
+    result = distutils.spawn.find_executable(path.encode(encoding))
+    if result is not None and type(result) is str:
+        result = result.decode(encoding)
+    return result
+
+
 class BaseEncoder(object):
 
     AVAILABLE = True
@@ -90,7 +101,7 @@ class BaseEncoder(object):
 
     def validate(self):
         if not type(self).AVAILABLE:
-            result = distutils.spawn.find_executable(self.binary)
+            result = _find_executable(self.binary)
             if result is not None and result.endswith(self.binary):
                 type(self).AVAILABLE = True
         return type(self).AVAILABLE
