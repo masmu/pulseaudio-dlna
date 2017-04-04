@@ -49,7 +49,7 @@ setuptools.setup(
         "netaddr >= 0.7.18",
         "netifaces >= 0.8",
         "lxml >= 3",
-        "zeroconf >= 0.17",
+        "zeroconf >= 0.17.4",
     ],
     entry_points={
         "console_scripts": [
