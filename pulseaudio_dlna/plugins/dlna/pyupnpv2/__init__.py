@@ -20,6 +20,7 @@ from __future__ import unicode_literals
 import requests
 import urlparse
 import logging
+import collections
 import lxml
 import lxml.builder
 
@@ -429,40 +430,46 @@ class UpnpAVTransportService(UpnpService):
                 mime_type, str(content_features or self.content_features)),
             stream_url=stream_url,
         )
-        return self._execute_action('SetAVTransportURI', {
-            'InstanceID': instance_id,
-            'CurrentURI': stream_url,
-            'CurrentURIMetaData': metadata,
-        })
+        return self._execute_action(
+            'SetAVTransportURI', collections.OrderedDict([
+                ('InstanceID', instance_id),
+                ('CurrentURI', stream_url),
+                ('CurrentURIMetaData', metadata),
+            ]))
 
     def get_transport_info(self, instance_id='0'):
-        return self._execute_action('GetTransportInfo', {
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'GetTransportInfo', collections.OrderedDict([
+                ('InstanceID', instance_id),
+            ]))
 
     def play(self, speed='1', instance_id='0'):
-        return self._execute_action('Play', {
-            'InstanceID': instance_id,
-            'Speed': speed,
-        })
+        return self._execute_action(
+            'Play', collections.OrderedDict([
+                ('InstanceID', instance_id),
+                ('Speed', speed),
+            ]))
 
     def stop(self, instance_id='0'):
-        return self._execute_action('Stop', {
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'Stop', collections.OrderedDict([
+                ('InstanceID', instance_id),
+            ]))
 
     def pause(self, instance_id='0'):
-        return self._execute_action('Pause', {
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'Pause', collections.OrderedDict([
+                ('InstanceID', instance_id),
+            ]))
 
 
 class UpnpConnectionManagerService(UpnpService):
 
     def get_position_info(self, instance_id='0'):
-        return self._execute_action('GetPositionInfo', {
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'GetPositionInfo', collections.OrderedDict([
+                ('InstanceID', instance_id),
+            ]))
 
     def get_protocol_info(self):
         return self._execute_action('GetProtocolInfo', {})
@@ -471,30 +478,34 @@ class UpnpConnectionManagerService(UpnpService):
 class UpnpRenderingControlService(UpnpService):
 
     def get_volume(self, channel='Master', instance_id='0'):
-        return self._execute_action('GetVolume', {
-            'Channel': channel,
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'GetVolume', collections.OrderedDict([
+                ('Channel', channel),
+                ('InstanceID', instance_id),
+            ]))
 
     def set_volume(self, volume, channel='Master', instance_id='0'):
-        return self._execute_action('SetVolume', {
-            'DesiredVolume': volume,
-            'Channel': channel,
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'SetVolume', collections.OrderedDict([
+                ('DesiredVolume', volume),
+                ('Channel', channel),
+                ('InstanceID', instance_id),
+            ]))
 
     def get_mute(self, channel='Master', instance_id='0'):
-        return self._execute_action('GetMute', {
-            'Channel': channel,
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'GetMute', collections.OrderedDict([
+                ('Channel', channel),
+                ('InstanceID', instance_id),
+            ]))
 
     def set_mute(self, muted, channel='Master', instance_id='0'):
-        return self._execute_action('SetMute', {
-            'DesiredMute': '1' if muted else '0',
-            'Channel': channel,
-            'InstanceID': instance_id,
-        })
+        return self._execute_action(
+            'SetMute', collections.OrderedDict([
+                ('DesiredMute', '1' if muted else '0'),
+                ('Channel', channel),
+                ('InstanceID', instance_id),
+            ]))
 
 
 class UpnpMediaRenderer(object):
