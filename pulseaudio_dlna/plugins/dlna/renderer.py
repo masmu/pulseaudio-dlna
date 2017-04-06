@@ -268,26 +268,31 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 class DLNAMediaRendererFactory(object):
 
     @classmethod
+    def _apply_workarounds(cls, device):
+        if device.manufacturer is not None and \
+           device.manufacturer.lower() == 'yamaha corporation':
+            device.workarounds.append(
+                pulseaudio_dlna.workarounds.YamahaWorkaround(
+                    device.upnp_device.description_xml))
+        return device
+
+    @classmethod
     def from_url(cls, url):
         upnp_device = pyupnpv2.UpnpMediaRendererFactory.from_url(url)
         if upnp_device:
-            return DLNAMediaRenderer(upnp_device)
+            return cls._apply_workarounds(DLNAMediaRenderer(upnp_device))
         return None
 
     @classmethod
     def from_xml(cls, url, xml):
         upnp_device = pyupnpv2.UpnpMediaRendererFactory.from_xml(url, xml)
         if upnp_device:
-            if upnp_device.manufacturer is not None and \
-               upnp_device.manufacturer.lower() == 'yamaha corporation':
-                upnp_device.workarounds.append(
-                    pulseaudio_dlna.workarounds.YamahaWorkaround(xml))
-            return DLNAMediaRenderer(upnp_device)
+            return cls._apply_workarounds(DLNAMediaRenderer(upnp_device))
         return None
 
     @classmethod
     def from_header(cls, header):
         upnp_device = pyupnpv2.UpnpMediaRendererFactory.from_header(header)
         if upnp_device:
-            return DLNAMediaRenderer(upnp_device)
+            return cls._apply_workarounds(DLNAMediaRenderer(upnp_device))
         return None

@@ -499,12 +499,14 @@ class UpnpRenderingControlService(UpnpService):
 
 class UpnpMediaRenderer(object):
 
-    def __init__(self, access_url, ip, port, name, udn, model_name,
-                 model_number, model_description, manufacturer, services,
-                 timeout=10):
+    def __init__(self, description_xml, access_url, ip, port, name, udn,
+                 model_name, model_number, model_description,
+                 manufacturer, services, timeout=10):
         self.state = None
 
+        self.description_xml = description_xml
         self.access_url = access_url
+
         self.ip = ip
         self.port = port
         self.name = name
@@ -656,6 +658,7 @@ class UpnpMediaRendererFactory(object):
 
                 try:
                     upnp_device = UpnpMediaRenderer(
+                        description_xml=xml,
                         access_url=url,
                         ip=unicode(ip),
                         port=port,
