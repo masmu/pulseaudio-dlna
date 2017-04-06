@@ -326,7 +326,10 @@ class BaseRenderer(object):
         return True
 
     def _encode_settings(self, settings, suffix=''):
-        server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
+        if pulseaudio_dlna.streamserver.StreamServer.HOST:
+            server_ip = pulseaudio_dlna.streamserver.StreamServer.HOST
+        else:
+            server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
         if not server_ip:
             raise NoSuitableHostFoundException(self.ip)
         server_port = pulseaudio_dlna.streamserver.StreamServer.PORT
@@ -429,50 +432,3 @@ class BaseRenderer(object):
             'codecs': self.codecs,
             'rules': self.rules,
         }
-
-
-class CoinedBaseRendererMixin():
-
-    def _encode_settings(self, settings, suffix=''):
-        if pulseaudio_dlna.streamserver.StreamServer.HOST:
-            server_ip = pulseaudio_dlna.streamserver.StreamServer.HOST
-        else:
-            server_ip = pulseaudio_dlna.utils.network.get_host_by_ip(self.ip)
-        if not server_ip:
-            raise NoSuitableHostFoundException(self.ip)
-        server_port = pulseaudio_dlna.streamserver.StreamServer.PORT
-        base_url = 'http://{ip}:{port}'.format(
-            ip=server_ip,
-            port=server_port,
-        )
-        data_string = ','.join(
-            ['{}="{}"'.format(k, v) for k, v in settings.iteritems()])
-        stream_name = '/{base_string}/{suffix}'.format(
-            base_string=urllib.quote(base64.b64encode(data_string)),
-            suffix=suffix,
-        )
-        return urlparse.urljoin(base_url, stream_name)
-
-    def get_stream_url(self):
-        settings = {
-            'type': 'bridge',
-            'udn': self.udn,
-        }
-        return self._encode_settings(settings, 'stream.' + self.codec.suffix)
-
-    def get_image_url(self, name='default.png'):
-        settings = {
-            'type': 'image',
-            'name': name,
-        }
-        return self._encode_settings(settings)
-
-    def get_sys_icon_url(self, name):
-        settings = {
-            'type': 'sys-icon',
-            'name': name,
-        }
-        return self._encode_settings(settings)
-
-    def play(self):
-        raise NotImplementedError()
