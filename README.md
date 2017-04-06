@@ -50,6 +50,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added _pulseaudio_ as an encoder backend (*experimental*)
     - You can now just start one instance of pulseaudio-dlna
     - Fixed a bug where non-ascii characters in $PATH broke `distutils.spawn.find_executable()`
+    - Also use environment's `XDG_RUNTIME_DIR` for detecting the DBus socket
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
