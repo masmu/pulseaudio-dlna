@@ -52,6 +52,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Fixed a bug where non-ascii characters in $PATH broke `distutils.spawn.find_executable()`
     - Also use environment's `XDG_RUNTIME_DIR` for detecting the DBus socket
     - The detection of the stream servers host address now uses the systems routing table
+    - Because of devices with a kernel < 3.9, `python-zeroconf >= 0.17.4` is now required
 
  * __0.5.2__ - (_2016-04-01_)
     - Catched an exception when record processes cannot start properly
