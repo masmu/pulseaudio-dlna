@@ -46,7 +46,7 @@ setuptools.setup(
         "psutil >= 1.2.1",
         "futures >= 2.1.6",
         "chardet >= 2.0.1",
-        "netaddr >= 0.7.18",
+        "pyroute2 >= 0.3.5",
         "netifaces >= 0.8",
         "lxml >= 3",
         "zeroconf >= 0.17",
