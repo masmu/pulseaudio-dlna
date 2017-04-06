@@ -113,15 +113,15 @@ class YamahaWorkaround(BaseWorkaround):
         try:
             # Initialize YamahaRemoteControl interface
             if (not self._detect_remotecontrolinterface(xml)):
-                logger.warning(
-                    'Automatic source switching will not be enabled'
-                    ' - Please switch to server mode manually to enable UPnP'
-                    ' streaming'
-                )
-                return
+                raise Exception()
             self.enabled = True
         except:
-            traceback.print_exc()
+            logger.warning(
+                'The YamahaWorkaround initialization failed. '
+                'Automatic source switching will not be enabled'
+                ' - Please switch to server mode manually to enable UPnP'
+                ' streaming')
+            logger.debug(traceback.format_exc())
 
     def _detect_remotecontrolinterface(self, xml):
         # Check for YamahaRemoteControl support
