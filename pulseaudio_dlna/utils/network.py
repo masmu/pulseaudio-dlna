@@ -72,8 +72,8 @@ def __pyroute2_get_host_by_ip(ip):
     ipr.close()
     for route in routes:
         for attr in route.get('attrs', []):
-            if len(attr) >= 2 and attr[0] == 'RTA_PREFSRC':
-                return attr[1]
+            if attr.cell[0] == 'RTA_PREFSRC':
+                return attr.get_value()
     logger.critical(
         '__pyroute2_get_host_by_ip() - No host found for IP {}!'.format(ip))
     return None
