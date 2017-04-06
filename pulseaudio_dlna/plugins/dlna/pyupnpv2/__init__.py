@@ -340,7 +340,7 @@ class UpnpService(object):
             return response
         finally:
             self._debug_sent(url, headers, data)
-            if response:
+            if response is not None:
                 self._debug_received(
                     response.status_code, response.headers, response.content)
 
