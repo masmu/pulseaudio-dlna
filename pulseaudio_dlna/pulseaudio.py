@@ -74,17 +74,26 @@ class PulseAudio(object):
                 self.system_sinks.append(sink)
 
     def _get_bus_address(self):
-        server_address = os.environ.get('PULSE_DBUS_SERVER', None)
-        if server_address is None and \
-           os.access('/run/pulse/dbus-socket', os.R_OK | os.W_OK):
-            server_address = 'unix:path=/run/pulse/dbus-socket'
-        if server_address is None:
-            lookup_object = dbus.SessionBus().get_object(
-                'org.PulseAudio1', '/org/pulseaudio/server_lookup1')
-            server_address = lookup_object.Get(
-                'org.PulseAudio.ServerLookup1',
-                'Address',
-                dbus_interface='org.freedesktop.DBus.Properties')
+        pulse_dbus_server = os.environ.get('PULSE_DBUS_SERVER', None)
+        if pulse_dbus_server:
+            return pulse_dbus_server
+
+        dbus_socket = '/run/pulse/dbus-socket'
+        if os.access(dbus_socket, os.R_OK | os.W_OK):
+            return 'unix:path={}'.format(dbus_socket)
+
+        xdg_runtime_dir = os.environ.get('XDG_RUNTIME_DIR', None)
+        if xdg_runtime_dir:
+            xdg_path = os.path.join(xdg_runtime_dir, '/pulse/dbus-socket')
+            if os.access(xdg_path, os.R_OK | os.W_OK):
+                return 'unix:path={}'.format(xdg_path)
+
+        lookup_object = dbus.SessionBus().get_object(
+            'org.PulseAudio1', '/org/pulseaudio/server_lookup1')
+        server_address = lookup_object.Get(
+            'org.PulseAudio.ServerLookup1',
+            'Address',
+            dbus_interface='org.freedesktop.DBus.Properties')
         return server_address
 
     def _get_bus(self):
