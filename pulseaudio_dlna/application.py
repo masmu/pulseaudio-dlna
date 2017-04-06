@@ -112,6 +112,7 @@ class Application(object):
             host = str(options['--host'])
 
         port = int(options['--port'])
+        pulseaudio_dlna.streamserver.StreamServer.HOST = host
         pulseaudio_dlna.streamserver.StreamServer.PORT = port
 
         logger.info('Binding to {host}:{port}'.format(

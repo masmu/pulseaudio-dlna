@@ -73,6 +73,8 @@ function install_dev() {
         python-concurrent.futures \
         python-chardet \
         python-netifaces \
+        python-netaddr \
+        python-pyroute2 \
         python-lxml \
         python-zeroconf \
         vorbis-tools \
