@@ -1,10 +1,11 @@
 # About #
 <img align="left" src="samples/images/application.png">
+
 This is _pulseaudio-dlna_. A lightweight streaming server which brings DLNA / UPNP
 and Chromecast support to PulseAudio and Linux.
 It can stream your current PulseAudio playback to different UPNP devices
 (UPNP Media Renderers) or Chromecasts in your network.
-It's main goals are: easy to use, no configuration hassle, no
+Its main goals are: easy to use, no configuration hassle, no
 big dependencies.
 
 UPNP renderers in your network will show up as pulseaudio sinks.
