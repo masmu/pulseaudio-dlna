@@ -34,6 +34,8 @@ import signal
 import pkg_resources
 import BaseHTTPServer
 import SocketServer
+import Queue
+import threading
 
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.codecs
@@ -47,76 +49,55 @@ PROTOCOL_VERSION_V10 = 'HTTP/1.0'
 PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 
 
-class ProcessStream(object):
+class ProcessQueue(Queue.Queue):
+
+    def data(self):
+        data = self.get()
+        if not self.empty():
+            data = [data]
+            while not self.empty():
+                data.append(self.get())
+            data = b''.join(data)
+        return data
+
+
+class ProcessThread(threading.Thread):
 
     CHUNK_SIZE = 1024 * 4
-    RUNNING = True
 
-    def __init__(self, path, sock, recorder, encoder, bridge):
+    def __init__(self, path, encoder, recorder, queue, *args, **kwargs):
+        threading.Thread.__init__(self, *args, **kwargs)
         self.path = path
-        self.sock = sock
-        self.recorder = recorder
         self.encoder = encoder
-        self.bridge = bridge
-
-        self.id = hex(id(self))
+        self.recorder = recorder
         self.recorder_process = None
         self.encoder_process = None
+        self.queue = queue
+
         self.reinitialize_count = 0
+        self.stop_event = threading.Event()
 
         GObject.timeout_add(
             10000, self._on_regenerate_reinitialize_count)
-
-    def run(self):
-        while self.RUNNING:
-            if not self.do_processes_exist():
-                self.create_processes()
-                logger.info(
-                    'Processes of {path} initialized ...'.format(
-                        path=self.path))
-            if not self.do_processes_respond():
-                if self.reinitialize_count < 3:
-                    self.reinitialize_count += 1
-                    self.terminate_processes()
-                    self.create_processes()
-                    logger.info(
-                        'Processes of {path} reinitialized ...'.format(
-                            path=self.path))
-                else:
-                    logger.error(
-                        'There were more than {} attempts to reinitialize '
-                        'the record process. Aborting.'.format(
-                            self.reinitialize_count))
-                    break
-
-            data = self.encoder_process.stdout.read(self.CHUNK_SIZE)
-            r, w, e = select.select([self.sock], [self.sock], [], 0)
-
-            if self.sock in w:
-                try:
-                    self._send_data(self.sock, data)
-                except socket.error:
-                    break
-
-            if self.sock in r:
-                try:
-                    data = self.sock.recv(1024)
-                    if len(data) == 0:
-                        break
-                except socket.error:
-                    break
-        self.terminate_processes()
-
-    def _send_data(self, sock, data):
-        bytes_total = len(data)
-        bytes_sent = 0
-        while bytes_sent < bytes_total:
-            bytes_sent += sock.send(data[bytes_sent:])
 
     def _on_regenerate_reinitialize_count(self):
         if self.reinitialize_count > 0:
             self.reinitialize_count -= 1
         return True
+
+    def create_processes(self):
+        logger.info('Starting processes "{recorder} | {encoder}"'.format(
+            recorder=' '.join(self.recorder.command),
+            encoder=' '.join(self.encoder.command)))
+        self.recorder_process = subprocess.Popen(
+            self.recorder.command,
+            stdout=subprocess.PIPE)
+        self.encoder_process = subprocess.Popen(
+            self.encoder.command,
+            stdin=self.recorder_process.stdout,
+            stdout=subprocess.PIPE,
+            bufsize=-1)
+        self.recorder_process.stdout.close()
 
     def do_processes_exist(self):
         return (self.encoder_process is not None and
@@ -143,18 +124,85 @@ class ProcessStream(object):
         _kill_process(self.encoder_process)
         _kill_process(self.recorder_process)
 
-    def create_processes(self):
-        logger.info('Starting processes "{recorder} | {encoder}"'.format(
-            recorder=' '.join(self.recorder.command),
-            encoder=' '.join(self.encoder.command)))
-        self.recorder_process = subprocess.Popen(
-            self.recorder.command,
-            stdout=subprocess.PIPE)
-        self.encoder_process = subprocess.Popen(
-            self.encoder.command,
-            stdin=self.recorder_process.stdout,
-            stdout=subprocess.PIPE)
-        self.recorder_process.stdout.close()
+    def run(self):
+
+        self.create_processes()
+        logger.info(
+            'Processes of {path} initialized ...'.format(
+                path=self.path))
+        while not self.is_stopped:
+            if not self.do_processes_respond():
+                if self.reinitialize_count < 3:
+                    self.reinitialize_count += 1
+                    self.terminate_processes()
+                    self.create_processes()
+                    logger.info(
+                        'Processes of {path} reinitialized ...'.format(
+                            path=self.path))
+                else:
+                    logger.error(
+                        'There were more than {} attempts to reinitialize '
+                        'the record process. Aborting.'.format(
+                            self.reinitialize_count))
+                    break
+
+            data = self.encoder_process.stdout.read(self.CHUNK_SIZE)
+            if len(data) > 0:
+                self.queue.put(data)
+
+        self.terminate_processes()
+        self.queue.put(b'')
+
+    def stop(self):
+        self.stop_event.set()
+
+    @property
+    def is_stopped(self):
+        return self.stop_event.isSet()
+
+
+class ProcessStream(object):
+
+    RUNNING = True
+
+    def __init__(self, path, sock, recorder, encoder, bridge):
+        self.path = path
+        self.sock = sock
+        self.recorder = recorder
+        self.encoder = encoder
+        self.bridge = bridge
+
+        self.id = hex(id(self))
+
+    def run(self):
+
+        queue = ProcessQueue()
+        process_thread = ProcessThread(
+            self.path, self.encoder, self.recorder, queue)
+        process_thread.daemon = True
+        process_thread.start()
+
+        while self.RUNNING:
+            r, w, e = select.select([self.sock], [self.sock], [], 0)
+
+            if self.sock in w:
+                data = queue.data()
+                if len(data) == 0:
+                    break
+                try:
+                    self.sock.sendall(data)
+                except socket.error:
+                    break
+
+            if self.sock in r:
+                try:
+                    data = self.sock.recv(1024)
+                    if len(data) == 0:
+                        break
+                except socket.error:
+                    break
+
+        process_thread.stop()
 
     def __str__(self):
         return '<{} id="{}">\n'.format(
