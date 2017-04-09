@@ -63,7 +63,7 @@ class ProcessQueue(Queue.Queue):
 
 class ProcessThread(threading.Thread):
 
-    CHUNK_SIZE = 1024 * 4
+    CHUNK_SIZE = 1024 * 32
 
     def __init__(self, path, encoder, recorder, queue, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
