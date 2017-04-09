@@ -85,57 +85,60 @@ class ProcessThread(threading.Thread):
             self.reinitialize_count -= 1
         return True
 
-    def create_processes(self):
-        logger.info('Starting processes "{recorder} | {encoder}"'.format(
-            recorder=' '.join(self.recorder.command),
-            encoder=' '.join(self.encoder.command)))
-        self.recorder_process = subprocess.Popen(
-            self.recorder.command,
-            stdout=subprocess.PIPE)
-        self.encoder_process = subprocess.Popen(
-            self.encoder.command,
-            stdin=self.recorder_process.stdout,
-            stdout=subprocess.PIPE,
-            bufsize=-1)
-        self.recorder_process.stdout.close()
+    def stop(self):
+        self.stop_event.set()
 
-    def do_processes_exist(self):
-        return (self.encoder_process is not None and
-                self.recorder_process is not None)
-
-    def do_processes_respond(self):
-        return (self.recorder_process.poll() is None and
-                self.encoder_process.poll() is None)
-
-    def terminate_processes(self):
-
-        def _kill_process(process):
-            pid = process.pid
-            logger.debug('Terminating process {} ...'.format(pid))
-            try:
-                os.kill(pid, signal.SIGTERM)
-                _pid, return_code = os.waitpid(pid, 0)
-            except:
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                except:
-                    pass
-
-        _kill_process(self.encoder_process)
-        _kill_process(self.recorder_process)
+    @property
+    def is_stopped(self):
+        return self.stop_event.isSet()
 
     def run(self):
 
-        self.create_processes()
+        def create_processes():
+            logger.info('Starting processes "{recorder} | {encoder}"'.format(
+                recorder=' '.join(self.recorder.command),
+                encoder=' '.join(self.encoder.command)))
+            rec_process = subprocess.Popen(
+                self.recorder.command,
+                stdout=subprocess.PIPE)
+            enc_process = subprocess.Popen(
+                self.encoder.command,
+                stdin=rec_process.stdout,
+                stdout=subprocess.PIPE,
+                bufsize=-1)
+            rec_process.stdout.close()
+            return rec_process, enc_process, enc_process.stdout.read
+
+        def do_processes_respond(rec_process, enc_process):
+            return (rec_process.poll() is None and
+                    enc_process.poll() is None)
+
+        def terminate_processes(processes):
+            for process in processes:
+                pid = process.pid
+                logger.debug('Terminating process {} ...'.format(pid))
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                    _pid, return_code = os.waitpid(pid, 0)
+                except:
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except:
+                        pass
+
+        chunk_size = self.CHUNK_SIZE
+        queue = self.queue
+
+        rec_process, enc_process, enc_read = create_processes()
         logger.info(
             'Processes of {path} initialized ...'.format(
                 path=self.path))
         while not self.is_stopped:
-            if not self.do_processes_respond():
+            if not do_processes_respond(rec_process, enc_process):
                 if self.reinitialize_count < 3:
                     self.reinitialize_count += 1
-                    self.terminate_processes()
-                    self.create_processes()
+                    terminate_processes([rec_process, enc_process])
+                    rec_process, enc_process, enc_read = create_processes()
                     logger.info(
                         'Processes of {path} reinitialized ...'.format(
                             path=self.path))
@@ -146,19 +149,12 @@ class ProcessThread(threading.Thread):
                             self.reinitialize_count))
                     break
 
-            data = self.encoder_process.stdout.read(self.CHUNK_SIZE)
+            data = enc_read(chunk_size)
             if len(data) > 0:
-                self.queue.put(data)
+                queue.put(data)
 
-        self.terminate_processes()
-        self.queue.put(b'')
-
-    def stop(self):
-        self.stop_event.set()
-
-    @property
-    def is_stopped(self):
-        return self.stop_event.isSet()
+        terminate_processes([rec_process, enc_process])
+        queue.put(b'')
 
 
 class ProcessStream(object):
@@ -182,21 +178,29 @@ class ProcessStream(object):
         process_thread.daemon = True
         process_thread.start()
 
-        while self.RUNNING:
-            r, w, e = select.select([self.sock], [self.sock], [], 0)
+        empty_list = []
+        select_select = select.select
+        sock = self.sock
+        sock_list = [self.sock]
+        sock_sendall = self.sock.sendall
+        sock_recv = self.sock.recv
+        queue_data = queue.data
 
-            if self.sock in w:
-                data = queue.data()
+        while self.RUNNING:
+            r, w, e = select_select(sock_list, sock_list, empty_list, 0)
+
+            if sock in w:
+                data = queue_data()
                 if len(data) == 0:
                     break
                 try:
-                    self.sock.sendall(data)
+                    sock_sendall(data)
                 except socket.error:
                     break
 
-            if self.sock in r:
+            if sock in r:
                 try:
-                    data = self.sock.recv(1024)
+                    data = sock_recv(1024)
                     if len(data) == 0:
                         break
                 except socket.error:
