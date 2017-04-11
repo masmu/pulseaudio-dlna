@@ -17,7 +17,7 @@
 
 '''
 Usage:
-    pulseaudio-dlna pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders> | --codec <codec>] [--bit-rate=<rate>]
+    pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders> | --codec <codec>] [--bit-rate=<rate>]
                     [--encoder-backend <encoder-backend>]
                     [--filter-device=<filter-device>]
                     [--renderer-urls <urls>]
