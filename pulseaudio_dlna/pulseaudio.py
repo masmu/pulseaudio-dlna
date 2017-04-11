@@ -648,7 +648,7 @@ class PulseWatcher(PulseAudio):
         logger.info('on_device_updated "{path}"'.format(
             path=sink_path))
         self.update()
-        self._delayed_handle_sink_update(sink_path)
+        self._delayed_handle_sink_update(sink_path, 100)
 
     def on_fallback_sink_updated(self, sink_path):
         self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
@@ -674,11 +674,11 @@ class PulseWatcher(PulseAudio):
                     self._delayed_handle_sink_update(sink.object_path)
                     return
 
-    def _delayed_handle_sink_update(self, sink_path):
+    def _delayed_handle_sink_update(self, sink_path, delay=3000):
         if self.signal_timers.get(sink_path, None):
             GObject.source_remove(self.signal_timers[sink_path])
         self.signal_timers[sink_path] = GObject.timeout_add(
-            1000, self._handle_sink_update, sink_path)
+            delay, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):
         if not self.ASYNC_EXECUTION:
