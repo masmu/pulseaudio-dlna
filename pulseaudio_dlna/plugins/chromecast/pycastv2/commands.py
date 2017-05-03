@@ -151,6 +151,36 @@ class StopCommand(BaseCommand):
         self.namespace = namespace or 'urn:x-cast:com.google.cast.receiver'
 
 
+class SetVolumeCommand(BaseCommand):
+    def __init__(self, volume, session_id=False, destination_id=None,
+                 namespace=None):
+        BaseCommand.__init__(self)
+        self.data = {
+            'type': 'SET_VOLUME',
+            'volume': {
+                'level': volume,
+            },
+        }
+        self.request_id = False
+        self.destination_id = destination_id
+        self.namespace = namespace or 'urn:x-cast:com.google.cast.receiver'
+
+
+class SetVolumeMuteCommand(BaseCommand):
+    def __init__(self, muted, session_id=False, destination_id=None,
+                 namespace=None):
+        BaseCommand.__init__(self)
+        self.data = {
+            'type': 'SET_VOLUME',
+            'volume': {
+                'muted': muted,
+            },
+        }
+        self.request_id = False
+        self.destination_id = destination_id
+        self.namespace = namespace or 'urn:x-cast:com.google.cast.receiver'
+
+
 class PongCommand(BaseCommand):
     def __init__(self, session_id=False, destination_id=None,
                  namespace=None):

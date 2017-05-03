@@ -1,10 +1,11 @@
 # About #
 <img align="left" src="samples/images/application.png">
+
 This is _pulseaudio-dlna_. A lightweight streaming server which brings DLNA / UPNP
 and Chromecast support to PulseAudio and Linux.
 It can stream your current PulseAudio playback to different UPNP devices
 (UPNP Media Renderers) or Chromecasts in your network.
-It's main goals are: easy to use, no configuration hassle, no
+Its main goals are: easy to use, no configuration hassle, no
 big dependencies.
 
 UPNP renderers in your network will show up as pulseaudio sinks.
@@ -676,7 +677,7 @@ Freebox Player Mini (4K)                                                        
 Freebox Player (Revolution)                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 [gmrender-resurrect](http://github.com/hzeller/gmrender-resurrect)              | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Google Chromecast (1st gen)                                                     | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
-Google Chromecast Audio                                                         | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
+Google Chromecast Audio                                                         | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                   | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:
 Hame Soundrouter                                                                | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:<sup>1</sup>    | :no_entry_sign:                   | :no_entry_sign:                   | :no_entry_sign:
 LG BP550                                                                        | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Libratone ZIPP                                                                  | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :white_check_mark:
@@ -690,6 +691,7 @@ Onkyo TX-NR616 <sup>7</sup>                                                     
 Onkyo TX-NR646                                                                  | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo TX-NR727 <sup>7</sup>                                                     | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Onkyo CR-N755                                                                   | :white_check_mark:<sup>8</sup>    | :white_check_mark:                | :no_entry_sign:                   | :no_entry_sign:                   | :grey_question:<sup>9</sup>       | :no_entry_sign:                   | :white_check_mark:
+[Oppo Sonica](https://www.oppodigital.com/sonica/)                                                                   | :white_check_mark:    | :no_entry_sign:                | :no_entry_sign:                   | :white_check_mark:                   | :white_check_mark:       | :grey_question:                   | :white_check_mark:
 [Pi MusicBox](http://www.woutervanwijk.nl/pimusicbox/)                          | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Panasonic TX-50CX680W                                                           | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
 Panasonic TX-50CX680W                                                           | :white_check_mark:                | :white_check_mark:                | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:                   | :grey_question:
