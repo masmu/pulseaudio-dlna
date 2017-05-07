@@ -205,7 +205,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
     - Added the ```--debug``` flag
     - The host ip address is now discovered automatically, no need to specifiy ```--host``` anymore
 
-## Installation via PPA ##
+## Installation via PPA (Ubuntu) ##
 
 Supported Ubuntu releases:
 - 17.04 (Zesty Zapus)
@@ -218,6 +218,18 @@ Ubuntu users can install _pulseaudio-dlna_ via the following [repository](https:
     sudo apt-add-repository ppa:qos/pulseaudio-dlna
     sudo apt-get update
     sudo apt-get install pulseaudio-dlna
+    
+## Installation via COPR (Fedora) ##
+
+Supported Fedora releases:
+- 21
+- 22
+- 23
+
+Fedora users can install _pulseaudio-dlna_ via the following [repository](https://copr.fedoraproject.org/coprs/cygn/pulseaudio-dlna/).
+
+    sudo dnf copr enable cygn/pulseaudio-dlna
+    sudo dnf install pulseaudio-dlna
 
 ### Starting ###
 
