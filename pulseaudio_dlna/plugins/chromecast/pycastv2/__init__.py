@@ -266,9 +266,10 @@ class MediaPlayerController(ChromecastController):
     def _handle_response(self, response):
         if 'type' in response:
             if response['type'] == 'MEDIA_STATUS':
-                logger.debug('Recieved media status ...')
-                status = response['status'][0]
-                # logger.info(status)
+                try:
+                    status = response['status'][0]
+                except IndexError:
+                    return
                 self._update_attribute(
                     '_media_session_id', status.get('mediaSessionId', None))
                 self._update_attribute(
