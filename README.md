@@ -208,6 +208,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 ## Installation via PPA ##
 
 Supported Ubuntu releases:
+- 17.04 (Zesty Zapus)
 - 16.10 (Yakkety Yak)
 - 16.04 (Xenial Xerus)
 - 14.04.2 LTS (Trusty Tahr)
