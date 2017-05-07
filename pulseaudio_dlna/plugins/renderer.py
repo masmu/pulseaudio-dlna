@@ -35,6 +35,9 @@ logger = logging.getLogger('pulseaudio_dlna.plugins.renderer')
 DISABLE_MIMETYPE_CHECK = False
 
 
+MANAGE_DEVICE_VOLUME = True
+
+
 class NoEncoderFoundException(Exception):
     def __init__(self):
         Exception.__init__(

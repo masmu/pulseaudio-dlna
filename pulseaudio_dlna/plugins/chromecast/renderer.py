@@ -72,6 +72,11 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 artist=artist,
                 title=title,
                 thumb=thumb)
+            if pulseaudio_dlna.plugins.renderer.MANAGE_DEVICE_VOLUME:
+                self.volume = cast.volume
+                logger.info(
+                    'Saved device volume {}.'.format(self.volume))
+                cast.set_volume(1)
             self.state = self.PLAYING
             return 200, None
         except pycastv2.LaunchErrorException:
@@ -106,6 +111,13 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             cast = pycastv2.MediaPlayerController(
                 self.ip, self.port, self.REQUEST_TIMEOUT)
             self.state = self.IDLE
+            if pulseaudio_dlna.plugins.renderer.MANAGE_DEVICE_VOLUME:
+                if self.volume:
+                    logger.info(
+                        'Restoring device volume {}.'.format(self.volume))
+                    cast.set_volume(self.volume)
+                else:
+                    logger.info('No volume value to restore.')
             cast.disconnect_application()
             return 200, None
         except pycastv2.ChannelClosedException:

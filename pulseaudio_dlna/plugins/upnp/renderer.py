@@ -199,6 +199,10 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             'pause': 'xml/pause.xml',
             'get_protocol_info': 'xml/get_protocol_info.xml',
             'get_transport_info': 'xml/get_transport_info.xml',
+            'get_volume': 'xml/get_volume.xml',
+            'set_volume': 'xml/set_volume.xml',
+            'get_mute': 'xml/get_mute.xml',
+            'set_mute': 'xml/set_mute.xml',
         }
         for ident, path in self.xml_files.items():
             file_name = pkg_resources.resource_filename(
@@ -364,7 +368,153 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         finally:
             self._debug('get_protocol_info', url, headers, data, response)
 
+    def get_volume(self, channel='Master'):
+        url = self.service_rendering.control_url
+        headers = {
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
+            'SOAPAction': '"{service_type}#GetVolume"'.format(
+                service_type=self.service_rendering.service_type),
+        }
+        data = self.xml['get_volume'].format(
+            encoding=self.ENCODING,
+            service_type=self.service_rendering.service_type,
+            channel=channel,
+        )
+        try:
+            response = None
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
+            if response.status_code == 200:
+                try:
+                    xml_root = lxml.etree.fromstring(response.content)
+                    volume = xml_root.find('.//{*}CurrentVolume').text
+                    return int(volume)
+                except:
+                    logger.error(
+                        'No valid XML returned from {url}.'.format(url=url))
+                    return None
+        except requests.exceptions.Timeout:
+            logger.error(
+                'GET_VOLUME command - Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return None
+        finally:
+            self._debug('get_volume', url, headers, data, response)
+
+    def set_volume(self, volume, channel='Master'):
+        url = self.service_rendering.control_url
+        headers = {
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
+            'SOAPAction': '"{service_type}#SetVolume"'.format(
+                service_type=self.service_rendering.service_type),
+        }
+        data = self.xml['set_volume'].format(
+            encoding=self.ENCODING,
+            service_type=self.service_rendering.service_type,
+            volume=volume,
+            channel=channel,
+        )
+        try:
+            response = None
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
+            if response.status_code == 200:
+                return True
+            return False
+        except requests.exceptions.Timeout:
+            logger.error(
+                'SET_VOLUME command - Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return None
+        finally:
+            self._debug('set_volume', url, headers, data, response)
+
+    def get_mute(self, channel='Master'):
+        url = self.service_rendering.control_url
+        headers = {
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
+            'SOAPAction': '"{service_type}#GetMute"'.format(
+                service_type=self.service_rendering.service_type),
+        }
+        data = self.xml['get_mute'].format(
+            encoding=self.ENCODING,
+            service_type=self.service_rendering.service_type,
+            channel=channel,
+        )
+        try:
+            response = None
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
+            if response.status_code == 200:
+                try:
+                    xml_root = lxml.etree.fromstring(response.content)
+                    muted = xml_root.find('.//{*}CurrentMute').text
+                    if int(muted) == 0:
+                        return False
+                    return True
+                except:
+                    logger.error(
+                        'No valid XML returned from {url}.'.format(url=url))
+                    return None
+        except requests.exceptions.Timeout:
+            logger.error(
+                'GET_MUTE command - Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return None
+        finally:
+            self._debug('get_mute', url, headers, data, response)
+
+    def set_mute(self, muted, channel='Master'):
+        url = self.service_rendering.control_url
+        headers = {
+            'Content-Type':
+                'text/xml; charset="{encoding}"'.format(
+                    encoding=self.ENCODING),
+            'SOAPAction': '"{service_type}#SetMute"'.format(
+                service_type=self.service_rendering.service_type),
+        }
+        data = self.xml['set_mute'].format(
+            encoding=self.ENCODING,
+            service_type=self.service_rendering.service_type,
+            muted='1' if muted else '0',
+            channel=channel,
+        )
+        try:
+            response = None
+            response = requests.post(
+                url, data=data.encode(self.ENCODING),
+                headers=headers, timeout=self.REQUEST_TIMEOUT)
+            if response.status_code == 200:
+                return True
+            return False
+        except requests.exceptions.Timeout:
+            logger.error(
+                'SET_MUTE command - Could no connect to {url}. '
+                'Connection timeout.'.format(url=url))
+            return None
+        finally:
+            self._debug('set_mute', url, headers, data, response)
+
     def play(self):
+        status_code, reason = self._play()
+        if pulseaudio_dlna.plugins.renderer.MANAGE_DEVICE_VOLUME:
+            if status_code == 200:
+                self.volume = UpnpMediaRenderer.get_volume(self)
+                logger.info(
+                    'Saved device volume {}.'.format(self.volume))
+                UpnpMediaRenderer.set_volume(self, 100)
+        return status_code, reason
+
+    def _play(self):
         self._before_play()
         url = self.service_transport.control_url
         headers = {
@@ -395,6 +545,16 @@ class UpnpMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             self._after_play()
 
     def stop(self):
+        if pulseaudio_dlna.plugins.renderer.MANAGE_DEVICE_VOLUME:
+            if self.volume:
+                logger.info(
+                    'Restoring device volume {}.'.format(self.volume))
+                self.set_volume(self.volume)
+            else:
+                logger.info('No volume value to restore.')
+        return self._stop()
+
+    def _stop(self):
         self._before_stop()
         url = self.service_transport.control_url
         headers = {
