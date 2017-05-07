@@ -130,7 +130,9 @@ class Application(object):
 
         if options['--chunk-size']:
             chunk_size = int(options['--chunk-size'])
-            pulseaudio_dlna.streamserver.ProcessStream.CHUNK_SIZE = chunk_size
+            if chunk_size > 0:
+                pulseaudio_dlna.streamserver.ProcessThread.CHUNK_SIZE = \
+                    chunk_size
 
         if options['--ssdp-ttl']:
             ssdp_ttl = int(options['--ssdp-ttl'])
