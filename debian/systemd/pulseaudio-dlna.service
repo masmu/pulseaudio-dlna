@@ -1,0 +1,11 @@
+[Unit]
+Description=A lightweight streaming server which brings DLNA / UPNP and Chromecast support to PulseAudio and Linux
+Documentation=man:pulseaudio-dlna(1)
+After=sound.target network.target network-online.service dbus.service
+
+[Service]
+ExecStart=/usr/bin/pulseaudio-dlna
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
