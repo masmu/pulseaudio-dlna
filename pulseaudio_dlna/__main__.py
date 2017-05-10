@@ -161,8 +161,8 @@ def main(argv=sys.argv[1:]):
 
 
 def acquire_lock():
-    acquire_lock._lock_socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
-
+    acquire_lock._lock_socket = socket.socket(
+        socket.AF_UNIX, socket.SOCK_DGRAM)
     try:
         name = '/com/masmu/pulseaudio_dlna/{}'.format(getpass.getuser())
         acquire_lock._lock_socket.bind('\0' + name)
