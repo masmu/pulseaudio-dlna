@@ -17,17 +17,18 @@
 
 '''
 Usage:
-    pulseaudio-dlna pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders> | --codec <codec>] [--bit-rate=<rate>]
+    pulseaudio-dlna [--host <host>] [--port <port>][--encoder <encoders> | --codec <codec>] [--bit-rate=<rate>]
                     [--encoder-backend <encoder-backend>]
                     [--filter-device=<filter-device>]
                     [--renderer-urls <urls>]
                     [--request-timeout <timeout>]
+                    [--chunk-size <chunk-size>]
                     [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
                     [--cover-mode <mode>]
                     [--auto-reconnect]
                     [--debug]
                     [--fake-http10-content-length] [--fake-http-content-length]
-                    [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop] [--disable-workarounds]
+                    [--disable-switchback] [--disable-ssdp-listener] [--disable-device-stop] [--disable-workarounds] [--disable-mimetype-check]
     pulseaudio-dlna [--host <host>] [--create-device-config] [--update-device-config]
                     [--msearch-port=<msearch-port>] [--ssdp-mx <ssdp-mx>] [--ssdp-ttl <ssdp-ttl>] [--ssdp-amount <ssdp-amount>]
     pulseaudio-dlna [-h | --help | --version]
@@ -65,6 +66,7 @@ Options:
                                            filter text will be skipped.
     --renderer-urls=<urls>                 Set the renderer urls yourself. no discovery will commence.
     --request-timeout=<timeout>            Set the timeout for requests in seconds [default: 15].
+    --chunk-size=<chunk-size>              Set the stream's chunk size [default: 4096].
     --ssdp-ttl=<ssdp-ttl>                  Set the SSDP socket's TTL [default: 10].
     --ssdp-mx=<ssdp-mx>                    Set the MX value of the SSDP discovery message [default: 3].
     --ssdp-amount=<ssdp-amount>            Set the amount of SSDP discovery messages being sent [default: 5].
@@ -82,6 +84,7 @@ Options:
     --disable-ssdp-listener                If set, the application won't bind to the port 1900 and therefore the automatic discovery of new devices won't work.
     --disable-device-stop                  If set, the application won't send any stop commands to renderers at all
     --disable-workarounds                  If set, the application won't apply any device workarounds
+    --disable-mimetype-check               If set, the application won't check the device's mime type capabilities
     -v --version                           Show the version.
     -h --help                              Show the help.
 
@@ -119,6 +122,8 @@ import sys
 import os
 import docopt
 import logging
+import socket
+import getpass
 
 
 def main(argv=sys.argv[1:]):
@@ -138,6 +143,11 @@ def main(argv=sys.argv[1:]):
         datefmt='%m-%d %H:%M:%S')
     logger = logging.getLogger('pulseaudio_dlna.__main__')
 
+    if not acquire_lock():
+        print('The application is shutting down, since there already seems to '
+              'be a running instance.')
+        return 1
+
     if os.geteuid() == 0:
         logger.info('Running as root. Starting daemon ...')
         import pulseaudio_dlna.daemon
@@ -147,6 +157,18 @@ def main(argv=sys.argv[1:]):
         import pulseaudio_dlna.application
         app = pulseaudio_dlna.application.Application()
         app.run(options)
+    return 0
+
+
+def acquire_lock():
+    acquire_lock._lock_socket = socket.socket(
+        socket.AF_UNIX, socket.SOCK_DGRAM)
+    try:
+        name = '/com/masmu/pulseaudio_dlna/{}'.format(getpass.getuser())
+        acquire_lock._lock_socket.bind('\0' + name)
+        return True
+    except socket.error:
+        return False
 
 if __name__ == "__main__":
     sys.exit(main())

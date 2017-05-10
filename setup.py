@@ -46,9 +46,10 @@ setuptools.setup(
         "psutil >= 1.2.1",
         "futures >= 2.1.6",
         "chardet >= 2.0.1",
+        "pyroute2 >= 0.3.5",
         "netifaces >= 0.8",
         "lxml >= 3",
-        "zeroconf >= 0.17",
+        "zeroconf >= 0.17.4",
     ],
     entry_points={
         "console_scripts": [
@@ -59,7 +60,6 @@ setuptools.setup(
         ("share/man/man1", ["man/pulseaudio-dlna.1"]),
     ],
     package_data={
-        "pulseaudio_dlna.plugins.upnp": ["xml/*.xml"],
         "pulseaudio_dlna": ["images/*.png"],
     }
 )

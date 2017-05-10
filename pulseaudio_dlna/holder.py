@@ -21,6 +21,9 @@ import logging
 import threading
 import requests
 import traceback
+import setproctitle
+import signal
+import time
 
 logger = logging.getLogger('pulseaudio_dlna.holder')
 
@@ -28,35 +31,54 @@ logger = logging.getLogger('pulseaudio_dlna.holder')
 class Holder(object):
     def __init__(
             self, plugins,
-            stream_ip=None, stream_port=None, message_queue=None,
-            device_filter=None, device_config=None):
+            pulse_queue=None, device_filter=None, device_config=None,
+            proc_title=None):
         self.plugins = plugins
-        self.stream_ip = stream_ip
-        self.stream_port = stream_port
         self.device_filter = device_filter or None
         self.device_config = device_config or {}
-        self.message_queue = message_queue
+        self.pulse_queue = pulse_queue
         self.devices = {}
+        self.proc_title = proc_title
         self.lock = threading.Lock()
+        self.__running = True
 
-    def search(self, ttl=None):
+    def initialize(self):
+        signal.signal(signal.SIGTERM, self.shutdown)
+        if self.proc_title:
+            setproctitle.setproctitle(self.proc_title)
+
+    def shutdown(self, *args):
+        if self.__running:
+            logger.info('Holder.shutdown()')
+            self.__running = False
+
+    def search(self, ttl=None, host=None):
+        self.initialize()
         threads = []
         for plugin in self.plugins:
             thread = threading.Thread(
-                target=plugin.discover, args=[self, ttl])
+                target=plugin.discover, args=[self],
+                kwargs={'ttl': ttl, 'host': host})
             thread.daemon = True
             threads.append(thread)
         try:
             for thread in threads:
                 thread.start()
-            for thread in threads:
-                thread.join()
+            while self.__running:
+                all_dead = True
+                time.sleep(0.1)
+                for thread in threads:
+                    if thread.is_alive():
+                        all_dead = False
+                        break
+                if all_dead:
+                    break
         except:
             traceback.print_exc()
-
-        logger.debug('Holder.search() quit')
+        logger.info('Holder.search()')
 
     def lookup(self, locations):
+        self.initialize()
         xmls = {}
         for url in locations:
             try:
@@ -87,9 +109,6 @@ class Holder(object):
                 if device.validate():
                     config = self.device_config.get(device.udn, None)
                     device.activate(config)
-                    if self.stream_ip and self.stream_port:
-                        device.set_server_location(
-                            self.stream_ip, self.stream_port)
                     if not self.device_filter or \
                        device.name in self.device_filter:
                         if config:
@@ -119,8 +138,8 @@ class Holder(object):
             self.lock.release()
 
     def _send_message(self, _type, device):
-        if self.message_queue:
-            self.message_queue.put({
+        if self.pulse_queue:
+            self.pulse_queue.put({
                 'type': _type,
                 'device': device
             })

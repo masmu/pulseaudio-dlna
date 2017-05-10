@@ -17,6 +17,8 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import sys
 import dbus
 import dbus.mainloop.glib
@@ -25,11 +27,12 @@ import struct
 import subprocess
 import logging
 import setproctitle
-import gobject
 import functools
-import copy
 import signal
+import re
+import traceback
 import concurrent.futures
+import collections
 
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.notification
@@ -37,6 +40,9 @@ import pulseaudio_dlna.utils.encoding
 import pulseaudio_dlna.covermodes
 
 logger = logging.getLogger('pulseaudio_dlna.pulseaudio')
+
+MODULE_DBUS_PROTOCOL = 'module-dbus-protocol'
+MODULE_NULL_SINK = 'module-null-sink'
 
 
 class PulseAudio(object):
@@ -73,37 +79,92 @@ class PulseAudio(object):
             if sink:
                 self.system_sinks.append(sink)
 
-    def _get_bus_address(self):
-        server_address = os.environ.get('PULSE_DBUS_SERVER', None)
-        if server_address is None and \
-           os.access('/run/pulse/dbus-socket', os.R_OK | os.W_OK):
-            server_address = 'unix:path=/run/pulse/dbus-socket'
-        if server_address is None:
-            lookup_object = dbus.SessionBus().get_object(
-                'org.PulseAudio1', '/org/pulseaudio/server_lookup1')
-            server_address = lookup_object.Get(
-                'org.PulseAudio.ServerLookup1',
-                'Address',
-                dbus_interface='org.freedesktop.DBus.Properties')
-        return server_address
+    def _get_bus_addresses(self):
+        bus_addresses = []
+
+        def _probing_successful(name, _object):
+            logger.info(
+                'Probing for {} successful ({}).'.format(name, _object))
+
+        def _probing_failed(name):
+            logger.info(
+                'Probing for {} unsuccessful.'.format(name))
+
+        transports = os.environ.get('PULSE_DBUS_SERVER', None)
+        if transports:
+            _probing_successful('$PULSE_DBUS_SERVER', transports)
+            for transport in transports.split(';'):
+                if transport not in bus_addresses:
+                    bus_addresses.append(transport)
+        else:
+            _probing_failed('$PULSE_DBUS_SERVER')
+
+        possible_locations = [
+            '/run/pulse/dbus-socket',
+        ]
+        for location in possible_locations:
+            path = location.format(uid=os.getuid())
+            if os.access(path, os.R_OK | os.W_OK):
+                transport = 'unix:path={}'.format(path)
+                _probing_successful(path, transport)
+                if transport not in bus_addresses:
+                    bus_addresses.append(transport)
+            else:
+                _probing_failed(path)
+
+        path = os.environ.get('XDG_RUNTIME_DIR', None)
+        if path:
+            path = os.path.join(path, 'pulse/dbus-socket')
+            if os.access(path, os.R_OK | os.W_OK):
+                transport = 'unix:path={}'.format(path)
+                _probing_successful('$XDG_RUNTIME_DIR', transport)
+                if transport not in bus_addresses:
+                    bus_addresses.append(transport)
+            else:
+                _probing_failed('$XDG_RUNTIME_DIR')
+        else:
+            _probing_failed('$XDG_RUNTIME_DIR')
+
+        address = self.dbus_server_lookup()
+        if address:
+            _probing_successful('org.PulseAudio.ServerLookup1', address)
+            if address not in bus_addresses:
+                bus_addresses.append(address)
+        else:
+            _probing_failed('org.PulseAudio.ServerLookup1')
+
+        return bus_addresses
 
     def _get_bus(self):
-        try:
-            server_address = self._get_bus_address()
-            return dbus.connection.Connection(server_address)
-        except dbus.exceptions.DBusException:
-            subprocess.Popen(
-                ['pactl', 'load-module', 'module-dbus-protocol'],
-                stdout=subprocess.PIPE).communicate()
-            try:
-                server_address = self._get_bus_address()
-                return dbus.connection.Connection(server_address)
-            except dbus.exceptions.DBusException:
+
+        modules = self.get_modules()
+        if MODULE_DBUS_PROTOCOL not in modules:
+            module_id = self.load_module(MODULE_DBUS_PROTOCOL)
+            if module_id:
+                logger.info('Module "{}" (id={}) loaded.'.format(
+                    MODULE_DBUS_PROTOCOL, module_id))
+            else:
                 logger.critical(
-                    'PulseAudio seems not to be running or PulseAudio '
-                    'dbus module could not be loaded. The application '
-                    'cannot work properly!')
-                sys.exit(1)
+                    'Failed to load module "{}"!'.format(MODULE_DBUS_PROTOCOL))
+        else:
+            logger.info(
+                'Module "{}" already loaded.'.format(MODULE_DBUS_PROTOCOL))
+
+        bus_addresses = self._get_bus_addresses()
+        logger.info(
+            'Found the following pulseaudio server addresses: {}'.format(
+                ','.join(bus_addresses)))
+        for bus_address in bus_addresses:
+            try:
+                logger.info('Connecting to pulseaudio on "{}" ...'.format(
+                    bus_address))
+                return dbus.connection.Connection(bus_address)
+            except dbus.exceptions.DBusException:
+                logger.info(traceback.format_exc())
+
+        logger.critical(
+            'Could not connect to pulseaudio! Application terminates!')
+        sys.exit(1)
 
     def update(self):
 
@@ -158,33 +219,62 @@ class PulseAudio(object):
         except dbus.exceptions.DBusException:
             return False
 
+    def dbus_server_lookup(self):
+        try:
+            lookup_object = dbus.SessionBus().get_object(
+                'org.PulseAudio1', '/org/pulseaudio/server_lookup1')
+            address = lookup_object.Get(
+                'org.PulseAudio.ServerLookup1',
+                'Address',
+                dbus_interface='org.freedesktop.DBus.Properties')
+            return unicode(address)
+        except dbus.exceptions.DBusException:
+            return None
+
+    def get_modules(self):
+        process = subprocess.Popen(
+            ['pactl', 'list', 'modules', 'short'],
+            stdout=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode == 0:
+            matches = re.findall(r'(\d+)\s+([\w-]+)(.*?)\n', stdout)
+            return [match[1] for match in matches]
+        return None
+
+    def load_module(self, module_name, options=None):
+        command = ['pactl', 'load-module', module_name]
+        if options:
+            for key, value in options.items():
+                command.append('{}={}'.format(key, value))
+        process = subprocess.Popen(command, stdout=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode == 0:
+            return int(stdout.strip())
+        return None
+
+    def unload_module(self, module_id):
+        process = subprocess.Popen(
+            ['pactl', 'unload-module', str(module_id)],
+            stdout=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if process.returncode != 0:
+            logger.error('Could not remove entity {id}'.format(id=module_id))
+
     def create_null_sink(self, sink_name, sink_description):
-        cmd = [
-            'pactl',
-            'load-module',
-            'module-null-sink',
-            'sink_name="{}"'.format(sink_name),
-            'sink_properties=device.description="{}"'.format(
-                sink_description.replace(' ', '\ ')
-            ),
-        ]
-        module_id = int(subprocess.check_output(cmd).strip())
+        options = collections.OrderedDict([
+            ('sink_name', '"{}"'.format(sink_name)),
+            ('sink_properties', 'device.description="{}"'.format(
+                sink_description.replace(' ', '\ ')),)
+        ])
+        module_id = self.load_module(MODULE_NULL_SINK, options)
         if module_id > 0:
             self.update_sinks()
             for sink in self.sinks:
                 if int(sink.module.index) == module_id:
                     return sink
 
-    def delete_null_sink(self, id):
-        cmd = [
-            'pactl',
-            'unload-module',
-            str(id),
-        ]
-        try:
-            subprocess.check_output(cmd)
-        except:
-            logger.error('Could not remove entity {id}'.format(id=id))
+    def delete_null_sink(self, module_id):
+        return self.unload_module(module_id)
 
 
 class PulseBaseFactory(object):
@@ -252,7 +342,7 @@ class PulseClient(object):
                    self.name,
                    self.icon,
                    self.binary
-                   )
+               )
 
 
 class PulseModuleFactory(PulseBaseFactory):
@@ -366,12 +456,13 @@ class PulseSink(object):
         return None
 
     def set_as_default_sink(self):
-        cmd = [
-            'pactl',
-            'set-default-sink',
-            str(self.index),
-        ]
-        subprocess.check_output(cmd)
+        process = subprocess.Popen(
+            ['pactl', 'set-default-sink', str(self.index)],
+            stdout=subprocess.PIPE)
+        process.communicate()
+        if process.returncode == 0:
+            return True
+        return None
 
     def switch_streams_to_fallback_source(self):
         if self.fallback_sink is not None:
@@ -440,13 +531,13 @@ class PulseStream(object):
         self.client = client
 
     def switch_to_source(self, index):
-        cmd = [
-            'pactl',
-            'move-sink-input',
-            str(self.index),
-            str(index),
-        ]
-        subprocess.check_output(cmd)
+        process = subprocess.Popen(
+            ['pactl', 'move-sink-input', str(self.index), str(index)],
+            stdout=subprocess.PIPE)
+        process.communicate()
+        if process.returncode == 0:
+            return True
+        return None
 
     def __eq__(self, other):
         return self.object_path == other.object_path
@@ -484,34 +575,35 @@ class PulseWatcher(PulseAudio):
 
     ASYNC_EXECUTION = True
 
-    def __init__(self, bridges_shared, message_queue, disable_switchback=False,
+    def __init__(self, pulse_queue, stream_queue, disable_switchback=False,
                  disable_device_stop=False, disable_auto_reconnect=True,
-                 cover_mode='application'):
+                 cover_mode='application', proc_title=None):
         PulseAudio.__init__(self)
 
         self.bridges = []
-        self.bridges_shared = bridges_shared
-
-        self.message_queue = message_queue
+        self.pulse_queue = pulse_queue
+        self.stream_queue = stream_queue
         self.blocked_devices = []
         self.signal_timers = {}
         self.is_terminating = False
         self.cover_mode = pulseaudio_dlna.covermodes.MODES[cover_mode]()
+        self.proc_title = proc_title
 
         self.disable_switchback = disable_switchback
         self.disable_device_stop = disable_device_stop
         self.disable_auto_reconnect = disable_auto_reconnect
 
-    def terminate(self, signal_number=None, frame=None):
+    def shutdown(self, signal_number=None, frame=None):
         if not self.is_terminating:
+            logger.info('PulseWatcher.shutdown()')
             self.is_terminating = True
             self.cleanup()
             sys.exit(0)
 
     def run(self):
-        signal.signal(signal.SIGINT, self.terminate)
-        signal.signal(signal.SIGTERM, self.terminate)
-        setproctitle.setproctitle('pulse_watcher')
+        signal.signal(signal.SIGTERM, self.shutdown)
+        if self.proc_title:
+            setproctitle.setproctitle(self.proc_title)
 
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         signals = (
@@ -530,18 +622,18 @@ class PulseWatcher(PulseAudio):
 
         self.thread_pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
-        mainloop = gobject.MainLoop()
-        gobject.io_add_watch(
-            self.message_queue._reader, gobject.IO_IN | gobject.IO_PRI,
+        mainloop = GObject.MainLoop()
+        GObject.io_add_watch(
+            self.pulse_queue._reader, GObject.IO_IN | GObject.IO_PRI,
             self._on_new_message)
         try:
             mainloop.run()
         except KeyboardInterrupt:
-            pass
+            self.shutdown()
 
     def _on_new_message(self, fd, condition):
         try:
-            message = self.message_queue.get_nowait()
+            message = self.pulse_queue.get_nowait()
         except:
             return True
 
@@ -553,21 +645,23 @@ class PulseWatcher(PulseAudio):
 
     def _block_device_handling(self, object_path):
         self.blocked_devices.append(object_path)
-        gobject.timeout_add(1000, self._unblock_device_handling, object_path)
+        GObject.timeout_add(1000, self._unblock_device_handling, object_path)
 
     def _unblock_device_handling(self, object_path):
         self.blocked_devices.remove(object_path)
 
     def share_bridges(self):
-        bridges_copy = [bridge for bridge in copy.deepcopy(self.bridges)]
-        del self.bridges_shared[:]
-        self.bridges_shared.extend(bridges_copy)
+        self.stream_queue.put({
+            'type': 'update_bridges',
+            'bridges': self.bridges,
+        })
 
     def cleanup(self):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
             self.delete_null_sink(bridge.sink.module.index)
         self.bridges = []
+        sys.exit(0)
 
     def _was_stream_moved(self, moved_stream, ignore_sink):
         for sink in self.system_sinks:
@@ -614,7 +708,7 @@ class PulseWatcher(PulseAudio):
                 break
 
         stopped_bridge.device.state = \
-            pulseaudio_dlna.plugins.renderer.BaseRenderer.IDLE
+            pulseaudio_dlna.plugins.renderer.BaseRenderer.STATE_STOPPED
 
         reason = 'The device disconnected'
         if len(stopped_bridge.sink.streams) > 1:
@@ -664,8 +758,8 @@ class PulseWatcher(PulseAudio):
 
     def _delayed_handle_sink_update(self, sink_path):
         if self.signal_timers.get(sink_path, None):
-            gobject.source_remove(self.signal_timers[sink_path])
-        self.signal_timers[sink_path] = gobject.timeout_add(
+            GObject.source_remove(self.signal_timers[sink_path])
+        self.signal_timers[sink_path] = GObject.timeout_add(
             1000, self._handle_sink_update, sink_path)
 
     def _handle_sink_update(self, sink_path):
@@ -693,7 +787,7 @@ class PulseWatcher(PulseAudio):
 
         for bridge in self.bridges:
             logger.debug('\n{}'.format(bridge))
-            if bridge.device.state == bridge.device.PLAYING:
+            if bridge.device.state == bridge.device.STATE_PLAYING:
                 if len(bridge.sink.streams) == 0 and (
                         not self.disable_device_stop and
                         'DISABLE_DEVICE_STOP' not in bridge.device.rules):
@@ -716,8 +810,8 @@ class PulseWatcher(PulseAudio):
                         self.switch_back(bridge, message)
                     continue
             if bridge.sink.object_path == sink_path:
-                if bridge.device.state == bridge.device.IDLE or \
-                   bridge.device.state == bridge.device.PAUSE:
+                if bridge.device.state == bridge.device.STATE_STOPPED or \
+                   bridge.device.state == bridge.device.STATE_PAUSED:
                     logger.info(
                         'Instructing the device "{}" to play ...'.format(
                             bridge.device.label))

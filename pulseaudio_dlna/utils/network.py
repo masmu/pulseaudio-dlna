@@ -17,25 +17,84 @@
 
 from __future__ import unicode_literals
 
-import commands
-import re
 import netifaces
+import traceback
+import socket
+import logging
+
+logger = logging.getLogger('pulseaudio_dlna.utils.network')
+
+LOOPBACK_IP = '127.0.0.1'
 
 
 def default_ipv4():
-    status_code, result = commands.getstatusoutput('ip route get 255.255.255.255')
-    if status_code == 0:
-        match = re.findall(r"(?<=src )(\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3})", result)
-        if match:
-            return match[0]
+    try:
+        default_if = netifaces.gateways()['default'][netifaces.AF_INET][1]
+        return netifaces.ifaddresses(default_if)[netifaces.AF_INET][0]['addr']
+    except:
+        traceback.print_exc()
     return None
 
 
-def ipv4_addresses():
+def ipv4_addresses(include_loopback=False):
     ips = []
     for iface in netifaces.interfaces():
         for link in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
             ip = link.get('addr', None)
             if ip:
-                ips.append(ip)
+                if ip != LOOPBACK_IP or include_loopback is True:
+                    ips.append(ip)
     return ips
+
+
+def get_host_by_ip(ip):
+    try:
+        return __pyroute2_get_host_by_ip(ip)
+    except ImportError:
+        logger.warning(
+            'Could not import module "pyroute2". '
+            'Falling back to module "netaddr"!')
+    try:
+        return __netaddr_get_host_by_ip(ip)
+    except ImportError:
+        logger.critical(
+            'Could not import module "netaddr". '
+            'Either "pyroute2" or "netaddr" must be available for automatic '
+            'interface detection! You can manually select the appropriate '
+            'host yourself via the --host option.')
+    return None
+
+
+def __pyroute2_get_host_by_ip(ip):
+    import pyroute2
+    ipr = pyroute2.IPRoute()
+    routes = ipr.get_routes(family=socket.AF_INET, dst=ip)
+    ipr.close()
+    for route in routes:
+        for attr in route.get('attrs', []):
+            if type(attr) is list:
+                if attr[0] == 'RTA_PREFSRC':
+                    return attr[1]
+            else:
+                if attr.cell[0] == 'RTA_PREFSRC':
+                    return attr.get_value()
+    logger.critical(
+        '__pyroute2_get_host_by_ip() - No host found for IP {}!'.format(ip))
+    return None
+
+
+def __netaddr_get_host_by_ip(ip):
+    import netaddr
+    host = netaddr.IPAddress(ip)
+    for iface in netifaces.interfaces():
+        for link in netifaces.ifaddresses(iface).get(netifaces.AF_INET, []):
+            addr = link.get('addr', None)
+            netmask = link.get('netmask', None)
+            if addr and netmask:
+                if host in netaddr.IPNetwork('{}/{}'.format(addr, netmask)):
+                    logger.debug(
+                        'Selecting host "{}" for IP "{}"'.format(addr, ip))
+                    return addr
+    logger.critical(
+        '__netaddr_get_host_by_ip - No host found for IP {}!'.format(ip))
+    return None

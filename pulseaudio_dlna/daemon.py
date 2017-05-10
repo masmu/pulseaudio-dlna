@@ -17,12 +17,13 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import dbus
 import dbus.mainloop.glib
 import logging
 import os
 import sys
-import gobject
 import setproctitle
 import functools
 import signal
@@ -34,11 +35,28 @@ import pulseaudio_dlna.utils.psutil as psutil
 logger = logging.getLogger('pulseaudio_dlna.daemon')
 
 
+REQUIRED_ENVIRONMENT_VARS = [
+    'DISPLAY',
+    'DBUS_SESSION_BUS_ADDRESS',
+    'PATH',
+    'XDG_RUNTIME_DIR',
+    'LANG'
+]
+
+
+def missing_env_vars(environment):
+    env = []
+    for var in REQUIRED_ENVIRONMENT_VARS:
+        if var not in environment:
+            env.append(var)
+    return env
+
+
 class Daemon(object):
     def __init__(self):
         dbus.mainloop.glib.DBusGMainLoop(set_as_default=True)
         setproctitle.setproctitle('pulseaudio-daemon')
-        self.mainloop = gobject.MainLoop()
+        self.mainloop = GObject.MainLoop()
         self.processes = []
         self.check_id = None
         self.is_checking = False
@@ -64,8 +82,8 @@ class Daemon(object):
     def on_name_owner_changed(self, name, new_owner, old_owner):
         if not self.is_checking:
             if self.check_id:
-                gobject.source_remove(self.check_id)
-            self.check_id = gobject.timeout_add(
+                GObject.source_remove(self.check_id)
+            self.check_id = GObject.timeout_add(
                 3000, self._check_processes)
 
     def _check_processes(self):
@@ -115,6 +133,15 @@ class PulseAudioProcess(psutil.Process):
         return self._get_proc_env(self.pid)
 
     @property
+    def compressed_env(self):
+        env = {}
+        if self.env:
+            for k in REQUIRED_ENVIRONMENT_VARS:
+                if k in self.env:
+                    env[k] = self.env[k]
+        return env
+
+    @property
     def uid(self):
         return self.uids()[0]
 
@@ -147,21 +174,7 @@ class PulseAudioProcess(psutil.Process):
                 'Aborting.'.format(pid=self.pid))
             return
 
-        required_variables = [
-            'DISPLAY',
-            'DBUS_SESSION_BUS_ADDRESS',
-            'PATH',
-            'XDG_RUNTIME_DIR',
-            'LANG'
-        ]
-        compressed_env = {}
-        missing_env = []
-        for k in required_variables:
-            if k in proc_env:
-                compressed_env[k] = proc_env[k]
-            else:
-                missing_env.append(k)
-
+        missing_env = missing_env_vars(proc_env)
         if len(missing_env) > 0:
             logger.warning(
                 'The following environment variables were not set: "{}". '
@@ -173,7 +186,7 @@ class PulseAudioProcess(psutil.Process):
                     sys.argv,
                     uid=self.uid,
                     gid=self.gid,
-                    env=compressed_env,
+                    env=self.compressed_env,
                     cwd=os.getcwd()))
         except OSError as e:
             self.application = None
@@ -198,9 +211,9 @@ class PulseAudioProcess(psutil.Process):
     def _kill_process_tree(self, pid, timeout=3):
         try:
             p = psutil.Process(pid)
-            for child in p.get_children():
+            for child in p.children():
                 self._kill_process_tree(child.pid)
-            p.send_signal(signal.SIGINT)
+            p.send_signal(signal.SIGTERM)
             p.wait(timeout=timeout)
         except psutil.TimeoutExpired:
             logger.info(

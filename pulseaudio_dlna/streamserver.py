@@ -17,15 +17,15 @@
 
 from __future__ import unicode_literals
 
+from gi.repository import GObject
+
 import re
 import subprocess
 import setproctitle
 import logging
-import time
 import socket
 import select
 import sys
-import gobject
 import base64
 import urllib
 import json
@@ -34,6 +34,8 @@ import signal
 import pkg_resources
 import BaseHTTPServer
 import SocketServer
+import Queue
+import threading
 
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.codecs
@@ -41,44 +43,102 @@ import pulseaudio_dlna.recorders
 import pulseaudio_dlna.rules
 import pulseaudio_dlna.images
 
-from pulseaudio_dlna.plugins.upnp.renderer import (
-    UpnpContentFeatures, UpnpContentFlags)
-
 logger = logging.getLogger('pulseaudio_dlna.streamserver')
 
 PROTOCOL_VERSION_V10 = 'HTTP/1.0'
 PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 
 
-class ProcessStream(object):
-    def __init__(self, path, sock, recorder, encoder, bridge):
-        self.path = path
-        self.sock = sock
-        self.recorder = recorder
-        self.encoder = encoder
-        self.bridge = bridge
+class ProcessQueue(Queue.Queue):
 
-        self.id = hex(id(self))
+    def data(self):
+        data = self.get()
+        if not self.empty():
+            data = [data]
+            while not self.empty():
+                data.append(self.get())
+            data = b''.join(data)
+        return data
+
+
+class ProcessThread(threading.Thread):
+
+    CHUNK_SIZE = 1024 * 32
+
+    def __init__(self, path, encoder, recorder, queue, *args, **kwargs):
+        threading.Thread.__init__(self, *args, **kwargs)
+        self.path = path
+        self.encoder = encoder
+        self.recorder = recorder
         self.recorder_process = None
         self.encoder_process = None
-        self.chunk_size = 1024 * 4
-        self.reinitialize_count = 0
+        self.queue = queue
 
-        gobject.timeout_add(
+        self.reinitialize_count = 0
+        self.stop_event = threading.Event()
+
+        GObject.timeout_add(
             10000, self._on_regenerate_reinitialize_count)
 
+    def _on_regenerate_reinitialize_count(self):
+        if self.reinitialize_count > 0:
+            self.reinitialize_count -= 1
+        return True
+
+    def stop(self):
+        self.stop_event.set()
+
+    @property
+    def is_stopped(self):
+        return self.stop_event.isSet()
+
     def run(self):
-        while True:
-            if not self.do_processes_exist():
-                self.create_processes()
-                logger.info(
-                    'Processes of {path} initialized ...'.format(
-                        path=self.path))
-            if not self.do_processes_respond():
+
+        def create_processes():
+            logger.info('Starting processes "{recorder} | {encoder}"'.format(
+                recorder=' '.join(self.recorder.command),
+                encoder=' '.join(self.encoder.command)))
+            rec_process = subprocess.Popen(
+                self.recorder.command,
+                stdout=subprocess.PIPE)
+            enc_process = subprocess.Popen(
+                self.encoder.command,
+                stdin=rec_process.stdout,
+                stdout=subprocess.PIPE,
+                bufsize=-1)
+            rec_process.stdout.close()
+            return rec_process, enc_process, enc_process.stdout.read
+
+        def do_processes_respond(rec_process, enc_process):
+            return (rec_process.poll() is None and
+                    enc_process.poll() is None)
+
+        def terminate_processes(processes):
+            for process in processes:
+                pid = process.pid
+                logger.debug('Terminating process {} ...'.format(pid))
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                    _pid, return_code = os.waitpid(pid, 0)
+                except:
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except:
+                        pass
+
+        chunk_size = self.CHUNK_SIZE
+        queue = self.queue
+
+        rec_process, enc_process, enc_read = create_processes()
+        logger.info(
+            'Processes of {path} initialized ...'.format(
+                path=self.path))
+        while not self.is_stopped:
+            if not do_processes_respond(rec_process, enc_process):
                 if self.reinitialize_count < 3:
                     self.reinitialize_count += 1
-                    self.terminate_processes()
-                    self.create_processes()
+                    terminate_processes([rec_process, enc_process])
+                    rec_process, enc_process, enc_read = create_processes()
                     logger.info(
                         'Processes of {path} reinitialized ...'.format(
                             path=self.path))
@@ -89,72 +149,64 @@ class ProcessStream(object):
                             self.reinitialize_count))
                     break
 
-            data = self.encoder_process.stdout.read(self.chunk_size)
-            r, w, e = select.select([self.sock], [self.sock], [], 0)
+            data = enc_read(chunk_size)
+            if len(data) > 0:
+                queue.put(data)
 
-            if self.sock in w:
+        terminate_processes([rec_process, enc_process])
+        queue.put(b'')
+
+
+class ProcessStream(object):
+
+    RUNNING = True
+
+    def __init__(self, path, sock, recorder, encoder, bridge):
+        self.path = path
+        self.sock = sock
+        self.recorder = recorder
+        self.encoder = encoder
+        self.bridge = bridge
+
+        self.id = hex(id(self))
+
+    def run(self):
+
+        queue = ProcessQueue()
+        process_thread = ProcessThread(
+            self.path, self.encoder, self.recorder, queue)
+        process_thread.daemon = True
+        process_thread.start()
+
+        empty_list = []
+        select_select = select.select
+        sock = self.sock
+        sock_list = [self.sock]
+        sock_sendall = self.sock.sendall
+        sock_recv = self.sock.recv
+        queue_data = queue.data
+
+        while self.RUNNING:
+            r, w, e = select_select(sock_list, sock_list, empty_list, 0)
+
+            if sock in w:
+                data = queue_data()
+                if len(data) == 0:
+                    break
                 try:
-                    self._send_data(self.sock, data)
+                    sock_sendall(data)
                 except socket.error:
                     break
 
-            if self.sock in r:
+            if sock in r:
                 try:
-                    data = self.sock.recv(1024)
+                    data = sock_recv(1024)
                     if len(data) == 0:
                         break
                 except socket.error:
                     break
-        self.terminate_processes()
 
-    def _send_data(self, sock, data):
-        bytes_total = len(data)
-        bytes_sent = 0
-        while bytes_sent < bytes_total:
-            bytes_sent += sock.send(data[bytes_sent:])
-
-    def _on_regenerate_reinitialize_count(self):
-        if self.reinitialize_count > 0:
-            self.reinitialize_count -= 1
-        return True
-
-    def do_processes_exist(self):
-        return (self.encoder_process is not None and
-                self.recorder_process is not None)
-
-    def do_processes_respond(self):
-        return (self.recorder_process.poll() is None and
-                self.encoder_process.poll() is None)
-
-    def terminate_processes(self):
-
-        def _kill_process(process):
-            pid = process.pid
-            logger.debug('Terminating process {} ...'.format(pid))
-            try:
-                os.kill(pid, signal.SIGTERM)
-                _pid, return_code = os.waitpid(pid, 0)
-            except:
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                except:
-                    pass
-
-        _kill_process(self.encoder_process)
-        _kill_process(self.recorder_process)
-
-    def create_processes(self):
-        logger.info('Starting processes "{recorder} | {encoder}"'.format(
-            recorder=' '.join(self.recorder.command),
-            encoder=' '.join(self.encoder.command)))
-        self.recorder_process = subprocess.Popen(
-            self.recorder.command,
-            stdout=subprocess.PIPE)
-        self.encoder_process = subprocess.Popen(
-            self.encoder.command,
-            stdin=self.recorder_process.stdout,
-            stdout=subprocess.PIPE)
-        self.recorder_process.stdout.close()
+        process_thread.stop()
 
     def __str__(self):
         return '<{} id="{}">\n'.format(
@@ -194,8 +246,8 @@ class StreamManager(object):
         del self.streams[stream.path][stream.id]
 
         if stream.path in self.timeouts:
-            gobject.source_remove(self.timeouts[stream.path])
-        self.timeouts[stream.path] = gobject.timeout_add(
+            GObject.source_remove(self.timeouts[stream.path])
+        self.timeouts[stream.path] = GObject.timeout_add(
             2000, self._on_disconnect, stream)
 
     def _on_disconnect(self, stream):
@@ -203,7 +255,7 @@ class StreamManager(object):
         if len(self.streams[stream.path]) == 0:
             logger.info('No more stream from device "{}".'.format(
                 stream.bridge.device.name))
-            self.server.message_queue.put({
+            self.server.pulse_queue.put({
                 'type': 'on_bridge_disconnected',
                 'stopped_bridge': stream.bridge,
             })
@@ -280,15 +332,9 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
             if isinstance(
                 bridge.device,
-                    pulseaudio_dlna.plugins.upnp.renderer.UpnpMediaRenderer):
-                content_features = UpnpContentFeatures(
-                    flags=[
-                        UpnpContentFlags.STREAMING_TRANSFER_MODE_SUPPORTED,
-                        UpnpContentFlags.BACKGROUND_TRANSFER_MODE_SUPPORTED,
-                        UpnpContentFlags.CONNECTION_STALLING_SUPPORTED,
-                        UpnpContentFlags.DLNA_VERSION_15_SUPPORTED
-                    ])
-                headers['contentFeatures.dlna.org'] = str(content_features)
+                    pulseaudio_dlna.plugins.dlna.renderer.DLNAMediaRenderer):
+                headers['contentFeatures.dlna.org'] = str(
+                    bridge.device.content_features)
                 headers['Ext'] = ''
                 headers['transferMode.dlna.org'] = 'Streaming'
                 headers['Content-Disposition'] = 'inline;'
@@ -358,18 +404,24 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
 class StreamServer(SocketServer.TCPServer):
 
+    HOST = None
+    PORT = None
+
     def __init__(
-            self, ip, port, bridges, message_queue,
-            fake_http_content_length=False, *args):
-        self.ip = ip
-        self.port = port
-        self.bridges = bridges
-        self.message_queue = message_queue
+            self, ip, port, pulse_queue, stream_queue,
+            fake_http_content_length=False, proc_title=None, *args):
+        self.ip = ip or self.HOST
+        self.port = port or self.PORT
+        self.pulse_queue = pulse_queue
+        self.stream_queue = stream_queue
         self.stream_manager = StreamManager(self)
         self.fake_http_content_length = fake_http_content_length
+        self.proc_title = proc_title
+        self.bridges = []
 
     def run(self):
         self.allow_reuse_address = True
+        self.daemon_threads = True
         try:
             SocketServer.TCPServer.__init__(
                 self, (self.ip or '', self.port), StreamRequestHandler)
@@ -380,35 +432,51 @@ class StreamServer(SocketServer.TCPServer):
                 'cannot work properly!'.format(port=self.port))
             sys.exit(1)
 
-        setproctitle.setproctitle('stream_server')
+        signal.signal(signal.SIGTERM, self.shutdown)
+        if self.proc_title:
+            setproctitle.setproctitle(self.proc_title)
         self.serve_forever()
+
+    def update_bridges(self, bridges):
+        self.bridges = bridges
 
 
 class GobjectMainLoopMixin:
 
     def serve_forever(self, poll_interval=0.5):
-        self.mainloop = gobject.MainLoop()
+        mainloop = GObject.MainLoop()
         if hasattr(self, 'socket'):
-            gobject.io_add_watch(
-                self, gobject.IO_IN | gobject.IO_PRI, self._on_new_request)
-        context = self.mainloop.get_context()
-        while True:
-            try:
-                if context.pending():
-                    context.iteration(True)
-                else:
-                    time.sleep(0.1)
-            except KeyboardInterrupt:
-                break
+            GObject.io_add_watch(
+                self, GObject.IO_IN | GObject.IO_PRI, self._on_new_request)
+        if hasattr(self, 'stream_queue'):
+            GObject.io_add_watch(
+                self.stream_queue._reader, GObject.IO_IN | GObject.IO_PRI,
+                self._on_new_message)
+        try:
+            mainloop.run()
+        except KeyboardInterrupt:
+            self.shutdown()
+
+    def _on_new_message(self, fd, condition):
+        try:
+            message = self.stream_queue.get_nowait()
+        except:
+            return True
+
+        message_type = message.get('type', None)
+        if message_type and hasattr(self, message_type):
+            del message['type']
+            getattr(self, message_type)(**message)
+        return True
 
     def _on_new_request(self, sock, *args):
         self._handle_request_noblock()
         return True
 
     def shutdown(self, *args):
-        logger.debug(
-            'StreamServer GobjectMainLoopMixin.shutdown() pid: {}'.format(
-                os.getpid()))
+        logger.info(
+            'StreamServer GobjectMainLoopMixin.shutdown()')
+        ProcessStream.RUNNING = False
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
         except socket.error:

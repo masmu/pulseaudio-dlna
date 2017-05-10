@@ -25,10 +25,10 @@ class BasePlugin(object):
         self.st_header = None
         self.holder = None
 
-    def lookup(self, locations):
+    def lookup(self, locations, data):
         raise NotImplementedError()
 
-    def discover(self, ttl):
+    def discover(self, ttl=None, host=None):
         raise NotImplementedError()
 
     @staticmethod
