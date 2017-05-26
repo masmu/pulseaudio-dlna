@@ -35,7 +35,7 @@ else
 DESTDIR ?= /
 PREFIX ?= /usr/local
 install:
-	$(python) setup.py install --no-compile --prefix="$(PREFIX)" --root="$(DESTDIR)"
+	$(python) setup.py install --no-compile --prefix="$(PREFIX)"
 endif
 
 release: manpage
