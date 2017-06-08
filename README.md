@@ -30,10 +30,6 @@ UPNP renderers in your network will show up as pulseaudio sinks.
     You should have received a copy of the GNU General Public License
     along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-## Donation ##
-![Image of pulseaudio-dlna](http://maemo.lancode.de/.webdir/donate.gif)
-If I could help you or if you like my work, you can buy me a [coffee, a beer or pizza](https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=totalexceed%40lancode%2ede&item_name=Donation&no_shipping=2&no_note=1&tax=0&currency_code=EUR&bn=PP%2dDonationsBF&charset=UTF%2d8).
-
 ## Installation via PPA ##
 
 Supported Ubuntu releases:
@@ -587,3 +583,8 @@ faac        | Advanced Audio Coding             | aac
 sox         | Linear PCM                        | l16
 
 You can select a specific codec using the `--encoder` flag followed by its identifier.
+
+
+## Donation ##
+![Image of pulseaudio-dlna](http://maemo.lancode.de/.webdir/donate.gif)
+If I could help you or if you like my work, you can buy me a [coffee, a beer or pizza](https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=totalexceed%40lancode%2ede&item_name=Donation&no_shipping=2&no_note=1&tax=0&currency_code=EUR&bn=PP%2dDonationsBF&charset=UTF%2d8).
