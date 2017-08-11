@@ -20,7 +20,7 @@ from __future__ import unicode_literals
 
 import requests
 import sys
-import re
+import json
 
 import pulseaudio_dlna
 import pulseaudio_dlna.holder
@@ -70,15 +70,10 @@ class IPDetector():
         return self.public_ip is not None
 
     def _get_public_ip(self):
-        try:
-            response = requests.get(
-                'http://checkip.dyn.com/', timeout=self.TIMEOUT)
-        except:
-            return None
-        match = re.findall(
-            r"\d{1,3}.\d{1,3}.\d{1,3}.\d{1,3}", response.content)
-        if match:
-            return match[0]
+        response = requests.get('http://ifconfig.lancode.de')
+        if response.status_code == 200:
+            data = json.loads(response.content)
+            return data.get('ip', None)
         return None
 
 
