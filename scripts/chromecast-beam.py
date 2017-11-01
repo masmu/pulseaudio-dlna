@@ -28,6 +28,7 @@ Usage:
                        [--transcode <transcode>]
                        [--transcode-video <transcode-video>]
                        [--transcode-audio <transcode-audio>]
+                       [--start-time=<start-time>]
                        <chromecast-host> <media-file>
 
 Options:
@@ -58,6 +59,7 @@ Options:
                                                             ch|channels   - Set the channels
                                                             s|samplerate  - Set the samplerate
                                                             l|language    - Set the language
+    --start-time=<start-time>                            Set the start time of the video in seconds.
     --mime-type=<mime-type>                              Set the media's mimetype instead of guessing it.
     --debug                                              Enable debug mode.
 
@@ -244,6 +246,8 @@ class EncoderSettings(object):
     TRANSCODE_AUDIO_SAMPLERATE_DEF = 44100
     TRANSCODE_AUDIO_LANG_DEF = None
 
+    START_TIME = None
+
     @classmethod
     def _decode_settings(cls, settings):
         try:
@@ -341,6 +345,9 @@ class EncoderSettings(object):
         if options.get('--audio-track-id', None):
             used = True
             cls._apply_option('AUDIO_TRACK_ID', options['--audio-track-id'])
+        if options.get('--start-time', None):
+            used = True
+            cls._apply_option('START_TIME', options['--start-time'])
         return used
 
 
@@ -380,6 +387,8 @@ class VLCEncoderSettings(EncoderSettings):
             command.append(':audio-track=' + cls.AUDIO_TRACK)
         if cls.AUDIO_TRACK_ID:
             command.append(':audio-track-id=' + cls.AUDIO_TRACK_ID)
+        if cls.START_TIME:
+            command.append(':start-time=' + cls.START_TIME)
         if cls.TRANSCODE_USED:
             return command + [
                 ':sout=#transcode{' + cls._transcode_cmd_str() + '}'
