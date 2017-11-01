@@ -29,6 +29,7 @@ Usage:
                        [--transcode-video <transcode-video>]
                        [--transcode-audio <transcode-audio>]
                        [--start-time=<start-time>]
+                       [--sub-titles]
                        <chromecast-host> <media-file>
 
 Options:
@@ -61,6 +62,7 @@ Options:
                                                             l|language    - Set the language
     --start-time=<start-time>                            Set the start time of the video in seconds.
     --mime-type=<mime-type>                              Set the media's mimetype instead of guessing it.
+    --sub-titles                                         Enable sub titles.
     --debug                                              Enable debug mode.
 
 Examples:
@@ -247,6 +249,7 @@ class EncoderSettings(object):
     TRANSCODE_AUDIO_LANG_DEF = None
 
     START_TIME = None
+    SUB_TITLES = False
 
     @classmethod
     def _decode_settings(cls, settings):
@@ -348,6 +351,9 @@ class EncoderSettings(object):
         if options.get('--start-time', None):
             used = True
             cls._apply_option('START_TIME', options['--start-time'])
+        if options.get('--sub-titles', None):
+            used = True
+            cls._apply_option('SUB_TITLES', True)
         return used
 
 
@@ -372,7 +378,11 @@ class VLCEncoderSettings(EncoderSettings):
             options['samplerate'] = cls.TRANSCODE_AUDIO_SAMPLERATE
         if cls.TRANSCODE_AUDIO_LANG:
             options['alang'] = cls.TRANSCODE_AUDIO_LANG
-        return ','.join(['{}={}'.format(k, v) for k, v in options.items()])
+        if cls.SUB_TITLES:
+            options['soverlay'] = None
+        return ','.join([
+            '{}={}'.format(k, v) if v else k for k, v in options.items()
+        ])
 
     @classmethod
     def command(cls, file_path):
