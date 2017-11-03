@@ -464,6 +464,22 @@ class PulseSink(object):
             return True
         return None
 
+    def remember_stream_volumes(self):
+        self.volumes = {}
+        for stream in self.streams:
+            self.volumes[stream.index] = stream.volumes
+
+    def restore_stream_volumes(self):
+        if hasattr(self, 'volumes'):
+            for index, volumes in self.volumes.items():
+                cmd = [
+                    'pactl',
+                    'set-sink-input-volume',
+                    str(index),
+                    str(volumes[0]),
+                ]
+                subprocess.check_output(cmd)
+
     def switch_streams_to_fallback_source(self):
         if self.fallback_sink is not None:
             for stream in self.streams:
@@ -507,6 +523,9 @@ class PulseStreamFactory(object):
                 device=unicode(obj.Get(
                     'org.PulseAudio.Core1.Stream', 'Device')),
                 client=PulseClientFactory.new(bus, client_path),
+                volumes=[
+                    int(volume) for volume in obj.Get(
+                        'org.PulseAudio.Core1.Stream', 'Volume')],
             )
         except dbus.exceptions.DBusException:
             logger.debug(
@@ -520,7 +539,7 @@ class PulseStream(object):
 
     __shared_state = {}
 
-    def __init__(self, object_path, index, device, client):
+    def __init__(self, object_path, index, device, client, volumes):
         if object_path not in self.__shared_state:
             self.__shared_state[object_path] = {}
         self.__dict__ = self.__shared_state[object_path]
@@ -529,6 +548,7 @@ class PulseStream(object):
         self.index = index
         self.device = device
         self.client = client
+        self.volumes = volumes
 
     def switch_to_source(self, index):
         process = subprocess.Popen(
@@ -539,6 +559,15 @@ class PulseStream(object):
             return True
         return None
 
+    def set_volume(self, volume):
+        cmd = [
+            'pactl',
+            'set-sink-input-volume',
+            str(self.index),
+            str(volume),
+        ]
+        subprocess.check_output(cmd)
+
     def __eq__(self, other):
         return self.object_path == other.object_path
 
@@ -547,11 +576,12 @@ class PulseStream(object):
 
     def __str__(self):
         return '<PulseStream path="{}" device="{}" index="{}" ' \
-               'client="{}">'.format(
+               'client="{}" volumes="{}">'.format(
                    self.object_path,
                    self.device,
                    self.index,
                    self.client.index if self.client else None,
+                   ','.join([unicode(v) for v in self.volumes]),
                )
 
 
@@ -615,6 +645,8 @@ class PulseWatcher(PulseAudio):
                 self.on_fallback_sink_updated),
             ('DeviceUpdated', 'org.PulseAudio.Core1.Stream.{}',
                 self.on_device_updated),
+            ('VolumeUpdated', 'org.PulseAudio.Core1.Stream.{}',
+                self.on_volume_updated),
         )
         self._connect(signals)
         self.update()
@@ -659,6 +691,7 @@ class PulseWatcher(PulseAudio):
     def cleanup(self):
         for bridge in self.bridges:
             logger.info('Remove "{}" sink ...'.format(bridge.sink.name))
+            bridge.sink.restore_stream_volumes()
             self.delete_null_sink(bridge.sink.module.index)
         self.bridges = []
         sys.exit(0)
@@ -732,6 +765,11 @@ class PulseWatcher(PulseAudio):
         self.update()
         self._delayed_handle_sink_update(sink_path)
 
+    def on_volume_updated(self, volumes):
+        logger.info('on_volume_updated "{volumes}"'.format(
+            volumes=[int(v) for v in volumes]))
+        self.update()
+
     def on_fallback_sink_updated(self, sink_path):
         self.default_sink = PulseSinkFactory.new(self.bus, sink_path)
         self.update()
@@ -757,6 +795,10 @@ class PulseWatcher(PulseAudio):
                     return
 
     def _delayed_handle_sink_update(self, sink_path):
+        for bridge in self.bridges:
+            if len(bridge.sink.streams) == 0:
+                bridge.sink.restore_stream_volumes()
+
         if self.signal_timers.get(sink_path, None):
             GObject.source_remove(self.signal_timers[sink_path])
         self.signal_timers[sink_path] = GObject.timeout_add(
@@ -822,6 +864,9 @@ class PulseWatcher(PulseAudio):
                         logger.info(
                             'The device "{}" is playing.'.format(
                                 bridge.device.label))
+                        bridge.sink.remember_stream_volumes()
+                        for stream in bridge.sink.streams:
+                            stream.set_volume(65536)
                     else:
                         if not message:
                             message = 'Unknown reason.'
