@@ -94,6 +94,7 @@ class BaseCodec(object):
     IDENTIFIER = None
     BACKEND = 'generic'
     PRIORITY = None
+    BLACKLISTED_MIME_TYPES = []
 
     def __init__(self):
         self.mime_type = None
@@ -133,8 +134,11 @@ class BaseCodec(object):
 
     @classmethod
     def accepts(cls, mime_type):
+        lower_mime_type = mime_type.lower()
+        if lower_mime_type in cls.BLACKLISTED_MIME_TYPES:
+            return False
         for accepted_mime_type in cls.SUPPORTED_MIME_TYPES:
-            if mime_type.lower().startswith(accepted_mime_type.lower()):
+            if lower_mime_type.startswith(accepted_mime_type.lower()):
                 return True
         return False
 
@@ -195,6 +199,7 @@ class BitRateMixin(object):
 class Mp3Codec(BitRateMixin, BaseCodec):
 
     SUPPORTED_MIME_TYPES = ['audio/mpeg', 'audio/mp3']
+    BLACKLISTED_MIME_TYPES = ['audio/mpegurl']
     IDENTIFIER = 'mp3'
     ENCODERS = {
         'generic': pulseaudio_dlna.encoders.LameMp3Encoder,
