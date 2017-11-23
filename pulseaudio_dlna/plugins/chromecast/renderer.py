@@ -59,6 +59,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pulseaudio_dlna.codecs.FlacCodec(),
                 pulseaudio_dlna.codecs.WavCodec(),
                 pulseaudio_dlna.codecs.OggCodec(),
+                pulseaudio_dlna.codecs.OpusCodec(),
                 pulseaudio_dlna.codecs.AacCodec(),
             ]
             self.apply_device_rules()
