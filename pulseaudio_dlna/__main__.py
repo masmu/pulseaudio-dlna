@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -116,7 +116,7 @@ Examples:
 '''
 
 
-from __future__ import unicode_literals
+
 
 import sys
 import os

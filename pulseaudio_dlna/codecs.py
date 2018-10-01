@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import functools
 import logging
@@ -67,7 +67,7 @@ def set_backend(backend):
 def set_codecs(identifiers):
     step = 3
     priority = (len(CODECS) + 1) * step
-    for identifier, _type in CODECS.iteritems():
+    for identifier, _type in CODECS.items():
         _type.ENABLED = False
         _type.PRIORITY = 0
     for identifier in identifiers:
@@ -81,7 +81,7 @@ def set_codecs(identifiers):
 
 def enabled_codecs():
     codecs = []
-    for identifier, _type in CODECS.iteritems():
+    for identifier, _type in CODECS.items():
         if _type.ENABLED:
             codecs.append(_type())
     return codecs
@@ -168,7 +168,7 @@ class BaseCodec(object):
     def to_json(self):
         attributes = ['priority', 'suffix', 'mime_type']
         d = {
-            k: v for k, v in self.__dict__.iteritems()
+            k: v for k, v in iter(self.__dict__.items())
             if k not in attributes
         }
         d['mime_type'] = self.specific_mime_type

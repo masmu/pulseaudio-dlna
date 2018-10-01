@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import logging
 import sys
@@ -34,10 +34,10 @@ class NotBytesException(Exception):
         )
 
 
-def decode_default(bytes):
-    if type(bytes) is not str:
-        raise NotBytesException(bytes)
-    guess = chardet.detect(bytes)
+def decode_default(in_bytes):
+    if type(in_bytes) is not bytes:
+        raise NotBytesException(in_bytes)
+    guess = chardet.detect(in_bytes)
     encodings = {
         'sys.stdout.encoding': sys.stdout.encoding,
         'locale.getpreferredencoding': locale.getpreferredencoding(),
@@ -45,27 +45,27 @@ def decode_default(bytes):
         'utf-8': 'utf-8',
         'latin1': 'latin1',
     }
-    for encoding in encodings.values():
+    for encoding in list(encodings.values()):
         if encoding and encoding != 'ascii':
             try:
-                return bytes.decode(encoding)
+                return in_bytes.decode(encoding)
             except UnicodeDecodeError:
                 continue
     try:
-        return bytes.decode('ascii', errors='replace')
+        return in_bytes.decode('ascii', errors='replace')
     except UnicodeDecodeError:
         logger.error(
             'Decoding failed using the following encodings: "{}"'.format(
                 ','.join(
-                    ['{}:{}'.format(f, e) for f, e in encodings.items()]
+                    ['{}:{}'.format(f, e) for f, e in list(encodings.items())]
                 )))
         return 'Unknown'
 
 
-def _bytes2hex(bytes, seperator=':'):
-    if type(bytes) is not str:
-        raise NotBytesException(bytes)
-    return seperator.join('{:02x}'.format(ord(b)) for b in bytes)
+def _bytes2hex(in_bytes, seperator=':'):
+    if type(in_bytes) is not bytes:
+        raise NotBytesException(in_bytes)
+    return seperator.join('{:02x}'.format(ord(b)) for b in in_bytes)
 
 
 def _hex2bytes(hex, seperator=':'):

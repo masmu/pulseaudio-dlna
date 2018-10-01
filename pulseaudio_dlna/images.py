@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,8 +15,8 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-from __future__ import with_statement
+
+
 
 import tempfile
 import logging

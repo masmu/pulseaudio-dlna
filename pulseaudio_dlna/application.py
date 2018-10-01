@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import multiprocessing
 import signal
@@ -32,8 +32,8 @@ import pulseaudio_dlna.plugins.dlna
 import pulseaudio_dlna.plugins.dlna.ssdp
 import pulseaudio_dlna.plugins.dlna.ssdp.listener
 import pulseaudio_dlna.plugins.dlna.ssdp.discover
-import pulseaudio_dlna.plugins.chromecast
-import pulseaudio_dlna.plugins.chromecast.mdns
+# import pulseaudio_dlna.plugins.chromecast
+# import pulseaudio_dlna.plugins.chromecast.mdns
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.covermodes
 import pulseaudio_dlna.streamserver
@@ -47,7 +47,6 @@ logger = logging.getLogger('pulseaudio_dlna.application')
 
 class Application(object):
 
-    ENCODING = 'utf-8'
     DEVICE_CONFIG_PATHS = [
         os.path.expanduser('~/.local/share/pulseaudio-dlna'),
         '/etc/pulseaudio-dlna',
@@ -55,7 +54,7 @@ class Application(object):
     DEVICE_CONFIG = 'devices.json'
     PLUGINS = [
         pulseaudio_dlna.plugins.dlna.DLNAPlugin(),
-        pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
+        # pulseaudio_dlna.plugins.chromecast.ChromecastPlugin(),
     ]
     SHUTDOWN_TIMEOUT = 5
 
@@ -213,7 +212,7 @@ class Application(object):
             logger.info('  {}'.format(encoder))
 
         logger.info('Codec settings:')
-        for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
+        for identifier, _type in pulseaudio_dlna.codecs.CODECS.items():
             codec = _type()
             logger.info('  {}'.format(codec))
 
@@ -331,9 +330,9 @@ class Application(object):
                     continue
             try:
                 with open(config_file, 'w') as h:
-                    h.write(json_text.encode(self.ENCODING))
+                    h.write(json_text)
                     logger.info('Found the following devices:')
-                    for device in holder.devices.values():
+                    for device in list(holder.devices.values()):
                         logger.info('{name} ({flavour})'.format(
                             name=device.name, flavour=device.flavour))
                         for codec in device.codecs:
@@ -356,7 +355,7 @@ class Application(object):
             if os.path.isfile(config_file) and \
                os.access(config_file, os.R_OK):
                 with open(config_file, 'r') as h:
-                    json_text = h.read().decode(self.ENCODING)
+                    json_text = h.read()
                     logger.debug('Device configuration:\n{}'.format(json_text))
                     json_text = json_text.replace('\n', '')
                     try:

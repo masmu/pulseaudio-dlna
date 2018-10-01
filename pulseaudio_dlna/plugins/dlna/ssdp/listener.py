@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 from gi.repository import GObject
 
-import SocketServer
+import socketserver
 import logging
 import socket
 import struct
@@ -32,7 +32,7 @@ import pulseaudio_dlna.plugins.dlna.ssdp
 logger = logging.getLogger('pulseaudio_dlna.plugins.dlna.ssdp')
 
 
-class SSDPHandler(SocketServer.BaseRequestHandler):
+class SSDPHandler(socketserver.BaseRequestHandler):
 
     SSDP_ALIVE = 'ssdp:alive'
     SSDP_BYEBYE = 'ssdp:byebye'
@@ -70,7 +70,7 @@ class SSDPHandler(SocketServer.BaseRequestHandler):
         return method_header.split(' ')[0]
 
 
-class SSDPListener(SocketServer.UDPServer):
+class SSDPListener(socketserver.UDPServer):
 
     SSDP_ADDRESS = '239.255.255.250'
     SSDP_PORT = 1900
@@ -89,7 +89,7 @@ class SSDPListener(SocketServer.UDPServer):
             return
 
         self.allow_reuse_address = True
-        SocketServer.UDPServer.__init__(
+        socketserver.UDPServer.__init__(
             self, (self.host or '', self.SSDP_PORT), SSDPHandler)
         self.socket.setsockopt(
             socket.IPPROTO_IP,
@@ -148,5 +148,5 @@ class GobjectMainLoopMixin:
 
 
 class ThreadedSSDPListener(
-        GobjectMainLoopMixin, SocketServer.ThreadingMixIn, SSDPListener):
+        GobjectMainLoopMixin, socketserver.ThreadingMixIn, SSDPListener):
     pass

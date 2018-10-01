@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import functools
 import logging
@@ -44,7 +44,7 @@ class BaseRule(object):
         if type(other) is type:
             return type(self) is other
         try:
-            if isinstance(other, basestring):
+            if isinstance(other, str):
                 return type(self) is RULES[other]
         except:
             raise RuleNotFoundException(other)
@@ -54,7 +54,7 @@ class BaseRule(object):
         if type(other) is type:
             return type(self) > other
         try:
-            if isinstance(other, basestring):
+            if isinstance(other, str):
                 return type(self) > RULES[other]
         except:
             raise RuleNotFoundException()
@@ -63,7 +63,7 @@ class BaseRule(object):
     def to_json(self):
         attributes = []
         d = {
-            k: v for k, v in self.__dict__.iteritems()
+            k: v for k, v in iter(self.__dict__.items())
             if k not in attributes
         }
         d['name'] = str(self)
@@ -122,11 +122,11 @@ class Rules(list):
                 except KeyError:
                     raise RuleNotFoundException(name)
                 attributes = ['name']
-                for k, v in arg.iteritems():
+                for k, v in arg.items():
                     if hasattr(rule, k) and k not in attributes:
                         setattr(rule, k, v)
                 self._add_rule(rule)
-            elif isinstance(arg, basestring):
+            elif isinstance(arg, str):
                 try:
                     rule = RULES[arg]()
                     self._add_rule(rule)

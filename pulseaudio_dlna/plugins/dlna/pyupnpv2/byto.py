@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -17,7 +17,7 @@
 
 """A module which runs things without importing unicode_literals
 
-Sometimes you want pythons builtin functions just to run on raw bytes. Since
+Sometimes you want python3s builtin functions just to run on raw bytes. Since
 the unicode_literals module changes that behavior for many string manipulations
 this module is a workarounds for not using future.utils.bytes_to_native_str
 method.

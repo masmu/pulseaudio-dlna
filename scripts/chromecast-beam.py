@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 
 # This file is part of pulseaudio-dlna.
@@ -110,7 +110,7 @@ Examples:
 '''
 
 
-from __future__ import unicode_literals
+
 
 import docopt
 import logging
@@ -125,8 +125,8 @@ import json
 import shutil
 import traceback
 import re
-import SimpleHTTPServer
-import SocketServer
+import http.server
+import socketserver
 
 import pulseaudio_dlna.utils.network
 import pulseaudio_dlna.plugins.chromecast.pycastv2 as pycastv2
@@ -193,7 +193,7 @@ class ChromecastThread(StoppableThread):
         stop(self.chromecast_host, self.PORT)
 
 
-class ThreadedHTTPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
     allow_reuse_address = True
     daemon_threads = True
@@ -207,7 +207,7 @@ class ThreadedHTTPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.handler = handler or DefaultRequestHandler
 
         os.chdir(self.file_path)
-        SocketServer.TCPServer.__init__(
+        socketserver.TCPServer.__init__(
             self, (self.bind_host, self.port), self.handler)
 
     @property
@@ -270,7 +270,7 @@ class EncoderSettings(object):
 
     @classmethod
     def _apply_options(cls, options, option_map):
-        for option, value in cls._decode_settings(options).items():
+        for option, value in list(cls._decode_settings(options).items()):
             attribute = option_map.get(option, None)
             cls._apply_option(attribute, value)
 
@@ -381,7 +381,7 @@ class VLCEncoderSettings(EncoderSettings):
         if cls.SUB_TITLES:
             options['soverlay'] = None
         return ','.join([
-            '{}={}'.format(k, v) if v else k for k, v in options.items()
+            '{}={}'.format(k, v) if v else k for k, v in list(options.items())
         ])
 
     @classmethod
@@ -410,18 +410,18 @@ class VLCEncoderSettings(EncoderSettings):
             ]
 
 
-class DefaultRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class DefaultRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self, *args, **kwargs):
         logger.info('Serving unmodified media file to {} ...'.format(
             self.client_address[0]))
-        SimpleHTTPServer.SimpleHTTPRequestHandler.do_GET(self, *args, **kwargs)
+        http.server.SimpleHTTPRequestHandler.do_GET(self, *args, **kwargs)
 
     def log_request(self, code='-', size='-'):
         logger.info('{} - {}'.format(self.requestline, code))
 
 
-class TranscodeRequestHandler(SimpleHTTPServer.SimpleHTTPRequestHandler):
+class TranscodeRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
         client_address = self.client_address[0]
@@ -463,7 +463,7 @@ def get_external_ip():
 
 # Local pulseaudio-dlna installations running in a virutalenv should run this
 #   script as module:
-#     python -m scripts/chromecast-beam 192.168.1.10 ~/videos/test.mkv
+#     python3 -m scripts/chromecast-beam 192.168.1.10 ~/videos/test.mkv
 
 if __name__ == "__main__":
 

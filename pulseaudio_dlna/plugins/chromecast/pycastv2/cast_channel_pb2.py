@@ -94,21 +94,21 @@ _CASTMESSAGE = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='source_id', full_name='extensions.api.cast_channel.CastMessage.source_id', index=1,
       number=2, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=bytes("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='destination_id', full_name='extensions.api.cast_channel.CastMessage.destination_id', index=2,
       number=3, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=bytes("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
     _descriptor.FieldDescriptor(
       name='namespace', full_name='extensions.api.cast_channel.CastMessage.namespace', index=3,
       number=4, type=9, cpp_type=9, label=2,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=bytes("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -122,7 +122,7 @@ _CASTMESSAGE = _descriptor.Descriptor(
     _descriptor.FieldDescriptor(
       name='payload_utf8', full_name='extensions.api.cast_channel.CastMessage.payload_utf8', index=5,
       number=6, type=9, cpp_type=9, label=1,
-      has_default_value=False, default_value=unicode("", "utf-8"),
+      has_default_value=False, default_value=bytes("", "utf-8"),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       options=None),
@@ -290,32 +290,27 @@ DESCRIPTOR.message_types_by_name['AuthResponse'] = _AUTHRESPONSE
 DESCRIPTOR.message_types_by_name['AuthError'] = _AUTHERROR
 DESCRIPTOR.message_types_by_name['DeviceAuthMessage'] = _DEVICEAUTHMESSAGE
 
-class CastMessage(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
+class CastMessage(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
   DESCRIPTOR = _CASTMESSAGE
 
   # @@protoc_insertion_point(class_scope:extensions.api.cast_channel.CastMessage)
 
-class AuthChallenge(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
+class AuthChallenge(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
   DESCRIPTOR = _AUTHCHALLENGE
 
   # @@protoc_insertion_point(class_scope:extensions.api.cast_channel.AuthChallenge)
 
-class AuthResponse(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
+class AuthResponse(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
   DESCRIPTOR = _AUTHRESPONSE
 
   # @@protoc_insertion_point(class_scope:extensions.api.cast_channel.AuthResponse)
 
-class AuthError(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
+class AuthError(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
   DESCRIPTOR = _AUTHERROR
 
   # @@protoc_insertion_point(class_scope:extensions.api.cast_channel.AuthError)
 
-class DeviceAuthMessage(_message.Message):
-  __metaclass__ = _reflection.GeneratedProtocolMessageType
+class DeviceAuthMessage(_message.Message, metaclass=_reflection.GeneratedProtocolMessageType):
   DESCRIPTOR = _DEVICEAUTHMESSAGE
 
   # @@protoc_insertion_point(class_scope:extensions.api.cast_channel.DeviceAuthMessage)

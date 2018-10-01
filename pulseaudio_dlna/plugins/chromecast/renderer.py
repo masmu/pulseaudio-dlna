@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,16 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import requests
 import logging
-import urlparse
+import urllib.parse
 import socket
 import traceback
 import lxml
 
-import pycastv2
+from . import pycastv2
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.rules
 import pulseaudio_dlna.codecs
@@ -101,8 +101,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 traceback.print_exc()
             return 500, None
         except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
-                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException)\
-                as e:
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
             return 500, e
         except Exception:
             traceback.print_exc()
@@ -180,7 +179,7 @@ class ChromecastRendererFactory(object):
 
     @classmethod
     def from_xml(cls, url, xml):
-        url_object = urlparse.urlparse(url)
+        url_object = urllib.parse.urlparse(url)
         ip, port = url_object.netloc.split(':')
         try:
             xml_root = lxml.etree.fromstring(xml)
@@ -202,14 +201,14 @@ class ChromecastRendererFactory(object):
                     return None
 
                 return ChromecastRenderer(
-                    name=unicode(device_friendlyname.text),
-                    ip=unicode(ip),
+                    name=str(device_friendlyname.text),
+                    ip=str(ip),
                     port=None,
-                    udn=unicode(device_udn.text),
-                    model_name=unicode(device_modelname.text),
+                    udn=str(device_udn.text),
+                    model_name=str(device_modelname.text),
                     model_number=None,
                     model_description=None,
-                    manufacturer=unicode(device_manufacturer.text),
+                    manufacturer=str(device_manufacturer.text),
                 )
         except:
             logger.error('No valid XML returned from {url}.'.format(url=url))
