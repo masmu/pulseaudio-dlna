@@ -59,31 +59,30 @@ function install_fonts() {
 
 function install_dev() {
     sudo apt-get install \
-        python2.7 \
-        python-pip \
-        python-setuptools \
-        python-dbus \
-        python-docopt \
-        python-requests \
-        python-setproctitle \
-        python-gi \
-        python-protobuf \
-        python-notify2 \
-        python-psutil \
-        python-concurrent.futures \
-        python-chardet \
-        python-netifaces \
-        python-netaddr \
-        python-pyroute2 \
-        python-lxml \
-        python-zeroconf \
+        python3 \
+        python3-pip \
+        python3-setuptools \
+        python3-dbus \
+        python3-docopt \
+        python3-requests \
+        python3-setproctitle \
+        python3-gi \
+        python3-protobuf \
+        python3-notify2 \
+        python3-psutil \
+        python3-chardet \
+        python3-netifaces \
+        python3-netaddr \
+        python3-pyroute2 \
+        python3-lxml \
+        python3-zeroconf \
         vorbis-tools \
         sox \
         lame \
         flac \
         opus-tools \
         pavucontrol \
-        virtualenv python-dev git-core
+        virtualenv python3-dev git-core
     [[ -d ~/pulseaudio-dlna ]] || \
         git clone https://github.com/masmu/pulseaudio-dlna.git ~/pulseaudio-dlna
 }
