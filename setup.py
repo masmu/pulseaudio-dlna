@@ -49,6 +49,8 @@ setuptools.setup(
         "netifaces >= 0.10.0",
         "lxml >= 3",
         "zeroconf >= 0.17.4",
+        "PyGObject >= 3.3.0",
+        "dbus-python >= 1.0.0",
     ],
     entry_points={
         "console_scripts": [
