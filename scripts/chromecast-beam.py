@@ -129,7 +129,7 @@ import http.server
 import socketserver
 
 import pulseaudio_dlna.utils.network
-import pulseaudio_dlna.plugins.chromecast.pycastv2 as pycastv2
+from pychromecast import Chromecast
 
 logger = logging.getLogger('chromecast-beam')
 
@@ -162,35 +162,35 @@ class ChromecastThread(StoppableThread):
     def __init__(self, chromecast_host, media_url, mime_type=None,
                  *args, **kwargs):
         StoppableThread.__init__(self, *args, **kwargs)
-        self.chromecast_host = chromecast_host
         self.media_url = media_url
         self.mime_type = mime_type or 'video/mp4'
         self.desired_volume = 1.0
+        self.chromecast = Chromecast(host=chromecast_host, port=PORT, timeout=5)
 
     def run(self):
-        def play(host, port, url, mime_type, timeout=5):
-            cast = pycastv2.MediaPlayerController(host, port, timeout)
-            cast.load(url, mime_type=mime_type)
+        def play(url, mime_type, timeout=5):
+            self.chromecast.play_media(url, mime_type)
+            muted = self.chromecast.status.volume_muted
+            volume_level = self.chromecast.status.volume_level
             logger.info(
                 'Chromecast status: Volume {volume} ({muted})'.format(
-                    muted='Muted' if cast.is_muted else 'Unmuted',
-                    volume=cast.volume * 100))
-            if cast.is_muted:
+                    muted='Muted' if muted else 'Unmuted',
+                    volume=volume_level * 100))
+            if muted:
                 logger.info('Unmuting Chromecast ...')
-                cast.set_mute(False)
-            if cast.volume != self.desired_volume:
+                self.chromecast.set_volume_muted(False)
+            if volume_level != self.desired_volume:
                 logger.info('Setting Chromecast volume to {} ...'.format(
                     self.desired_volume * 100))
-                cast.set_volume(self.desired_volume)
+                self.chromecast..set_volume(self.desired_volume)
 
-        def stop(host, port, timeout=5):
-            cast = pycastv2.MediaPlayerController(host, port, timeout)
-            cast.stop_application()
-            cast.disconnect_application()
+        def stop(timeout=5):
+            self.chromecast.media_controller.stop()
+            self.chromecast.quit_app()
 
-        play(self.chromecast_host, self.PORT, self.media_url, self.mime_type)
+        play(self.media_url, self.mime_type)
         self.wait()
-        stop(self.chromecast_host, self.PORT)
+        stop()
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

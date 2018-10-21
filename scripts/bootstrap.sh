@@ -67,7 +67,6 @@ function install_dev() {
         python3-requests \
         python3-setproctitle \
         python3-gi \
-        python3-protobuf \
         python3-notify2 \
         python3-psutil \
         python3-chardet \
@@ -75,7 +74,7 @@ function install_dev() {
         python3-netaddr \
         python3-pyroute2 \
         python3-lxml \
-        python3-zeroconf \
+        python3-pychromecast \
         vorbis-tools \
         sox \
         lame \

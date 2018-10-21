@@ -18,17 +18,16 @@
 
 
 import logging
+import threading
 
+import pychromecast
 import pulseaudio_dlna.plugins
-import pulseaudio_dlna.plugins.chromecast.mdns
 from pulseaudio_dlna.plugins.chromecast.renderer import ChromecastRendererFactory
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast')
 
 
 class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
-
-    GOOGLE_MDNS_DOMAIN = '_googlecast._tcp.local.'
 
     def __init__(self, *args):
         pulseaudio_dlna.plugins.BasePlugin.__init__(self, *args)
@@ -38,20 +37,17 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
 
     def discover(self, holder, ttl=None, host=None):
         self.holder = holder
-        mdns = pulseaudio_dlna.plugins.chromecast.mdns.MDNSListener(
-            domain=self.GOOGLE_MDNS_DOMAIN,
-            host=host,
-            cb_on_device_added=self._on_device_added,
-            cb_on_device_removed=self._on_device_removed
-        )
-        mdns.run(ttl)
+        stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=self._on_device_added)
+
+        if ttl:
+            t = threading.Timer(ttl, stop_discovery)
+            t.start()
+        logger.info('ChromecastPlugin.discover()')
 
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
-    def _on_device_added(self, mdns_info):
-        if mdns_info:
-            return ChromecastRendererFactory.from_mdns_info(mdns_info)
-        return None
+    def _on_device_added(self, device):
+        return ChromecastRenderer(device, model_number, model_description, manufacturer)
 
     @pulseaudio_dlna.plugins.BasePlugin.remove_device_after
-    def _on_device_removed(self, mdns_info):
+    def _on_device_removed(self, device):
         return None

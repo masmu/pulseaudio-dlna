@@ -24,31 +24,36 @@ import socket
 import traceback
 import lxml
 
-from . import pycastv2
 import pulseaudio_dlna.plugins.renderer
 import pulseaudio_dlna.rules
 import pulseaudio_dlna.codecs
+
+from pychromecast import Chromecast
+from pychromecast.dial import DeviceStatus, CAST_TYPES, CAST_TYPE_CHROMECAST
+from pychromecast.error import PyChromecastError
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
-    def __init__(
-            self, name, ip, port, udn, model_name, model_number,
-            model_description, manufacturer):
+    def __init__(self,
+            chromecast,
+            model_number=None,
+            model_description=None):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
             self,
-            udn=udn,
+            udn=chromecast.uuid,
             flavour='Chromecast',
-            name=name,
-            ip=ip,
-            port=port or 8009,
-            model_name=model_name,
+            name=chromecast.name,
+            ip=chromecast.host,
+            port=chromecast.port,
+            model_name=chromecast.model_name,
             model_number=model_number,
             model_description=model_description,
-            manufacturer=manufacturer
+            manufacturer=chromecast.device.manufacturer
         )
+        self.chromecast = chromecast
 
     def activate(self, config):
         if config:
@@ -68,38 +73,12 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         self._before_play()
         url = url or self.get_stream_url()
         try:
-            cast = pycastv2.MediaPlayerController(
-                self.ip, self.port, self.REQUEST_TIMEOUT)
-            cast.load(
-                url,
-                mime_type=self.codec.mime_type,
-                artist=artist,
-                title=title,
-                thumb=thumb)
+            # TODO: artist missing
+            self.chromecast.play_media(url, mime_type=self.codec.mime_type, title=title, thumb=thumb)
             self.state = self.STATE_PLAYING
             return 200, None
-        except pycastv2.LaunchErrorException:
-            message = 'The media player could not be launched. ' \
-                      'Maybe the chromecast is still closing a ' \
-                      'running player instance. Try again in 30 seconds.'
-            return 503, message
-        except pycastv2.ChannelClosedException:
-            message = 'Connection was closed. I guess another ' \
-                      'client is attached to it.'
-            return 423, message
-        except pycastv2.TimeoutException:
-            message = 'PLAY command - Could no connect to "{device}". ' \
-                      'Connection timeout.'.format(device=self.label)
-            return 408, message
-        except socket.error as e:
-            if e.errno == 111:
-                message = 'The chromecast refused the connection. ' \
-                          'Perhaps it does not support the castv2 ' \
-                          'protocol.'
-                return 403, message
-            else:
-                traceback.print_exc()
-            return 500, None
+        except PyChromecastError as e:
+            return 500, str(e)
         except (pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
                 pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
             return 500, e
@@ -108,39 +87,21 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return 500, 'Unknown exception.'
         finally:
             self._after_play()
-            cast.cleanup()
 
     def stop(self):
         self._before_stop()
         try:
-            cast = pycastv2.MediaPlayerController(
-                self.ip, self.port, self.REQUEST_TIMEOUT)
             self.state = self.STATE_STOPPED
-            cast.disconnect_application()
+            self.chromecast.stop()
+            self.chromecast.disconnect()
             return 200, None
-        except pycastv2.ChannelClosedException:
-            message = 'Connection was closed. I guess another ' \
-                      'client is attached to it.'
-            return 423, message
-        except pycastv2.TimeoutException:
-            message = 'STOP command - Could no connect to "{device}". ' \
-                      'Connection timeout.'.format(device=self.label)
-            return 408, message
-        except socket.error as e:
-            if e.errno == 111:
-                message = 'The chromecast refused the connection. ' \
-                          'Perhaps it does not support the castv2 ' \
-                          'protocol.'
-                return 403, message
-            else:
-                traceback.print_exc()
-                return 500, 'Unknown exception.'
+        except PyChromecastError as e:
+            return 500, e
         except Exception:
             traceback.print_exc()
             return 500, 'Unknown exception.'
         finally:
             self._after_stop()
-            cast.cleanup()
 
     def pause(self):
         raise NotImplementedError()
@@ -200,7 +161,7 @@ class ChromecastRendererFactory(object):
                             device_modelname.text))
                     return None
 
-                return ChromecastRenderer(
+                return cls.from_properties(
                     name=str(device_friendlyname.text),
                     ip=str(ip),
                     port=None,
@@ -220,37 +181,16 @@ class ChromecastRendererFactory(object):
             return cls.from_url(header['location'])
 
     @classmethod
-    def from_mdns_info(cls, info):
-
-        def _bytes2string(bytes):
-            ip = []
-            for b in bytes:
-                subnet = int(b.encode('hex'), 16)
-                ip.append(str(subnet))
-            return '.'.join(ip)
-
-        def _get_device_info(info):
-            try:
-                return {
-                    'udn': '{}:{}'.format('uuid', info.properties['id']),
-                    'type': info.properties['md'].decode('utf-8'),
-                    'name': info.properties['fn'].decode('utf-8'),
-                    'ip': _bytes2string(info.address),
-                    'port': int(info.port),
-                }
-            except (KeyError, AttributeError, TypeError):
-                return None
-
-        device_info = _get_device_info(info)
-        if device_info:
-            return ChromecastRenderer(
-                name=device_info['name'],
-                ip=device_info['ip'],
-                port=device_info['port'],
-                udn=device_info['udn'],
-                model_name=device_info['type'],
-                model_number=None,
-                model_description=None,
-                manufacturer='Google Inc.'
-            )
-        return None
+    def from_properties(
+            cls, name, ip, port, udn, model_name, model_number,
+            model_description, manufacturer):
+        cast_type = CAST_TYPES.get(model_name.lower(),
+                                   CAST_TYPE_CHROMECAST)
+        device = DeviceStatus(
+            friendly_name=name, model_name=model_name,
+            manufacturer=manufacturer, uuid=udn, cast_type=cast_type,
+        )
+        chromecast = Chromecast(host=ip, port=port or 8009, device=device)
+        return ChromecastRenderer(chromecast=chromecast,
+            model_number=model_number,
+            model_description=model_description)
