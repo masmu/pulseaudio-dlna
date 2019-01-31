@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import logging
 from lxml import etree
 import requests
@@ -115,7 +113,7 @@ class YamahaWorkaround(BaseWorkaround):
             if (not self._detect_remotecontrolinterface(xml)):
                 raise Exception()
             self.enabled = True
-        except:
+        except Exception:
             logger.warning(
                 'The YamahaWorkaround initialization failed. '
                 'Automatic source switching will not be enabled'

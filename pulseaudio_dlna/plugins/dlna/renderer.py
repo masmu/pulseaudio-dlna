@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import logging
 import time
 import traceback
@@ -171,7 +169,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
             pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_mute(self):
@@ -185,7 +183,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
             pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def set_mute(self, mute):
@@ -196,7 +194,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
             pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_mime_types(self):

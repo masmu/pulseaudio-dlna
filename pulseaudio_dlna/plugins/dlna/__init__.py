@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import logging
 import threading
 import traceback
@@ -73,7 +71,7 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
                 thread.start()
             for thread in threads:
                 thread.join()
-        except:
+        except Exception:
             traceback.print_exc()
 
         logger.info('DLNAPlugin.discover()')

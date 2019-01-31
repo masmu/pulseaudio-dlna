@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 from gi.repository import GObject
 
 import socketserver
@@ -57,7 +55,7 @@ class SSDPHandler(socketserver.BaseRequestHandler):
         for encoding in [guess['encoding'], 'utf-8', 'ascii']:
             try:
                 return data.decode(encoding)
-            except:
+            except Exception:
                 pass
         logger.error('Could not decode SSDP packet.')
         return ''

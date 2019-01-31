@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import logging
 
 import notify2
@@ -29,14 +27,15 @@ def show(title, message, icon=''):
         notice = notify2.Notification(title, message, icon)
         notice.set_timeout(notify2.EXPIRES_DEFAULT)
         notice.show()
-    except:
+    except Exception:
         logger.info(
             'notify2 failed to display: {title} - {message}'.format(
                 title=title,
                 message=message))
 
+
 try:
     notify2.init('pulseaudio_dlna')
-except:
+except Exception:
     logger.error('notify2 could not be initialized! Notifications will '
                  'most likely not work.')

@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 from gi.repository import GObject
 
 import re
@@ -27,7 +25,9 @@ import socket
 import select
 import sys
 import base64
-import urllib.request, urllib.parse, urllib.error
+import urllib.request
+import urllib.parse
+import urllib.error
 import json
 import os
 import signal
@@ -120,10 +120,10 @@ class ProcessThread(threading.Thread):
                 try:
                     os.kill(pid, signal.SIGTERM)
                     _pid, return_code = os.waitpid(pid, 0)
-                except:
+                except Exception:
                     try:
                         os.kill(pid, signal.SIGKILL)
-                    except:
+                    except Exception:
                         pass
 
         chunk_size = self.CHUNK_SIZE
@@ -266,7 +266,8 @@ class StreamManager(object):
             '\n'.join(
                 ['    {}\n        {}'.format(
                     path,
-                    '        '.join([str(s) for id, s in list(streams.items())]))
+                    '        '.join(
+                        [str(s) for id, s in list(streams.items())]))
                     for path, streams in list(self.streams.items())],
             ),
         )
@@ -461,7 +462,7 @@ class GobjectMainLoopMixin:
     def _on_new_message(self, fd, condition):
         try:
             message = self.stream_queue.get_nowait()
-        except:
+        except Exception:
             return True
 
         message_type = message.get('type', None)

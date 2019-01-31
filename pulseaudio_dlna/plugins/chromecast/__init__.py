@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import logging
 import threading
 
@@ -37,7 +35,8 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
 
     def discover(self, holder, ttl=None, host=None):
         self.holder = holder
-        stop_discovery = pychromecast.get_chromecasts(blocking=False, callback=self._on_device_added)
+        stop_discovery = pychromecast.get_chromecasts(
+            blocking=False, callback=self._on_device_added)
 
         if ttl:
             t = threading.Timer(ttl, stop_discovery)
@@ -46,7 +45,8 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
 
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
     def _on_device_added(self, device):
-        return ChromecastRenderer(device, model_number, model_description, manufacturer)
+        return ChromecastRenderer(
+            device, model_number, model_description, manufacturer)
 
     @pulseaudio_dlna.plugins.BasePlugin.remove_device_after
     def _on_device_removed(self, device):

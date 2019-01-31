@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import distutils.spawn
 import inspect
 import sys
@@ -66,7 +64,6 @@ def _find_executable(path):
     # The distutils module uses python's ascii default encoding and is
     # therefore not capable of handling unicode properly when it contains
     # non-ascii characters.
-    encoding = 'utf-8'
     result = distutils.spawn.find_executable(path)
     return result
 
@@ -191,5 +188,6 @@ def load_encoders():
                     logger.debug('  {}'.format(_type))
                     ENCODERS.append(_type)
     return None
+
 
 load_encoders()

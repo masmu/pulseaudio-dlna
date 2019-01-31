@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import requests
 import urllib.parse
 import logging
@@ -161,7 +159,7 @@ def _convert_xml_to_dict(xml, strip_namespaces=True):
     try:
         xml = lxml.etree.fromstring(xml)
         return etree_to_dict(xml)
-    except:
+    except Exception:
         raise XmlParsingException(xml)
 
 
@@ -703,13 +701,13 @@ class UpnpMediaRendererFactory(object):
         try:
             xml_root = lxml.etree.fromstring(xml)
             return process_xml(url, xml_root, xml)
-        except:
+        except Exception:
             logger.debug('Got broken xml, trying to fix it.')
             xml = byto.repair_xml(xml)
             try:
                 xml_root = lxml.etree.fromstring(xml)
                 return process_xml(url, xml_root, xml)
-            except:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 logger.error('No valid XML returned from {url}.'.format(

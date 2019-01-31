@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 from gi.repository import GObject
 
 import sys
@@ -67,7 +65,7 @@ class PulseAudio(object):
                 dbus_interface='org.freedesktop.DBus.Properties')
             self.fallback_sink = PulseSinkFactory.new(
                 self.bus, fallback_sink_path)
-        except:
+        except Exception:
             logger.info(
                 'Could not get default sink. Perhaps there is no one set?')
 
@@ -444,7 +442,7 @@ class PulseSink(object):
         for stream in self.streams:
             try:
                 names.append(stream.client.name)
-            except:
+            except Exception:
                 names.append('?')
         return names
 
@@ -634,7 +632,7 @@ class PulseWatcher(PulseAudio):
     def _on_new_message(self, fd, condition):
         try:
             message = self.pulse_queue.get_nowait()
-        except:
+        except Exception:
             return True
 
         message_type = message.get('type', None)

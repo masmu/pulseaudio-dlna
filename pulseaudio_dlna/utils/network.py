@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import netifaces
 import traceback
 import socket
@@ -31,7 +29,7 @@ def default_ipv4():
     try:
         default_if = netifaces.gateways()['default'][netifaces.AF_INET][1]
         return netifaces.ifaddresses(default_if)[netifaces.AF_INET][0]['addr']
-    except:
+    except Exception:
         traceback.print_exc()
     return None
 

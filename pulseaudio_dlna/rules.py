@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import functools
 import logging
 import inspect
@@ -46,7 +44,7 @@ class BaseRule(object):
         try:
             if isinstance(other, str):
                 return type(self) is RULES[other]
-        except:
+        except Exception:
             raise RuleNotFoundException(other)
         return type(self) is type(other)
 
@@ -56,7 +54,7 @@ class BaseRule(object):
         try:
             if isinstance(other, str):
                 return type(self) > RULES[other]
-        except:
+        except Exception:
             raise RuleNotFoundException()
         return type(self) > type(other)
 
@@ -154,5 +152,6 @@ def load_rules():
                     logger.debug('  {} = {}'.format(name, _type))
                     RULES[name] = _type
     return None
+
 
 load_rules()

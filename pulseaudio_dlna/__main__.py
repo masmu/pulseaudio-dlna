@@ -115,9 +115,6 @@ Examples:
 
 '''
 
-
-
-
 import sys
 import os
 import docopt
@@ -169,6 +166,7 @@ def acquire_lock():
         return True
     except socket.error:
         return False
+
 
 if __name__ == "__main__":
     sys.exit(main())

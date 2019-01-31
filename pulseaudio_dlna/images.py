@@ -16,8 +16,6 @@
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
 
-
-
 import tempfile
 import logging
 import gi
@@ -62,7 +60,7 @@ def get_icon_by_name(name, size=256):
     try:
         gi.require_version('Gtk', '3.0')
         from gi.repository import Gtk
-    except:
+    except Exception:
         raise MissingDependencies(
             'Unable to lookup system icons!',
             ['gir1.2-gtk-3.0']
@@ -123,13 +121,13 @@ class SvgPngImage(BaseImage):
         try:
             gi.require_version('Rsvg', '2.0')
             from gi.repository import Rsvg
-        except:
+        except Exception:
             raise MissingDependencies(
                 'Unable to convert SVG image to PNG!', ['gir1.2-rsvg-2.0']
             )
         try:
             import cairo
-        except:
+        except Exception:
             raise MissingDependencies(
                 'Unable to convert SVG image to PNG!', ['cairo']
             )

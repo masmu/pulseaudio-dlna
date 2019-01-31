@@ -15,12 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-
-
 import requests
 import logging
 import urllib.parse
-import socket
 import traceback
 import lxml
 
@@ -37,10 +34,7 @@ logger = logging.getLogger('pulseaudio_dlna.plugins.chromecast.renderer')
 
 class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
 
-    def __init__(self,
-            chromecast,
-            model_number=None,
-            model_description=None):
+    def __init__(self, chromecast, model_number=None, model_description=None):
         pulseaudio_dlna.plugins.renderer.BaseRenderer.__init__(
             self,
             udn=chromecast.uuid,
@@ -74,7 +68,8 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         url = url or self.get_stream_url()
         try:
             # TODO: artist missing
-            self.chromecast.play_media(url, mime_type=self.codec.mime_type, title=title, thumb=thumb)
+            self.chromecast.play_media(
+                url, mime_type=self.codec.mime_type, title=title, thumb=thumb)
             self.state = self.STATE_PLAYING
             return 200, None
         except PyChromecastError as e:
@@ -171,7 +166,7 @@ class ChromecastRendererFactory(object):
                     model_description=None,
                     manufacturer=str(device_manufacturer.text),
                 )
-        except:
+        except Exception as e:
             logger.error('No valid XML returned from {url}.'.format(url=url))
             return None
 
@@ -191,6 +186,7 @@ class ChromecastRendererFactory(object):
             manufacturer=manufacturer, uuid=udn, cast_type=cast_type,
         )
         chromecast = Chromecast(host=ip, port=port or 8009, device=device)
-        return ChromecastRenderer(chromecast=chromecast,
+        return ChromecastRenderer(
+            chromecast=chromecast,
             model_number=model_number,
             model_description=model_description)
