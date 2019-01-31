@@ -31,7 +31,6 @@ import pulseaudio_dlna.plugins.dlna.ssdp
 import pulseaudio_dlna.plugins.dlna.ssdp.listener
 import pulseaudio_dlna.plugins.dlna.ssdp.discover
 import pulseaudio_dlna.plugins.chromecast
-# import pulseaudio_dlna.plugins.chromecast.mdns
 import pulseaudio_dlna.encoders
 import pulseaudio_dlna.covermodes
 import pulseaudio_dlna.streamserver

@@ -37,7 +37,6 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
         self.holder = holder
         stop_discovery = pychromecast.get_chromecasts(
             blocking=False, callback=self._on_device_added)
-
         if ttl:
             t = threading.Timer(ttl, stop_discovery)
             t.start()
@@ -45,8 +44,7 @@ class ChromecastPlugin(pulseaudio_dlna.plugins.BasePlugin):
 
     @pulseaudio_dlna.plugins.BasePlugin.add_device_after
     def _on_device_added(self, device):
-        return ChromecastRenderer(
-            device, model_number, model_description, manufacturer)
+        return ChromecastRendererFactory.from_pychromecast(device)
 
     @pulseaudio_dlna.plugins.BasePlugin.remove_device_after
     def _on_device_removed(self, device):
