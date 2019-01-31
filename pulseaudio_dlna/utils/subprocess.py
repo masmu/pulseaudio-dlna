@@ -72,7 +72,7 @@ class GobjectMainLoopMixin(object):
                 pipe, GObject.IO_IN | GObject.IO_PRI, self._on_new_data)
 
     def _on_new_data(self, fd, condition):
-        line = fd.readline()
+        line = fd.readline().decode('utf-8')
         sys.stdout.write(line)
         sys.stdout.flush()
         return True

@@ -248,6 +248,9 @@ class PulseAudioProcess(psutil.Process):
     def __gt__(self, other):
         return self.pid > other.pid
 
+    def __hash__(self):
+        return self.pid
+
 
 class PulseAudioFinder(object):
     @staticmethod
