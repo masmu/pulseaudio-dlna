@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
 # This file is part of pulseaudio-dlna.
@@ -30,6 +30,7 @@ Usage:
                        [--transcode-audio <transcode-audio>]
                        [--start-time=<start-time>]
                        [--sub-titles]
+                       [--debug]
                        <chromecast-host> <media-file>
 
 Options:
@@ -110,8 +111,6 @@ Examples:
 '''
 
 
-
-
 import docopt
 import logging
 import os
@@ -125,11 +124,12 @@ import json
 import shutil
 import traceback
 import re
+import errno
 import http.server
 import socketserver
+import pychromecast
 
 import pulseaudio_dlna.utils.network
-from pychromecast import Chromecast
 
 logger = logging.getLogger('chromecast-beam')
 
@@ -140,12 +140,18 @@ PORT_MAX = 65535
 
 class StoppableThread(threading.Thread):
 
+    MODE_IMMEDIATE = 'immediate'
+
     def __init__(self, *args, **kwargs):
         threading.Thread.__init__(self, *args, **kwargs)
         self.stop_event = threading.Event()
+        self.stop_mode = None
 
-    def stop(self):
-        self.stop_event.set()
+    def stop(self, immediate=False):
+        if not self.is_stopped:
+            if immediate:
+                self.stop_mode = immediate
+            self.stop_event.set()
 
     def wait(self):
         self.stop_event.wait()
@@ -162,35 +168,33 @@ class ChromecastThread(StoppableThread):
     def __init__(self, chromecast_host, media_url, mime_type=None,
                  *args, **kwargs):
         StoppableThread.__init__(self, *args, **kwargs)
+        self.chromecast_host = chromecast_host
         self.media_url = media_url
         self.mime_type = mime_type or 'video/mp4'
         self.desired_volume = 1.0
-        self.chromecast = Chromecast(host=chromecast_host, port=PORT, timeout=5)
+        self.timeout = 5
 
     def run(self):
-        def play(url, mime_type, timeout=5):
-            self.chromecast.play_media(url, mime_type)
-            muted = self.chromecast.status.volume_muted
-            volume_level = self.chromecast.status.volume_level
-            logger.info(
-                'Chromecast status: Volume {volume} ({muted})'.format(
-                    muted='Muted' if muted else 'Unmuted',
-                    volume=volume_level * 100))
-            if muted:
-                logger.info('Unmuting Chromecast ...')
-                self.chromecast.set_volume_muted(False)
-            if volume_level != self.desired_volume:
-                logger.info('Setting Chromecast volume to {} ...'.format(
-                    self.desired_volume * 100))
-                self.chromecast..set_volume(self.desired_volume)
+        chromecast = pychromecast.Chromecast(
+            host=chromecast_host, port=self.PORT, timeout=self.timeout)
 
-        def stop(timeout=5):
-            self.chromecast.media_controller.stop()
-            self.chromecast.quit_app()
+        chromecast.media_controller.play_media(
+            self.media_url,
+            content_type=self.mime_type,
+            stream_type=pychromecast.controllers.media.STREAM_TYPE_LIVE,
+            autoplay=True,
+        )
 
-        play(self.media_url, self.mime_type)
+        logger.info(
+            'Chromecast status: Volume {volume} ({muted})'.format(
+                muted='Muted'
+                if chromecast.media_controller.status.volume_muted
+                else 'Unmuted',
+                volume=chromecast.media_controller.status.volume_level * 100))
+
         self.wait()
-        stop()
+        if self.stop_mode != StoppableThread.MODE_IMMEDIATE:
+            chromecast.quit_app()
 
 
 class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
@@ -222,6 +226,8 @@ class ThreadedHTTPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 class EncoderSettings(object):
 
+    ENCODER_BINARY = '/usr/bin/vlc'
+
     TRANSCODE_USED = False
 
     TRANSCODE_VIDEO_CODEC = None
@@ -238,10 +244,13 @@ class EncoderSettings(object):
     AUDIO_TRACK = None
     AUDIO_TRACK_ID = None
 
+    TRANSCODE_VIDEO_DEFAULTS_SET = False
     TRANSCODE_VIDEO_CODEC_DEF = 'h264'
-    TRANSCODE_VIDEO_BITRATE_DEF = 800
-    TRANSCODE_VIDEO_SCALE_DEF = 'Automatisch'
+    TRANSCODE_VIDEO_BITRATE_DEF = 3000
+    TRANSCODE_VIDEO_SCALE_DEF = 'Auto'
+    TRANSCODE_VIDEO_MUX_DEF = 'mkv'
 
+    TRANSCODE_AUDIO_DEFAULTS_SET = False
     TRANSCODE_AUDIO_CODEC_DEF = 'mp3'
     TRANSCODE_AUDIO_BITRATE_DEF = 192
     TRANSCODE_AUDIO_CHANNELS_DEF = 2
@@ -259,7 +268,7 @@ class EncoderSettings(object):
                 k, v = setting.split('=')
                 data[k] = v
             return data
-        except:
+        except Exception:
             return {}
 
     @classmethod
@@ -270,12 +279,15 @@ class EncoderSettings(object):
 
     @classmethod
     def _apply_options(cls, options, option_map):
-        for option, value in list(cls._decode_settings(options).items()):
+        for option, value in cls._decode_settings(options).items():
             attribute = option_map.get(option, None)
             cls._apply_option(attribute, value)
 
     @classmethod
     def set_video_defaults(cls):
+        if cls.TRANSCODE_VIDEO_DEFAULTS_SET:
+            return
+        cls.TRANSCODE_VIDEO_DEFAULTS_SET = True
         cls._apply_option(
             'TRANSCODE_VIDEO_CODEC', cls.TRANSCODE_VIDEO_CODEC_DEF)
         cls._apply_option(
@@ -285,6 +297,9 @@ class EncoderSettings(object):
 
     @classmethod
     def set_audio_defaults(cls):
+        if cls.TRANSCODE_AUDIO_DEFAULTS_SET:
+            return
+        cls.TRANSCODE_AUDIO_DEFAULTS_SET = True
         cls._apply_option(
             'TRANSCODE_AUDIO_CODEC', cls.TRANSCODE_AUDIO_CODEC_DEF)
         cls._apply_option(
@@ -297,6 +312,29 @@ class EncoderSettings(object):
     @classmethod
     def set_options(cls, options):
         used = False
+        if options.get('--start-time', None):
+            used = True
+            cls.TRANSCODE_USED = True
+            cls.set_video_defaults()
+            cls._apply_option('START_TIME', options['--start-time'])
+        if options.get('--sub-titles', None):
+            used = True
+            cls._apply_option('SUB_TITLES', True)
+        if options.get('--audio-track', None):
+            used = True
+            cls.TRANSCODE_USED = True
+            cls.set_audio_defaults()
+            cls._apply_option('AUDIO_TRACK', options['--audio-track'])
+        if options.get('--audio-language', None):
+            used = True
+            cls.TRANSCODE_USED = True
+            cls.set_audio_defaults()
+            cls._apply_option('AUDIO_LANGUAGE', options['--audio-language'])
+        if options.get('--audio-track-id', None):
+            used = True
+            cls.TRANSCODE_USED = True
+            cls.set_audio_defaults()
+            cls._apply_option('AUDIO_TRACK_ID', options['--audio-track-id'])
         if options.get('--transcode', None):
             if options['--transcode'] in ['both', 'audio', 'video']:
                 used = True
@@ -339,21 +377,6 @@ class EncoderSettings(object):
             }
             cls.set_audio_defaults()
             cls._apply_options(options['--transcode-audio'], option_map)
-        if options.get('--audio-language', None):
-            used = True
-            cls._apply_option('AUDIO_LANGUAGE', options['--audio-language'])
-        if options.get('--audio-track', None):
-            used = True
-            cls._apply_option('AUDIO_TRACK', options['--audio-track'])
-        if options.get('--audio-track-id', None):
-            used = True
-            cls._apply_option('AUDIO_TRACK_ID', options['--audio-track-id'])
-        if options.get('--start-time', None):
-            used = True
-            cls._apply_option('START_TIME', options['--start-time'])
-        if options.get('--sub-titles', None):
-            used = True
-            cls._apply_option('SUB_TITLES', True)
         return used
 
 
@@ -381,13 +404,15 @@ class VLCEncoderSettings(EncoderSettings):
         if cls.SUB_TITLES:
             options['soverlay'] = None
         return ','.join([
-            '{}={}'.format(k, v) if v else k for k, v in list(options.items())
+            '{}={}'.format(k, v) if v else k for k, v in options.items()
         ])
 
     @classmethod
     def command(cls, file_path):
         command = [
-            'cvlc', file_path,
+            cls.ENCODER_BINARY,
+            '--intf', 'dummy',
+            file_path,
             ':play-and-exit',
             ':no-sout-all',
         ]
@@ -402,11 +427,11 @@ class VLCEncoderSettings(EncoderSettings):
         if cls.TRANSCODE_USED:
             return command + [
                 ':sout=#transcode{' + cls._transcode_cmd_str() + '}'
-                ':std{access=file,mux=mkv,dst=-}',
+                ':std{access=file,mux=' + cls.TRANSCODE_VIDEO_MUX_DEF + ',dst=-}',
             ]
         else:
             return command + [
-                ':sout=#file{access=file,mux=mkv,dst=-}',
+                ':sout=#file{access=file,mux=' + cls.TRANSCODE_VIDEO_MUX_DEF + ',dst=-}'
             ]
 
 
@@ -424,29 +449,36 @@ class DefaultRequestHandler(http.server.SimpleHTTPRequestHandler):
 class TranscodeRequestHandler(http.server.SimpleHTTPRequestHandler):
 
     def do_GET(self):
-        client_address = self.client_address[0]
-        logger.info('Serving transcoded media file to {} ...'.format(
-            client_address))
-
-        self.send_head()
-        path = self.translate_path(self.path)
-        command = VLCEncoderSettings.command(path)
-        logger.info('Launching {}'.format(command))
-
         try:
+            client_address = self.client_address[0]
+            logger.info('Serving transcoded media file to {} ...'.format(
+                client_address))
+
+            self.send_head()
+            path = self.translate_path(self.path)
+            command = VLCEncoderSettings.command(path)
+            logger.info('Launching {}'.format(command))
+
             with open(os.devnull, 'w') as dev_null:
                 encoder_process = subprocess.Popen(
-                    command, stdout=subprocess.PIPE, stderr=dev_null)
+                    command,
+                    stdout=subprocess.PIPE,
+                    stderr=sys.stdout.fileno())
                 shutil.copyfileobj(encoder_process.stdout, self.wfile)
-        except:
-            logger.info('Connection from {} closed.'.format(client_address))
-            logger.debug(traceback.format_exc())
+        except IOError as e:
+            if e.errno == errno.EPIPE:
+                logger.info(
+                    'Connection from {} closed.'.format(client_address))
+            else:
+                traceback.print_exc()
+        except Exception:
+            traceback.print_exc()
         finally:
             pid = encoder_process.pid
             logger.info('Terminating process {}'.format(pid))
             try:
                 os.kill(pid, signal.SIGKILL)
-            except:
+            except Exception:
                 pass
 
     def log_request(self, code='-', size='-'):
@@ -463,7 +495,7 @@ def get_external_ip():
 
 # Local pulseaudio-dlna installations running in a virutalenv should run this
 #   script as module:
-#     python3 -m scripts/chromecast-beam 192.168.1.10 ~/videos/test.mkv
+#     python3 -m scripts.chromecast-beam 192.168.1.10 ~/videos/test.mkv
 
 if __name__ == "__main__":
 
@@ -531,7 +563,7 @@ if __name__ == "__main__":
     try:
         http_server.serve_forever()
     except KeyboardInterrupt:
-        pass
-    finally:
         chromecast_thread.stop()
+    finally:
+        chromecast_thread.stop(immediate=True)
         chromecast_thread.join()
