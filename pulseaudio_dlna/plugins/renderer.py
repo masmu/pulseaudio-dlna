@@ -18,9 +18,6 @@
 import re
 import random
 import urllib.parse
-import urllib.request
-import urllib.parse
-import urllib.error
 import functools
 import logging
 import base64
