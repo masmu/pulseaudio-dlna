@@ -99,7 +99,7 @@ class BaseImage(object):
 
     def _read_data(self):
         try:
-            with open(self.path) as h:
+            with open(self.path, 'rb') as h:
                 self._data = h.read()
         except EnvironmentError:
             raise ImageNotAccessible(self.path)
