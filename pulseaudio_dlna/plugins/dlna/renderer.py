@@ -153,12 +153,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return int(d['GetVolumeResponse']['CurrentVolume'])
         except KeyError:
             e = MissingAttributeException('get_protocol_info')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def set_volume(self, volume):
@@ -168,7 +168,6 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
             logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
@@ -182,7 +181,6 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
             logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
@@ -193,7 +191,6 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
             logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
@@ -209,12 +206,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return mime_types
         except KeyError:
             e = MissingAttributeException('get_protocol_info')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_transport_state(self):
@@ -224,11 +221,11 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return state
         except KeyError:
             e = MissingAttributeException('get_transport_state')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_position_info(self):
@@ -238,12 +235,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return state
         except KeyError:
             e = MissingAttributeException('get_position_info')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def _update_current_state(self):
