@@ -177,6 +177,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return int(d['GetMuteResponse']['CurrentMute']) != 0
         except KeyError:
             e = MissingAttributeException('get_mute')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
