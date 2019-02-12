@@ -21,9 +21,9 @@ all: pulseaudio_dlna.egg-info
 venv:
 	@echo "venv is deprecated. It is just 'make' now."
 
-pulseaudio_dlna.egg-info: setup.py bin/pip
+pulseaudio_dlna.egg-info: setup.py bin/pip3
 	bin/pip3 install --editable . && touch $@
-bin/pip:
+bin/pip3:
 	virtualenv --system-site-packages -p $(python) .
 
 ifdef DEB_HOST_ARCH
@@ -44,7 +44,7 @@ release: manpage
 	sudo chown -R $(user) dist/
 
 manpage: man/pulseaudio-dlna.1
-	gunzip man/pulseaudio-dlna.1
+	gunzip -k man/pulseaudio-dlna.1
 
 
 man/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
@@ -55,3 +55,4 @@ clean:
 	rm -rf build dist $(shell find pulseaudio_dlna -name "__pycache__")
 	rm -rf *.egg-info *.egg bin local lib lib64 include share pyvenv.cfg
 	rm -rf docs htmlcov .coverage .tox pip-selfcheck.json
+	rm man/pulseaudio-dlna.1.gz
