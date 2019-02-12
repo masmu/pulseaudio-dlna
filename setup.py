@@ -38,18 +38,6 @@ setuptools.setup(
     py_modules=[],
     packages=setuptools.find_packages(),
     install_requires=[
-        "docopt >= 0.6.1",
-        "requests >= 2.2.1",
-        "setproctitle >= 1.1.10",
-        "notify2 >= 0.3",
-        "psutil >= 5.4.7",
-        "chardet >= 3.0.4",
-        "pyroute2 >= 0.3.5",
-        "netifaces >= 0.10.0",
-        "lxml >= 3",
-        "pychromecast >= 2.3.0",
-        "PyGObject >= 3.3.0",
-        "dbus-python >= 1.0.0",
     ],
     entry_points={
         "console_scripts": [
