@@ -44,7 +44,7 @@ release: manpage
 	sudo chown -R $(user) dist/
 
 manpage: man/pulseaudio-dlna.1
-	gunzip -k man/pulseaudio-dlna.1
+	gzip -k man/pulseaudio-dlna.1
 
 
 man/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
