@@ -22,7 +22,7 @@ venv:
 	@echo "venv is deprecated. It is just 'make' now."
 
 pulseaudio_dlna.egg-info: setup.py bin/pip
-	bin/pip install --editable . && touch $@
+	bin/pip3 install --editable . && touch $@
 bin/pip:
 	virtualenv --system-site-packages -p $(python) .
 
