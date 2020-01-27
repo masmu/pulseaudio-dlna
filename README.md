@@ -252,23 +252,21 @@ is loaded.
 These are the requirements _pulseaudio-dlna_ acutally needs to run. These dependencies
 will get installed if you install it via the PPA.
 
-- python2.7
-- python-pip
-- python-setuptools
-- python-dbus
-- python-docopt
-- python-requests
-- python-setproctitle
-- python-gi
-- python-protobuf
-- python-notify2
-- python-psutil
-- python-concurrent.futures
-- python-chardet
-- python-netifaces
-- python-pyroute2 | python-netaddr
-- python-lxml
-- python-zeroconf
+- python3
+- python3-pip
+- python3-setuptools
+- python3-dbus
+- python3-docopt
+- python3-requests
+- python3-setproctitle
+- python3-gi
+- python3-notify2
+- python3-psutil
+- python3-chardet
+- python3-netifaces
+- python3-pyroute2 | python3-netaddr
+- python3-lxml
+- python3-pychromecast
 - vorbis-tools
 - sox
 - lame
@@ -278,7 +276,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gi python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-pyroute2 python-netaddr python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python3 python3-pip python3-setuptools python3-dbus python3-docopt python3-requests python3-setproctitle python3-gi python3-notify2 python3-psutil python3-chardet python3-netifaces python3-pyroute2 python3-netaddr python3-lxml python3-pychromecast vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -314,7 +312,7 @@ So all Ubuntu versions prior to _14.10 Utopic_ need to install:
 
 All Ubuntu versions above install:
 
-    sudo apt-get install virtualenv python-dev
+    sudo apt-get install virtualenv python3-dev
 
 #### Installing & starting ####
 

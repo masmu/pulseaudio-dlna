@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -14,8 +14,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import unicode_literals
 
 import distutils.spawn
 import inspect
@@ -66,10 +64,7 @@ def _find_executable(path):
     # The distutils module uses python's ascii default encoding and is
     # therefore not capable of handling unicode properly when it contains
     # non-ascii characters.
-    encoding = 'utf-8'
-    result = distutils.spawn.find_executable(path.encode(encoding))
-    if result is not None and type(result) is str:
-        result = result.decode(encoding)
+    result = distutils.spawn.find_executable(path)
     return result
 
 
@@ -113,7 +108,7 @@ class BaseEncoder(object):
     def __str__(self):
         return '<{} available="{}">'.format(
             self.__class__.__name__,
-            unicode(self.available),
+            str(self.available),
         )
 
 
@@ -139,8 +134,8 @@ class BitRateMixin(object):
     def __str__(self):
         return '<{} available="{}" bit-rate="{}">'.format(
             self.__class__.__name__,
-            unicode(self.available),
-            unicode(self.bit_rate),
+            str(self.available),
+            str(self.bit_rate),
         )
 
 
@@ -165,9 +160,9 @@ class SamplerateChannelMixin(object):
     def __str__(self):
         return '<{} available="{}" sample-rate="{}" channels="{}">'.format(
             self.__class__.__name__,
-            unicode(self.available),
-            unicode(self.sample_rate),
-            unicode(self.channels),
+            str(self.available),
+            str(self.sample_rate),
+            str(self.channels),
         )
 
 
@@ -193,5 +188,6 @@ def load_encoders():
                     logger.debug('  {}'.format(_type))
                     ENCODERS.append(_type)
     return None
+
 
 load_encoders()

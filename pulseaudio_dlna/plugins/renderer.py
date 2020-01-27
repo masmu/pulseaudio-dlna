@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,12 +15,9 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-
 import re
 import random
-import urlparse
-import urllib
+import urllib.parse
 import functools
 import logging
 import base64
@@ -189,7 +186,7 @@ class BaseRenderer(object):
 
         missing_encoders = []
         for codec in self.codecs:
-            for identifier, encoder_type in codec.ENCODERS.items():
+            for identifier, encoder_type in list(codec.ENCODERS.items()):
                 encoder = encoder_type()
                 if encoder.binary not in missing_encoders:
                     missing_encoders.append(encoder.binary)
@@ -257,7 +254,7 @@ class BaseRenderer(object):
         raise NotImplementedError()
 
     def add_mime_type(self, mime_type):
-        for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
+        for identifier, _type in pulseaudio_dlna.codecs.CODECS.items():
             if _type.accepts(mime_type):
                 codec = _type(mime_type)
                 if codec not in self.codecs:
@@ -312,7 +309,7 @@ class BaseRenderer(object):
             codec_type = pulseaudio_dlna.codecs.CODECS[
                 codec_properties['identifier']]
             codec = codec_type(codec_properties['mime_type'])
-            for k, v in codec_properties.iteritems():
+            for k, v in codec_properties.items():
                 forbidden_attributes = ['mime_type', 'identifier', 'rules']
                 if hasattr(codec, k) and k not in forbidden_attributes:
                     setattr(codec, k, v)
@@ -338,12 +335,12 @@ class BaseRenderer(object):
             port=server_port,
         )
         data_string = ','.join(
-            ['{}="{}"'.format(k, v) for k, v in settings.iteritems()])
+            ['{}="{}"'.format(k, v) for k, v in settings.items()])
         stream_name = '/{base_string}/{suffix}'.format(
-            base_string=urllib.quote(base64.b64encode(data_string)),
+            base_string=urllib.parse.quote(base64.b64encode(data_string.encode())),
             suffix=suffix,
         )
-        return urlparse.urljoin(base_url, stream_name)
+        return urllib.parse.urljoin(base_url, stream_name)
 
     def get_stream_url(self):
         settings = {

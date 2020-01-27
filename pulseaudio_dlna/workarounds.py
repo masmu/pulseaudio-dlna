@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,12 +15,10 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-
 import logging
 from lxml import etree
 import requests
-import urlparse
+import urllib.parse
 import traceback
 
 
@@ -115,7 +113,7 @@ class YamahaWorkaround(BaseWorkaround):
             if (not self._detect_remotecontrolinterface(xml)):
                 raise Exception()
             self.enabled = True
-        except:
+        except Exception:
             logger.warning(
                 'The YamahaWorkaround initialization failed. '
                 'Automatic source switching will not be enabled'
@@ -170,7 +168,7 @@ class YamahaWorkaround(BaseWorkaround):
         control_url = xml_root.find(self.MR_YAMAHA_CONTROLURL_PATH, namespaces)
         if ((url_base is None) or (control_url is None)):
             return False
-        ip, port = urlparse.urlparse(url_base.text).netloc.split(':')
+        ip, port = urllib.parse.urlparse(url_base.text).netloc.split(':')
         if ((not ip) or (not port)):
             return False
 

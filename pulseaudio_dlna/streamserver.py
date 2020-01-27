@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-
 from gi.repository import GObject
 
 import re
@@ -27,14 +25,14 @@ import socket
 import select
 import sys
 import base64
-import urllib
+import urllib.parse
 import json
 import os
 import signal
 import pkg_resources
-import BaseHTTPServer
-import SocketServer
-import Queue
+import http.server
+import socketserver
+import queue
 import threading
 
 import pulseaudio_dlna.encoders
@@ -49,7 +47,7 @@ PROTOCOL_VERSION_V10 = 'HTTP/1.0'
 PROTOCOL_VERSION_V11 = 'HTTP/1.1'
 
 
-class ProcessQueue(Queue.Queue):
+class ProcessQueue(queue.Queue):
 
     def data(self):
         data = self.get()
@@ -120,10 +118,10 @@ class ProcessThread(threading.Thread):
                 try:
                     os.kill(pid, signal.SIGTERM)
                     _pid, return_code = os.waitpid(pid, 0)
-                except:
+                except Exception:
                     try:
                         os.kill(pid, signal.SIGKILL)
-                    except:
+                    except Exception:
                         pass
 
         chunk_size = self.CHUNK_SIZE
@@ -266,28 +264,29 @@ class StreamManager(object):
             '\n'.join(
                 ['    {}\n        {}'.format(
                     path,
-                    '        '.join([str(s) for id, s in streams.items()]))
-                    for path, streams in self.streams.items()],
+                    '        '.join(
+                        [str(s) for id, s in list(streams.items())]))
+                    for path, streams in list(self.streams.items())],
             ),
         )
 
 
-class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
+class StreamRequestHandler(http.server.BaseHTTPRequestHandler):
     def __init__(self, *args):
         try:
-            BaseHTTPServer.BaseHTTPRequestHandler.__init__(self, *args)
+            http.server.BaseHTTPRequestHandler.__init__(self, *args)
         except IOError:
             pass
 
     def do_HEAD(self):
         logger.debug('Got the following HEAD request:\n{header}'.format(
-            header=json.dumps(self.headers.items(), indent=2)))
+            header=json.dumps(list(self.headers.items()), indent=2)))
         item = self.get_requested_item()
         self.handle_headers(item)
 
     def do_GET(self):
         logger.debug('Got the following GET request:\n{header}'.format(
-            header=json.dumps(self.headers.items(), indent=2)))
+            header=json.dumps(list(self.headers.items()), indent=2)))
         item = self.get_requested_item()
         self.handle_headers(item)
         if isinstance(item, pulseaudio_dlna.images.BaseImage):
@@ -344,7 +343,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
             header=json.dumps(headers, indent=2),
         ))
         self.send_response(response_code)
-        for name, value in headers.items():
+        for name, value in list(headers.items()):
             self.send_header(name, value)
         self.end_headers()
 
@@ -385,7 +384,8 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     def _decode_settings(self, path):
         try:
             data_quoted = re.findall(r'/(.*?)/', path)[0]
-            data_string = base64.b64decode(urllib.unquote(data_quoted))
+            data_bytes = base64.b64decode(urllib.parse.unquote(data_quoted))
+            data_string = data_bytes.decode()
             settings = {
                 k: v for k, v in re.findall('(.*?)="(.*?)",?', data_string)
             }
@@ -402,7 +402,7 @@ class StreamRequestHandler(BaseHTTPServer.BaseHTTPRequestHandler):
         pass
 
 
-class StreamServer(SocketServer.TCPServer):
+class StreamServer(socketserver.TCPServer):
 
     HOST = None
     PORT = None
@@ -423,7 +423,7 @@ class StreamServer(SocketServer.TCPServer):
         self.allow_reuse_address = True
         self.daemon_threads = True
         try:
-            SocketServer.TCPServer.__init__(
+            socketserver.TCPServer.__init__(
                 self, (self.ip or '', self.port), StreamRequestHandler)
         except socket.error:
             logger.critical(
@@ -460,7 +460,7 @@ class GobjectMainLoopMixin:
     def _on_new_message(self, fd, condition):
         try:
             message = self.stream_queue.get_nowait()
-        except:
+        except Exception:
             return True
 
         message_type = message.get('type', None)
@@ -486,5 +486,5 @@ class GobjectMainLoopMixin:
 
 
 class ThreadedStreamServer(
-        GobjectMainLoopMixin, SocketServer.ThreadingMixIn, StreamServer):
+        GobjectMainLoopMixin, socketserver.ThreadingMixIn, StreamServer):
     pass
