@@ -713,6 +713,7 @@ class UpnpMediaRendererFactory(object):
                         'Device skipped! \n{}'.format(
                             device_friendlyname.text, e.xml))
         try:
+            xml = xml.decode("utf-8").replace(" urn:microsoft-com:wmc-1-0", "urn:microsoft-com:wmc-1-0").encode("utf-8")
             xml_root = lxml.etree.fromstring(xml)
             return process_xml(url, xml_root, xml)
         except Exception:
