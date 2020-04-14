@@ -65,6 +65,7 @@ class ChromecastRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
     def _create_pychromecast(self):
         chromecast = pychromecast._get_chromecast_from_host(
             (self.ip, self.port, self.udn, self.model_name, self.name))
+        chromecast.wait()
         return chromecast
 
     def play(self, url=None, codec=None, artist=None, title=None, thumb=None):
