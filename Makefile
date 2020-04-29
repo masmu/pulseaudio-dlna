@@ -21,9 +21,11 @@ all: pulseaudio_dlna.egg-info
 venv:
 	@echo "venv is deprecated. It is just 'make' now."
 
-pulseaudio_dlna.egg-info: setup.py bin/pip
+
+pulseaudio_dlna.egg-info: setup.py bin/pip3
 	bin/pip3 install --editable . && touch $@
-bin/pip:
+bin/pip3:
+
 	virtualenv --system-site-packages -p $(python) .
 
 ifdef DEB_HOST_ARCH
@@ -45,11 +47,15 @@ release: manpage
 
 manpage: man/pulseaudio-dlna.1
 
+
 man/pulseaudio-dlna.1: pulseaudio_dlna.egg-info
 	export USE_PKG_VERSION=1; help2man -n "Stream audio to DLNA devices and Chromecasts" "bin/pulseaudio-dlna" > /tmp/pulseaudio-dlna.1
 	mv /tmp/pulseaudio-dlna.1 man/pulseaudio-dlna.1
+	gzip -fk man/pulseaudio-dlna.1
+
 
 clean:
 	rm -rf build dist $(shell find pulseaudio_dlna -name "__pycache__")
 	rm -rf *.egg-info *.egg bin local lib lib64 include share pyvenv.cfg
 	rm -rf docs htmlcov .coverage .tox pip-selfcheck.json
+	rm man/pulseaudio-dlna.1.gz
