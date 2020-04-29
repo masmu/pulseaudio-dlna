@@ -21,9 +21,11 @@ all: pulseaudio_dlna.egg-info
 venv:
 	@echo "venv is deprecated. It is just 'make' now."
 
+
 pulseaudio_dlna.egg-info: setup.py bin/pip3
 	bin/pip3 install --editable . && touch $@
 bin/pip3:
+
 	virtualenv --system-site-packages -p $(python) .
 
 ifdef DEB_HOST_ARCH
