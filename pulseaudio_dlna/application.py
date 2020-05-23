@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import multiprocessing
 import signal
@@ -157,11 +157,11 @@ class Application(object):
                 SSDPDiscover.MSEARCH_PORT = int(msearch_port)
 
         if options['--create-device-config']:
-            self.create_device_config()
+            self.create_device_config(host=host)
             sys.exit(0)
 
         if options['--update-device-config']:
-            self.create_device_config(update=True)
+            self.create_device_config(update=True, host=host)
             sys.exit(0)
 
         device_config = None
@@ -213,7 +213,7 @@ class Application(object):
             logger.info('  {}'.format(encoder))
 
         logger.info('Codec settings:')
-        for identifier, _type in pulseaudio_dlna.codecs.CODECS.iteritems():
+        for identifier, _type in pulseaudio_dlna.codecs.CODECS.items():
             codec = _type()
             logger.info('  {}'.format(codec))
 
@@ -291,10 +291,10 @@ class Application(object):
         signal.signal(signal.SIGHUP, self.shutdown)
         signal.pause()
 
-    def create_device_config(self, update=False):
+    def create_device_config(self, update=False, host=None):
         logger.info('Starting discovery ...')
         holder = pulseaudio_dlna.holder.Holder(plugins=self.PLUGINS)
-        holder.search(ttl=5)
+        holder.search(ttl=20, host=host)
         logger.info('Discovery complete.')
 
         def device_filter(obj):
@@ -331,9 +331,9 @@ class Application(object):
                     continue
             try:
                 with open(config_file, 'w') as h:
-                    h.write(json_text.encode(self.ENCODING))
+                    h.write(json_text)
                     logger.info('Found the following devices:')
-                    for device in holder.devices.values():
+                    for device in list(holder.devices.values()):
                         logger.info('{name} ({flavour})'.format(
                             name=device.name, flavour=device.flavour))
                         for codec in device.codecs:
@@ -356,7 +356,7 @@ class Application(object):
             if os.path.isfile(config_file) and \
                os.access(config_file, os.R_OK):
                 with open(config_file, 'r') as h:
-                    json_text = h.read().decode(self.ENCODING)
+                    json_text = h.read()
                     logger.debug('Device configuration:\n{}'.format(json_text))
                     json_text = json_text.replace('\n', '')
                     try:

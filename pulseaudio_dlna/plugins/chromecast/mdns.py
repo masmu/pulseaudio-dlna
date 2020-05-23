@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
 
 from gi.repository import GObject
 
@@ -66,6 +65,7 @@ class MDNSListener(object):
         self.__running = True
         self.__mainloop = GObject.MainLoop()
         context = self.__mainloop.get_context()
+        logger.info('MDNSListener.run()')
         try:
             while self.__running:
                 if context.pending():
@@ -75,7 +75,6 @@ class MDNSListener(object):
         except KeyboardInterrupt:
             pass
         self.zeroconf.close()
-        logger.info('MDNSListener.run()')
 
     def shutdown(self):
         logger.info('MDNSListener.shutdown()')

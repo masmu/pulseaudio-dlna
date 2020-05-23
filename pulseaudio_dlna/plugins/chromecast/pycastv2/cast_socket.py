@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import ssl
 import socket
@@ -26,7 +26,7 @@ import time
 import traceback
 import select
 
-import cast_channel_pb2
+from . import cast_channel_pb2
 
 logger = logging.getLogger('pycastv2.cast_socket')
 
@@ -76,7 +76,7 @@ class BaseChromecastSocket(object):
     def read(self, timeout=10):
         try:
             start_time = time.time()
-            data = str('')
+            data = b''
             while len(data) < 4:
                 if time.time() - start_time > timeout:
                     raise NoResponseException()
@@ -85,7 +85,7 @@ class BaseChromecastSocket(object):
                     raise ConnectionTerminatedException()
                 data += part
             length = struct.unpack('>I', data)[0]
-            data = str('')
+            data = b''
             while len(data) < length:
                 part = self.sock.recv(2048)
                 data += part
