@@ -15,16 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import requests
-import urlparse
+import urllib.parse
 import logging
 import collections
 import lxml
 import lxml.builder
 
-import byto
+from . import byto
 
 logger = logging.getLogger('pyupnpv2')
 
@@ -138,16 +138,16 @@ def _convert_xml_to_dict(xml, strip_namespaces=True):
         if children:
             dd = defaultdict(list)
             for dc in map(etree_to_dict, children):
-                for k, v in dc.items():
+                for k, v in list(dc.items()):
                     dd[k].append(v)
             d = {
                 _tag_name(t): {
-                    k: v[0] if len(v) == 1 else v for k, v in dd.items()
+                    k: v[0] if len(v) == 1 else v for k, v in list(dd.items())
                 }
             }
         if t.attrib:
             d[_tag_name(t)].update(
-                ('@' + k, v) for k, v in t.attrib.items()
+                ('@' + k, v) for k, v in list(t.attrib.items())
             )
         if t.text:
             text = t.text.strip()
@@ -261,7 +261,7 @@ class UpnpService(object):
             xml_declaration=True, pretty_print=False, encoding='utf-8'):
 
         def _add_dict(root, dict_):
-            for tag, value in dict_.items():
+            for tag, value in list(dict_.items()):
                 if isinstance(value, dict):
                     element = lxml.etree.Element(tag)
                     _add_dict(element, value)
@@ -386,7 +386,7 @@ class UpnpService(object):
             ip=self.ip,
             port=self.port,
         )
-        return urlparse.urljoin(host, self._control_url)
+        return urllib.parse.urljoin(host, self._control_url)
 
     @property
     def event_url(self):
@@ -394,7 +394,7 @@ class UpnpService(object):
             ip=self.ip,
             port=self.port,
         )
-        return urlparse.urljoin(host, self._event_url)
+        return urllib.parse.urljoin(host, self._event_url)
 
     @property
     def scpd_url(self):
@@ -402,7 +402,7 @@ class UpnpService(object):
             ip=self.ip,
             port=self.port,
         )
-        return urlparse.urljoin(host, self._scpd_url)
+        return urllib.parse.urljoin(host, self._scpd_url)
 
 
 class UpnpAVTransportService(UpnpService):
@@ -642,7 +642,7 @@ class UpnpMediaRendererFactory(object):
     def from_xml(cls, url, xml):
 
         def process_xml(url, xml_root, xml):
-            url_object = urlparse.urlparse(url)
+            url_object = urllib.parse.urlparse(url)
             ip, port = url_object.netloc.split(':')
             services = []
             for device in xml_root.findall('.//{*}device'):
@@ -671,20 +671,20 @@ class UpnpMediaRendererFactory(object):
                     upnp_device = UpnpMediaRenderer(
                         description_xml=xml,
                         access_url=url,
-                        ip=unicode(ip),
+                        ip=str(ip),
                         port=port,
-                        name=unicode(device_friendlyname.text),
-                        udn=unicode(device_udn.text),
-                        model_name=unicode(
+                        name=str(device_friendlyname.text),
+                        udn=str(device_udn.text),
+                        model_name=str(
                             device_modelname.text) if (
                                 device_modelname is not None) else None,
-                        model_number=unicode(
+                        model_number=str(
                             device_modelnumber.text) if (
                                 device_modelnumber is not None) else None,
-                        model_description=unicode(
+                        model_description=str(
                             device_modeldescription.text) if (
                                 device_modeldescription is not None) else None,
-                        manufacturer=unicode(
+                        manufacturer=str(
                             device_manufacturer.text) if (
                                 device_manufacturer is not None) else None,
                         services=services,

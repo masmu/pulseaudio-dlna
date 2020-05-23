@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import logging
 import sys
@@ -34,10 +34,10 @@ class NotBytesException(Exception):
         )
 
 
-def decode_default(bytes):
-    if type(bytes) is not str:
-        raise NotBytesException(bytes)
-    guess = chardet.detect(bytes)
+def decode_default(input_bytes):
+    if type(input_bytes) is not bytes:
+        raise NotBytesException(input_bytes)
+    guess = chardet.detect(input_bytes)
     encodings = {
         'sys.stdout.encoding': sys.stdout.encoding,
         'locale.getpreferredencoding': locale.getpreferredencoding(),
@@ -45,19 +45,19 @@ def decode_default(bytes):
         'utf-8': 'utf-8',
         'latin1': 'latin1',
     }
-    for encoding in encodings.values():
+    for encoding in list(encodings.values()):
         if encoding and encoding != 'ascii':
             try:
-                return bytes.decode(encoding)
+                return input_bytes.decode(encoding)
             except UnicodeDecodeError:
                 continue
     try:
-        return bytes.decode('ascii', errors='replace')
+        return input_bytes.decode('ascii', errors='replace')
     except UnicodeDecodeError:
         logger.error(
             'Decoding failed using the following encodings: "{}"'.format(
                 ','.join(
-                    ['{}:{}'.format(f, e) for f, e in encodings.items()]
+                    ['{}:{}'.format(f, e) for f, e in list(encodings.items())]
                 )))
         return 'Unknown'
 

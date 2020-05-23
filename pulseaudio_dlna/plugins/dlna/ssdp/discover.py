@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import socket
 import logging
@@ -117,7 +117,7 @@ class SSDPDiscover(object):
 
     def _send_discover(self, sock, ssdp_mx):
         msg = self.MSEARCH_MSG.format(
-            host=self.SSDP_ADDRESS, port=self.SSDP_PORT, mx=ssdp_mx)
+            host=self.SSDP_ADDRESS, port=self.SSDP_PORT, mx=ssdp_mx).encode('utf-8')
         if self.USE_SINGLE_SOCKET:
             for addr in self.addresses:
                 sock.setsockopt(

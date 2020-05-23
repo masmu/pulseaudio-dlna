@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
+
 
 import requests
 import sys
@@ -94,7 +94,7 @@ class DLNADiscover():
     def _discover_devices(self):
         holder = pulseaudio_dlna.holder.Holder(self.PLUGINS)
         holder.search(ttl=self.TIMEOUT)
-        return holder.devices.values()
+        return list(holder.devices.values())
 
 
 ip_detector = IPDetector()
@@ -113,5 +113,5 @@ print(STEPS_PATTERN)
 for device in dlna_discover.devices:
     link = device.upnp_device.access_url.replace(
         device.ip, ip_detector.public_ip)
-    print(SHARE_PATTERN.format(
-        name=device.name, ip=device.ip, port=device.port, link=link))
+    print((SHARE_PATTERN.format(
+        name=device.name, ip=device.ip, port=device.port, link=link)))
