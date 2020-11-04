@@ -34,7 +34,7 @@ setuptools.setup(
         "Topic :: Multimedia :: Sound/Audio",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
-    version='0.6.1',
+    version='0.6.0',
     py_modules=[],
     packages=setuptools.find_packages(),
     install_requires=[
