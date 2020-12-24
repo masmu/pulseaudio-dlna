@@ -179,10 +179,11 @@ class ChromecastRendererFactory(object):
 
     @classmethod
     def from_pychromecast(self, pychromecast):
+        pychromecast.wait()
         return ChromecastRenderer(
             name=pychromecast.name,
-            ip=pychromecast.host,
-            port=pychromecast.port,
+            ip=pychromecast.socket_client.host,
+            port=pychromecast.socket_client.port,
             udn='uuid:{}'.format(pychromecast.uuid),
             model_name=pychromecast.model_name,
             model_number=None,
