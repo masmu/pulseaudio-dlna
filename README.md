@@ -41,7 +41,7 @@ If I could help you or if you like my work, you can buy me a [coffee, a beer or 
 
     - Pulled some outstanding fixes waiting on masmu's repo
     - mfdgroot fixed compatibility with pychromecast 7.5.1
-    - bumpbed version to 6.1
+    - bumped version to 6.1
 
  * __master__ - (_2017-04-06_)
     - Fixed a bug where the detection of DLNA devices failed when there were multiple network interfaces
