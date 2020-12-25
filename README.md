@@ -1,4 +1,6 @@
 # About #
+*Cygn:* This fork takes over masmu/python3 with various fixes, mostly tweaks and evolutions on Fedora, with the help of community.
+
 <img align="left" src="samples/images/application.png">
 
 This is _pulseaudio-dlna_. A lightweight streaming server which brings DLNA / UPNP
@@ -35,6 +37,11 @@ UPNP renderers in your network will show up as pulseaudio sinks.
 If I could help you or if you like my work, you can buy me a [coffee, a beer or pizza](https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=totalexceed%40lancode%2ede&item_name=Donation&no_shipping=2&no_note=1&tax=0&currency_code=EUR&bn=PP%2dDonationsBF&charset=UTF%2d8).
 
 ## Changelog ##
+ * __python3__ - (_2020-12-25_)
+
+    - Pulled some outstanding fixes waiting on masmu's repo
+    - mfdgroot fixed compatibility with pychromecast 7.5.1
+    - bumpbed version to 6.1
 
  * __master__ - (_2017-04-06_)
     - Fixed a bug where the detection of DLNA devices failed when there were multiple network interfaces
