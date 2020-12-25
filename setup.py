@@ -22,13 +22,15 @@ setuptools.setup(
     name="pulseaudio-dlna",
     author="Massimo Mund",
     author_email="mo@lancode.de",
-    url="https://github.com/masmu/pulseaudio-dlna",
+    maintainer="Sinan H",
+    maintainer_email="cygn@lamad.net",
+    platforms="GNU/linux",
+    url="https://github.com/cygn/pulseaudio-dlna",
     description="A small DLNA server which brings DLNA / UPNP support"
                 "to PulseAudio and Linux.",
     license="GPLv3",
-    platforms="Debian GNU/Linux",
     classifiers=[
-        "Development Status :: 4 - Beta",
+        "Development Status :: 6 - Beta",
         "Programming Language :: Python :: 3",
         "Environment :: Console",
         "Topic :: Multimedia :: Sound/Audio",
