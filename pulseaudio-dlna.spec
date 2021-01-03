@@ -66,6 +66,7 @@ rm -rf $RPM_BUILD_ROOT
 # Note that there is no %%files section for the unversioned python module
 %files -n %{name} 
 %doc README.md
+%license LICENSE
 %{python3_sitelib}/%{srcname}-*.egg-info/ 
 %{python3_sitelib}/%{srcname}/
 %{_bindir}/pulseaudio-dlna
