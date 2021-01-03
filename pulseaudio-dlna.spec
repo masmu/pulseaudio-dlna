@@ -70,4 +70,4 @@ rm -rf $RPM_BUILD_ROOT
 %{python3_sitelib}/%{srcname}-*.egg-info/ 
 %{python3_sitelib}/%{srcname}/
 %{_bindir}/pulseaudio-dlna
-%{_mandir}/man1/%{name}.1.gz
+%{_mandir}/man1/%{name}.1*
