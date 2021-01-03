@@ -36,7 +36,7 @@ Requires:	python3-zeroconf
 Requires:	python3-urllib3
 Requires:	python3-psutil
 Requires:	python3-pyroute2
-Requires:       python3-chromecast
+Requires:       python3-chromecast >= 7.5.1
 Requires:       python3-notify2
 Requires:	sox
 Requires:	vorbis-tools
