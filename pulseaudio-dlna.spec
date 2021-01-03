@@ -1,8 +1,9 @@
 %define name pulseaudio-dlna
+%define srcname pulseaudio_dlna
 %define version 0.6.1
 %define unmangled_version 0.6.1
 %define unmangled_version 0.6.1
-%define release 2
+%define release 3
 
 Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
 Name: %{name}
@@ -34,7 +35,7 @@ Requires:	python3-zeroconf
 Requires:	python3-urllib3
 Requires:	python3-psutil
 Requires:	python3-pyroute2
-Requires:       python3-chromecast >= 7.5.1
+Requires:       python3-chromecast
 Requires:       python3-notify2
 Requires:	sox
 Requires:	vorbis-tools
@@ -48,16 +49,24 @@ https://github.com/cygn/pulseaudio-dlna
 
 
 %prep
-%setup -n %{name}-%{unmangled_version} -n %{name}-%{unmangled_version}
+%autosetup -n %{name}-%{unmangled_version}
 
 %build
-python3 setup.py build
+%py3_build
 
 %install
-python3 setup.py install --single-version-externally-managed -O1 --root=$RPM_BUILD_ROOT --record=INSTALLED_FILES
+%py3_install
+
+%check
+%{python3} setup.py test
 
 %clean
 rm -rf $RPM_BUILD_ROOT
 
-%files -f INSTALLED_FILES
-%defattr(-,root,root)
+# Note that there is no %%files section for the unversioned python module
+%files -n %{name} 
+%doc README.md
+%{python3_sitelib}/%{srcname}-*.egg-info/ 
+%{python3_sitelib}/%{srcname}/
+%{_bindir}/pulseaudio-dlna
+%{_mandir}/man1/%{name}.1.gz
