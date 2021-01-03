@@ -28,7 +28,7 @@ setuptools.setup(
     url="https://github.com/cygn/pulseaudio-dlna",
     description="A small DLNA server which brings DLNA / UPNP support"
                 "to PulseAudio and Linux.",
-    license="GPLv3",
+    license="License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     classifiers=[
         "Development Status :: 6 - Beta",
         "Programming Language :: Python :: 3",
