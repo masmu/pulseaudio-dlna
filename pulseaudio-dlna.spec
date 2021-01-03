@@ -3,7 +3,7 @@
 %define version 0.6.1
 %define unmangled_version 0.6.1
 %define unmangled_version 0.6.1
-%define release 5
+%define release 6
 
 Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
 Name: %{name}
@@ -49,7 +49,7 @@ It can stream your current PulseAudio playback to different UPNP devices (UPNP M
 https://github.com/cygn/pulseaudio-dlna 
 
 %pre
-rm -rf %%{python3_sitelib}/%{srcname}*
+rm -rf %{python3_sitelib}/%{srcname}*
 
 %prep
 %autosetup -n %{name}-%{unmangled_version}
