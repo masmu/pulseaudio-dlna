@@ -40,6 +40,22 @@ setuptools.setup(
     py_modules=[],
     packages=setuptools.find_packages(),
     install_requires=[
+    'docopt',
+    'chardet',
+    'gobject',
+    'dbus',
+    'docopt',
+    'requests',
+    'setprocfile',
+    'protobuf',
+    'lxml',
+    'netifaces',
+    'zeroconf',
+    'urlib3',
+    'psutil',
+    'pyroute2',
+    'notify2',
+    'pychromecast>=7'    
     ],
     entry_points={
         "console_scripts": [

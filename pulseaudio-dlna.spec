@@ -3,7 +3,7 @@
 %define version 0.6.1
 %define unmangled_version 0.6.1
 %define unmangled_version 0.6.1
-%define release 6
+%define release 7
 
 Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
 Name: %{name}
@@ -22,22 +22,6 @@ Packager: Sinan H <sinan@haliyo.net>
 BuildRequires: 	python3-setuptools
 BuildRequires:	python3-pip
 BuildRequires:  python3-devel
-Requires:       python3-docopt
-Requires:       python3-chardet
-Requires:	python3-gobject
-Requires: 	python3-dbus
-Requires: 	python3-docopt
-Requires:	python3-requests
-Requires:	python3-setproctitle
-Requires:	python3-protobuf
-Requires:	python3-lxml
-Requires:	python3-netifaces
-Requires:	python3-zeroconf
-Requires:	python3-urllib3
-Requires:	python3-psutil
-Requires:	python3-pyroute2
-Requires:       python3-chromecast >= 7.5.1
-Requires:       python3-notify2
 Requires:	sox
 Requires:	vorbis-tools
 
