@@ -22,6 +22,7 @@ Packager: Sinan H <sinan@haliyo.net>
 BuildRequires: 	python3-setuptools
 BuildRequires:	python3-pip
 BuildRequires:  python3-devel
+Requires:           python3-gobject
 Requires:	sox
 Requires:	vorbis-tools
 
