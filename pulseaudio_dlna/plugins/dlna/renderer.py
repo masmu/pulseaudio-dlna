@@ -200,6 +200,15 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         try:
             d = self.upnp_device.get_protocol_info()
             sinks = d['GetProtocolInfoResponse']['Sink']
+            # check if mime types are parsable
+            if type(sinks) is not str:
+                logger.warn("Could not parse mime types of type ")
+                logger.warn(type(sinks))
+                logger.warn(
+                    "It is possible that you are able to use this device "
+                    + "by specifying a codec if it is not working. "
+                    + "Use these flags: \"--codec flac --disable-mimetype-check\"")
+                return [] # return empty array - no mime types
             for sink in sinks.split(','):
                 attributes = sink.strip().split(':')
                 if len(attributes) >= 4:
