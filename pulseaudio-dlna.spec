@@ -1,9 +1,9 @@
 %define name pulseaudio-dlna
 %define srcname pulseaudio_dlna
-%define version 0.6.1
-%define unmangled_version 0.6.1
-%define unmangled_version 0.6.1
-%define release 7
+%define version 0.6.2
+%define unmangled_version 0.6.2
+%define unmangled_version 0.6.2
+%define release 1
 
 Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
 Name: %{name}

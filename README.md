@@ -1,6 +1,16 @@
 # About #
-*Cygn:* This fork takes over masmu/python3 with various fixes and patches, with the help of community.
-- Avalaible as RPM on Fedora [COPR](https://copr.fedorainfracloud.org/coprs/cygn/pulseaudio-dlna/)
+*Cygn:* This fork takes over masmu/python3 with various fixes and patches, with the help of community, with fedora packaging in my mind. Other distributions should work too.
+- Avalaible as RPM for Fedora / RH flavours on [COPR](https://copr.fedorainfracloud.org/coprs/cygn/pulseaudio-dlna/)
+
+- *Fedora 34:* You need to switch pipeware back to pulseaudio:
+
+    dnf swap --allowerasing pipewire-pulseaudio pulseaudio
+
+- *Fedora 35:* You need to disable wireplumber:
+    
+    systemctl --user mask wireplumber.service
+
+______________________________________________________________
 
 <img align="left" src="samples/images/application.png">
 
