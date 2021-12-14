@@ -54,7 +54,9 @@ setuptools.setup(
     'psutil',
     'pyroute2',
     'notify2',
-    'pychromecast>=7'    
+    'pychromecast>=7',
+    'gobject',
+    'PyGObject',
     ],
     entry_points={
         "console_scripts": [
