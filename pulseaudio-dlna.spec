@@ -2,7 +2,7 @@
 
 Name: pulseaudio-dlna
 Version: 0.6.3
-Release: 4
+Release: 5
 Source0: %{name}-%{version}.tar.gz
 License: GPLv3
 Group: Development/Libraries
@@ -32,7 +32,7 @@ https://github.com/cygn/pulseaudio-dlna
 rm -rf %{python3_sitelib}/%{srcname}*
 
 %prep
-%autosetup -n %{name}-%{unmangled_version}
+%autosetup -n %{name}-%{version}
 
 %build
 %py3_build
@@ -53,6 +53,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Mon Dec 27 2021 Sinan Haliyo <sinan.haliyo@upmc.fr> 0.6.3-5
+- 
+
 * Mon Dec 27 2021 Sinan Haliyo <sinan.haliyo@upmc.fr> 0.6.3-4
 - new release (sinan.haliyo@upmc.fr)
 
