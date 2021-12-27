@@ -3,7 +3,7 @@
 %define version 0.6.3
 %define unmangled_version 0.6.3
 %define unmangled_version 0.6.3
-%define release 1
+%define release 2
 
 Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
 Name: %{name}
