@@ -7,7 +7,7 @@
 
 Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
 Name: %{name}
-Version: %{version}
+Version: 0.6.3
 Release: %{release}
 Source0: %{name}-%{unmangled_version}.tar.gz
 License: GPLv3
