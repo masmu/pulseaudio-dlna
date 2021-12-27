@@ -2,7 +2,7 @@
 
 Name: pulseaudio-dlna
 Version: 0.6.3
-Release: 3
+Release: 4
 Source0: %{name}-%{version}.tar.gz
 License: GPLv3
 Group: Development/Libraries
@@ -53,6 +53,9 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Mon Dec 27 2021 Sinan Haliyo <sinan.haliyo@upmc.fr> 0.6.3-4
+- new release (sinan.haliyo@upmc.fr)
+
 * Mon Dec 27 2021 Sinan Haliyo <sinan.haliyo@upmc.fr> 0.6.3-3
 - new package built with tito
 
