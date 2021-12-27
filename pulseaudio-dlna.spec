@@ -1,14 +1,8 @@
-%define name pulseaudio-dlna
-%define srcname pulseaudio_dlna
-%define version 0.6.3
-%define unmangled_version 0.6.3
-%define unmangled_version 0.6.3
-%define release 2
+%global srcname pulseaudio_dlna
 
-Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
-Name: %{name}
+Name: pulseaudio-dlna
 Version: 0.6.3
-Release: %{release}
+Release: 3
 Source0: %{name}-%{unmangled_version}.tar.gz
 License: GPLv3
 Group: Development/Libraries
@@ -18,11 +12,12 @@ BuildArch: noarch
 Vendor: Massimo Mund <mo@lancode.de>
 Url: https://github.com/cygn/pulseaudio-dlna
 Packager: Sinan H <sinan@haliyo.net>
+Summary: A small DLNA server which brings DLNA / UPNP support to PulseAudio and Linux.
 
 BuildRequires: 	python3-setuptools
 BuildRequires:	python3-pip
 BuildRequires:  python3-devel
-Requires:           python3-gobject
+Requires:       python3-gobject
 Requires:	sox
 Requires:	vorbis-tools
 
@@ -56,3 +51,13 @@ rm -rf $RPM_BUILD_ROOT
 %{python3_sitelib}/%{srcname}/
 %{_bindir}/pulseaudio-dlna
 %{_mandir}/man1/%{name}.1*
+
+%changelog
+* Mon Dec 27 2021 Sinan Haliyo <sinan.haliyo@upmc.fr> 0.6.3-3
+- new package built with tito
+
+* Mon Dec 27 2021 Sinan Haliyo <sinan.haliyo@upmc.fr>
+- new package built with tito
+
+
+
