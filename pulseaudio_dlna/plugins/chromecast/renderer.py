@@ -188,5 +188,5 @@ class ChromecastRendererFactory(object):
             model_name=pychromecast.model_name,
             model_number=None,
             model_description=None,
-            manufacturer=pychromecast.device.manufacturer,
+            manufacturer=pychromecast.cast_info.manufacturer,
         )
