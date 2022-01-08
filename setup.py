@@ -55,7 +55,6 @@ setuptools.setup(
     'pyroute2',
     'notify2',
     'pychromecast>=7',
-    'pychromecast<10',
     'gobject',
     'PyGObject',
     ],
