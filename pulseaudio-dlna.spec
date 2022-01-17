@@ -1,8 +1,8 @@
 %global srcname pulseaudio_dlna
 
 Name: pulseaudio-dlna
-Version: 0.6.3
-Release: 6
+Version: 0.6.4
+Release: 1
 Source0: %{name}-%{version}.tar.gz
 License: GPLv3
 Group: Development/Libraries
@@ -53,6 +53,10 @@ rm -rf $RPM_BUILD_ROOT
 %{_mandir}/man1/%{name}.1*
 
 %changelog
+* Sat Jan 08 2022 Sinan Haliyo <sinan.haliyo@upmc.fr> 0.6.4-1
+- pychromecast 10 compatiblity (Cygn@users.noreply.github.com)
+- pychromecast 10 compatible now (Cygn@users.noreply.github.com)
+
 * Thu Jan 06 2022 cygn <sinan@lamad.net> 0.6.3-6
 - 
 
