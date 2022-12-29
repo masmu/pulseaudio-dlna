@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -14,9 +14,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import absolute_import
-from __future__ import unicode_literals
 
 from gi.repository import GObject
 
@@ -75,7 +72,7 @@ class GobjectMainLoopMixin(object):
                 pipe, GObject.IO_IN | GObject.IO_PRI, self._on_new_data)
 
     def _on_new_data(self, fd, condition):
-        line = fd.readline()
+        line = fd.readline().decode('utf-8')
         sys.stdout.write(line)
         sys.stdout.flush()
         return True

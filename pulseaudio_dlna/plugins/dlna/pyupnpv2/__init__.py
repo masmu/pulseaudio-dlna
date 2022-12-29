@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,16 +15,16 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-
 import requests
-import urlparse
+import urllib.parse
 import logging
 import collections
+import urllib.parse
+import os
 import lxml
 import lxml.builder
 
-import byto
+from . import byto
 
 logger = logging.getLogger('pyupnpv2')
 
@@ -138,16 +138,16 @@ def _convert_xml_to_dict(xml, strip_namespaces=True):
         if children:
             dd = defaultdict(list)
             for dc in map(etree_to_dict, children):
-                for k, v in dc.items():
+                for k, v in list(dc.items()):
                     dd[k].append(v)
             d = {
                 _tag_name(t): {
-                    k: v[0] if len(v) == 1 else v for k, v in dd.items()
+                    k: v[0] if len(v) == 1 else v for k, v in list(dd.items())
                 }
             }
         if t.attrib:
             d[_tag_name(t)].update(
-                ('@' + k, v) for k, v in t.attrib.items()
+                ('@' + k, v) for k, v in list(t.attrib.items())
             )
         if t.text:
             text = t.text.strip()
@@ -161,7 +161,7 @@ def _convert_xml_to_dict(xml, strip_namespaces=True):
     try:
         xml = lxml.etree.fromstring(xml)
         return etree_to_dict(xml)
-    except:
+    except Exception:
         raise XmlParsingException(xml)
 
 
@@ -207,16 +207,19 @@ class UpnpContentFeatures(object):
 class UpnpServiceFactory(object):
 
     @classmethod
-    def from_dict(cls, ip, port, service, request):
+    def from_dict(cls, ip, port, service, access_url, request):
         if service['service_type'].startswith(
                 '{}:'.format(SERVICE_TYPE_AVTRANSPORT)):
-            return UpnpAVTransportService(ip, port, service, request)
+            return UpnpAVTransportService(
+                ip, port, service, access_url, request)
         elif service['service_type'].startswith(
                 '{}:'.format(SERVICE_TYPE_CONNECTION_MANAGER)):
-            return UpnpConnectionManagerService(ip, port, service, request)
+            return UpnpConnectionManagerService(
+                ip, port, service, access_url, request)
         elif service['service_type'].startswith(
                 '{}:'.format(SERVICE_TYPE_RENDERING_CONTROL)):
-            return UpnpRenderingControlService(ip, port, service, request)
+            return UpnpRenderingControlService(
+                ip, port, service, access_url, request)
         else:
             raise UnsupportedServiceTypeException(service['service_type'])
 
@@ -226,19 +229,28 @@ class UpnpService(object):
     ENCODING = 'utf-8'
     TIMEOUT = 10
 
-    def __init__(self, ip, port, service, request=None):
+    def __init__(self, ip, port, service, access_url, request=None):
 
         self.ip = ip
         self.port = port
         self.supported_actions = []
+        self.access_url = access_url
 
         self._request = request or requests
         self._service_type = service['service_type']
-        self._control_url = service['control_url']
-        self._event_url = service['eventsub_url']
-        self._scpd_url = service['scpd_url']
+        self._control_url = self._ensure_absolute_url(service['control_url'])
+        self._event_url = self._ensure_absolute_url(service['eventsub_url'])
+        self._scpd_url = self._ensure_absolute_url(service['scpd_url'])
 
         self._update_supported_actions()
+
+    def _ensure_absolute_url(self, url):
+        if not url.startswith('/'):
+            url_object = urllib.parse.urlparse(self.access_url)
+            access_url_path = os.path.dirname(url_object.path)
+            return os.path.join('/', access_url_path, url)
+        else:
+            return url
 
     def _update_supported_actions(self):
         self.supported_actions = []
@@ -261,7 +273,7 @@ class UpnpService(object):
             xml_declaration=True, pretty_print=False, encoding='utf-8'):
 
         def _add_dict(root, dict_):
-            for tag, value in dict_.items():
+            for tag, value in list(dict_.items()):
                 if isinstance(value, dict):
                     element = lxml.etree.Element(tag)
                     _add_dict(element, value)
@@ -336,7 +348,7 @@ class UpnpService(object):
         try:
             response = None
             response = self._request.post(
-                url, data=data.encode(self.ENCODING), headers=headers,
+                url, data=data, headers=headers,
                 timeout=self.TIMEOUT)
             return response
         finally:
@@ -386,7 +398,7 @@ class UpnpService(object):
             ip=self.ip,
             port=self.port,
         )
-        return urlparse.urljoin(host, self._control_url)
+        return urllib.parse.urljoin(host, self._control_url)
 
     @property
     def event_url(self):
@@ -394,7 +406,7 @@ class UpnpService(object):
             ip=self.ip,
             port=self.port,
         )
-        return urlparse.urljoin(host, self._event_url)
+        return urllib.parse.urljoin(host, self._event_url)
 
     @property
     def scpd_url(self):
@@ -402,7 +414,7 @@ class UpnpService(object):
             ip=self.ip,
             port=self.port,
         )
-        return urlparse.urljoin(host, self._scpd_url)
+        return urllib.parse.urljoin(host, self._scpd_url)
 
 
 class UpnpAVTransportService(UpnpService):
@@ -537,7 +549,7 @@ class UpnpMediaRenderer(object):
         for service in services:
             try:
                 service = UpnpServiceFactory.from_dict(
-                    ip, port, service, self._request)
+                    ip, port, service, access_url, self._request)
                 if isinstance(service, UpnpAVTransportService):
                     self.av_transport = service
                 if isinstance(service, UpnpConnectionManagerService):
@@ -642,7 +654,7 @@ class UpnpMediaRendererFactory(object):
     def from_xml(cls, url, xml):
 
         def process_xml(url, xml_root, xml):
-            url_object = urlparse.urlparse(url)
+            url_object = urllib.parse.urlparse(url)
             ip, port = url_object.netloc.split(':')
             services = []
             for device in xml_root.findall('.//{*}device'):
@@ -671,20 +683,20 @@ class UpnpMediaRendererFactory(object):
                     upnp_device = UpnpMediaRenderer(
                         description_xml=xml,
                         access_url=url,
-                        ip=unicode(ip),
+                        ip=str(ip),
                         port=port,
-                        name=unicode(device_friendlyname.text),
-                        udn=unicode(device_udn.text),
-                        model_name=unicode(
+                        name=str(device_friendlyname.text),
+                        udn=str(device_udn.text),
+                        model_name=str(
                             device_modelname.text) if (
                                 device_modelname is not None) else None,
-                        model_number=unicode(
+                        model_number=str(
                             device_modelnumber.text) if (
                                 device_modelnumber is not None) else None,
-                        model_description=unicode(
+                        model_description=str(
                             device_modeldescription.text) if (
                                 device_modeldescription is not None) else None,
-                        manufacturer=unicode(
+                        manufacturer=str(
                             device_manufacturer.text) if (
                                 device_manufacturer is not None) else None,
                         services=services,
@@ -703,13 +715,13 @@ class UpnpMediaRendererFactory(object):
         try:
             xml_root = lxml.etree.fromstring(xml)
             return process_xml(url, xml_root, xml)
-        except:
+        except Exception:
             logger.debug('Got broken xml, trying to fix it.')
             xml = byto.repair_xml(xml)
             try:
                 xml_root = lxml.etree.fromstring(xml)
                 return process_xml(url, xml_root, xml)
-            except:
+            except Exception:
                 import traceback
                 traceback.print_exc()
                 logger.error('No valid XML returned from {url}.'.format(

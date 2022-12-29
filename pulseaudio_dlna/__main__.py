@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -115,9 +115,6 @@ Examples:
 
 '''
 
-
-from __future__ import unicode_literals
-
 import sys
 import os
 import docopt
@@ -169,6 +166,7 @@ def acquire_lock():
         return True
     except socket.error:
         return False
+
 
 if __name__ == "__main__":
     sys.exit(main())

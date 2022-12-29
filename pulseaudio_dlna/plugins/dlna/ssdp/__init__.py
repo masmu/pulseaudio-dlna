@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,15 +15,13 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-
 import re
 
 
 def _get_header_map(header):
     header = re.findall(r"(?P<name>.*?):(?P<value>.*?)\n", header)
     header = {
-        k.strip().lower(): v.strip() for k, v in dict(header).items()
+        k.strip().lower(): v.strip() for k, v in list(dict(header).items())
     }
     return header
 

@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-from __future__ import with_statement
 
 import tempfile
 import logging
@@ -62,7 +60,7 @@ def get_icon_by_name(name, size=256):
     try:
         gi.require_version('Gtk', '3.0')
         from gi.repository import Gtk
-    except:
+    except Exception:
         raise MissingDependencies(
             'Unable to lookup system icons!',
             ['gir1.2-gtk-3.0']
@@ -99,7 +97,7 @@ class BaseImage(object):
 
     def _read_data(self):
         try:
-            with open(self.path) as h:
+            with open(self.path, 'rb') as h:
                 self._data = h.read()
         except EnvironmentError:
             raise ImageNotAccessible(self.path)
@@ -123,13 +121,13 @@ class SvgPngImage(BaseImage):
         try:
             gi.require_version('Rsvg', '2.0')
             from gi.repository import Rsvg
-        except:
+        except Exception:
             raise MissingDependencies(
                 'Unable to convert SVG image to PNG!', ['gir1.2-rsvg-2.0']
             )
         try:
             import cairo
-        except:
+        except Exception:
             raise MissingDependencies(
                 'Unable to convert SVG image to PNG!', ['cairo']
             )

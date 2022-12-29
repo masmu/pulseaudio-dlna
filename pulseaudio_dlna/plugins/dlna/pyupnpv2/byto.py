@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -17,7 +17,7 @@
 
 """A module which runs things without importing unicode_literals
 
-Sometimes you want pythons builtin functions just to run on raw bytes. Since
+Sometimes you want python3s builtin functions just to run on raw bytes. Since
 the unicode_literals module changes that behavior for many string manipulations
 this module is a workarounds for not using future.utils.bytes_to_native_str
 method.
@@ -27,16 +27,15 @@ method.
 import re
 
 
-def repair_xml(bytes):
-
+def repair_xml(xml_bytes):
     def strip_namespaces(match):
-        return 'xmlns{prefix}="{content}"'.format(
-            prefix=match.group(1) if match.group(1) else '',
-            content=match.group(2).strip(),
+        return b'xmlns%s="%s"' % (
+            match.group(1) if match.group(1) else b"",
+            match.group(2).strip(),
         )
 
-    bytes = re.sub(
-        r'xmlns(:.*?)?="(.*?)"', strip_namespaces, bytes,
-        flags=re.IGNORECASE)
+    xml_bytes = re.sub(
+        b'xmlns(:.*?)?="(.*?)"', strip_namespaces, xml_bytes, flags=re.IGNORECASE
+    )
 
-    return bytes
+    return xml_bytes

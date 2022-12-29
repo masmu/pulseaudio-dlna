@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -15,8 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
 
-from __future__ import unicode_literals
-
 import logging
 import time
 import traceback
@@ -27,7 +25,7 @@ import pulseaudio_dlna.workarounds
 import pulseaudio_dlna.codecs
 import pulseaudio_dlna.rules
 import pulseaudio_dlna.plugins.renderer
-import pyupnpv2
+from . import pyupnpv2
 
 logger = logging.getLogger('pulseaudio_dlna.plugins.dlna.renderer')
 
@@ -123,8 +121,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException,
                 pulseaudio_dlna.plugins.renderer.NoEncoderFoundException,
-                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException)\
-                as e:
+                pulseaudio_dlna.plugins.renderer.NoSuitableHostFoundException) as e:
             return 500, '"{}" : {}'.format(self.label, str(e))
         except Exception:
             traceback.print_exc()
@@ -156,12 +153,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return int(d['GetVolumeResponse']['CurrentVolume'])
         except KeyError:
             e = MissingAttributeException('get_protocol_info')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def set_volume(self, volume):
@@ -171,8 +168,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_mute(self):
@@ -181,12 +177,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return int(d['GetMuteResponse']['CurrentMute']) != 0
         except KeyError:
             e = MissingAttributeException('get_mute')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def set_mute(self, mute):
@@ -196,8 +192,7 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_mime_types(self):
@@ -205,6 +200,17 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
         try:
             d = self.upnp_device.get_protocol_info()
             sinks = d['GetProtocolInfoResponse']['Sink']
+            # check if mime types are parsable
+            if type(sinks) is dict and '#text' in sinks:
+                sinks = sinks['#text']
+            if type(sinks) is not str:
+                logger.warn("Could not parse mime types of type ")
+                logger.warn(type(sinks))
+                logger.warn(
+                    "It is possible that you are able to use this device "
+                    + "by specifying a codec if it is not working. "
+                    + "Use these flags: \"--codec flac --disable-mimetype-check\"")
+                return [] # return empty array - no mime types
             for sink in sinks.split(','):
                 attributes = sink.strip().split(':')
                 if len(attributes) >= 4:
@@ -212,12 +218,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return mime_types
         except KeyError:
             e = MissingAttributeException('get_protocol_info')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_transport_state(self):
@@ -227,11 +233,11 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return state
         except KeyError:
             e = MissingAttributeException('get_transport_state')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def get_position_info(self):
@@ -241,12 +247,12 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             return state
         except KeyError:
             e = MissingAttributeException('get_position_info')
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         except (pyupnpv2.UnsupportedActionException,
                 pyupnpv2.XmlParsingException,
                 pyupnpv2.ConnectionErrorException,
                 pyupnpv2.ConnectionTimeoutException) as e:
-            pass
-        logger.error('"{}" : {}'.format(self.label, str(e)))
+            logger.error('"{}" : {}'.format(self.label, str(e)))
         return None
 
     def _update_current_state(self):

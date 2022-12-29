@@ -1,4 +1,17 @@
 # About #
+*Cygn:* This fork takes over masmu/python3 with various fixes and patches, with the help of community, with fedora packaging in mind. Other distributions should work too.
+- Avalaible as RPM for Fedora / RH flavours on [COPR](https://copr.fedorainfracloud.org/coprs/cygn/pulseaudio-dlna/)
+
+- *Fedora 34:* You need to switch pipeware back to pulseaudio:
+
+    dnf swap --allowerasing pipewire-pulseaudio pulseaudio
+
+- *Fedora 35:* You need to disable wireplumber:
+    
+    systemctl --user mask wireplumber.service
+
+______________________________________________________________
+
 <img align="left" src="samples/images/application.png">
 
 This is _pulseaudio-dlna_. A lightweight streaming server which brings DLNA / UPNP
@@ -35,6 +48,11 @@ UPNP renderers in your network will show up as pulseaudio sinks.
 If I could help you or if you like my work, you can buy me a [coffee, a beer or pizza](https://www.paypal.com/cgi-bin/webscr?cmd=_xclick&business=totalexceed%40lancode%2ede&item_name=Donation&no_shipping=2&no_note=1&tax=0&currency_code=EUR&bn=PP%2dDonationsBF&charset=UTF%2d8).
 
 ## Changelog ##
+ * __python3__ - (_2020-12-25_)
+
+    - Pulled some outstanding fixes waiting on masmu's repo
+    - mfdgroot fixed compatibility with pychromecast 7.5.1
+    - bumped version to 6.1
 
  * __master__ - (_2017-04-06_)
     - Fixed a bug where the detection of DLNA devices failed when there were multiple network interfaces
@@ -252,23 +270,21 @@ is loaded.
 These are the requirements _pulseaudio-dlna_ acutally needs to run. These dependencies
 will get installed if you install it via the PPA.
 
-- python2.7
-- python-pip
-- python-setuptools
-- python-dbus
-- python-docopt
-- python-requests
-- python-setproctitle
-- python-gi
-- python-protobuf
-- python-notify2
-- python-psutil
-- python-concurrent.futures
-- python-chardet
-- python-netifaces
-- python-pyroute2 | python-netaddr
-- python-lxml
-- python-zeroconf
+- python3
+- python3-pip
+- python3-setuptools
+- python3-dbus
+- python3-docopt
+- python3-requests
+- python3-setproctitle
+- python3-gi
+- python3-notify2
+- python3-psutil
+- python3-chardet
+- python3-netifaces
+- python3-pyroute2 | python3-netaddr
+- python3-lxml
+- python3-pychromecast
 - vorbis-tools
 - sox
 - lame
@@ -278,7 +294,7 @@ will get installed if you install it via the PPA.
 
 You can install all the dependencies in Ubuntu via:
 
-    sudo apt-get install python2.7 python-pip python-setuptools python-dbus python-docopt python-requests python-setproctitle python-gi python-protobuf python-notify2 python-psutil python-concurrent.futures python-chardet python-netifaces python-pyroute2 python-netaddr python-lxml python-zeroconf vorbis-tools sox lame flac faac opus-tools
+    sudo apt-get install python3 python3-pip python3-setuptools python3-dbus python3-docopt python3-requests python3-setproctitle python3-gi python3-notify2 python3-psutil python3-chardet python3-netifaces python3-pyroute2 python3-netaddr python3-lxml python3-pychromecast vorbis-tools sox lame flac faac opus-tools
 
 ### PulseAudio DBus module ###
 
@@ -314,7 +330,7 @@ So all Ubuntu versions prior to _14.10 Utopic_ need to install:
 
 All Ubuntu versions above install:
 
-    sudo apt-get install virtualenv python-dev
+    sudo apt-get install virtualenv python3-dev
 
 #### Installing & starting ####
 

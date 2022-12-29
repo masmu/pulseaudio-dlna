@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -22,34 +22,39 @@ setuptools.setup(
     name="pulseaudio-dlna",
     author="Massimo Mund",
     author_email="mo@lancode.de",
-    url="https://github.com/masmu/pulseaudio-dlna",
+    maintainer="Sinan H",
+    maintainer_email="cygn@lamad.net",
+    platforms="GNU/linux",
+    url="https://github.com/cygn/pulseaudio-dlna",
     description="A small DLNA server which brings DLNA / UPNP support"
                 "to PulseAudio and Linux.",
-    license="GPLv3",
-    platforms="Debian GNU/Linux",
+    license="License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     classifiers=[
-        "Development Status :: 4 - Beta",
-        "Programming Language :: Python :: 2.7",
+        "Development Status :: 6 - Beta",
+        "Programming Language :: Python :: 3",
         "Environment :: Console",
         "Topic :: Multimedia :: Sound/Audio",
         "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
     ],
-    version='0.5.2',
+    version='0.6.6',
     py_modules=[],
     packages=setuptools.find_packages(),
     install_requires=[
-        "docopt >= 0.6.1",
-        "requests >= 2.2.1",
-        "setproctitle >= 1.0.1",
-        "protobuf >= 2.5.0",
-        "notify2 >= 0.3",
-        "psutil >= 1.2.1",
-        "futures >= 2.1.6",
-        "chardet >= 2.0.1",
-        "pyroute2 >= 0.3.5",
-        "netifaces >= 0.8",
-        "lxml >= 3",
-        "zeroconf >= 0.17.4",
+    'docopt',
+    'chardet',
+    'dbus-python',
+    'docopt',
+    'requests',
+    'setproctitle',
+    'protobuf',
+    'lxml',
+    'netifaces',
+    'zeroconf',
+    'urllib3',
+    'psutil',
+    'pyroute2',
+    'notify2',
+    'pychromecast>=10',
     ],
     entry_points={
         "console_scripts": [
@@ -57,7 +62,7 @@ setuptools.setup(
         ]
     },
     data_files=[
-        ("share/man/man1", ["man/pulseaudio-dlna.1"]),
+        ("share/man/man1", ["man/pulseaudio-dlna.1.gz"]),
     ],
     package_data={
         "pulseaudio_dlna": ["images/*.png"],

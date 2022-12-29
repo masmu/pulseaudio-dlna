@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -14,8 +14,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import unicode_literals
 
 import sys
 import inspect
@@ -82,7 +80,7 @@ class DefaultCoverMode(BaseCoverMode):
     def thumb(self):
         try:
             return self.bridge.device.get_image_url('default.png')
-        except:
+        except Exception:
             return None
 
 
@@ -111,7 +109,7 @@ class DistributionCoverMode(BaseCoverMode):
         try:
             return self.bridge.device.get_image_url(
                 'distribution-{}.png'.format(dist_icon))
-        except:
+        except Exception:
             return None
 
 
@@ -124,7 +122,7 @@ class ApplicationCoverMode(BaseCoverMode):
         try:
             return self.bridge.device.get_sys_icon_url(
                 self.bridge.sink.primary_application_name)
-        except:
+        except Exception:
             return None
 
 
@@ -135,5 +133,6 @@ def load_modes():
                 if _type is not BaseCoverMode:
                     MODES[_type.IDENTIFIER] = _type
     return None
+
 
 load_modes()

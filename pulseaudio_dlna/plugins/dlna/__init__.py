@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 # This file is part of pulseaudio-dlna.
 
@@ -14,8 +14,6 @@
 
 # You should have received a copy of the GNU General Public License
 # along with pulseaudio-dlna.  If not, see <http://www.gnu.org/licenses/>.
-
-from __future__ import unicode_literals
 
 import logging
 import threading
@@ -73,7 +71,7 @@ class DLNAPlugin(pulseaudio_dlna.plugins.BasePlugin):
                 thread.start()
             for thread in threads:
                 thread.join()
-        except:
+        except Exception:
             traceback.print_exc()
 
         logger.info('DLNAPlugin.discover()')
