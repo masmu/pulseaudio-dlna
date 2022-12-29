@@ -201,6 +201,8 @@ class DLNAMediaRenderer(pulseaudio_dlna.plugins.renderer.BaseRenderer):
             d = self.upnp_device.get_protocol_info()
             sinks = d['GetProtocolInfoResponse']['Sink']
             # check if mime types are parsable
+            if type(sinks) is dict and '#text' in sinks:
+                sinks = sinks['#text']
             if type(sinks) is not str:
                 logger.warn("Could not parse mime types of type ")
                 logger.warn(type(sinks))
